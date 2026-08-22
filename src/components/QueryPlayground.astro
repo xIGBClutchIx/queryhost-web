@@ -1,0 +1,771 @@
+---
+import { GAMES } from "../lib/queryhost.js";
+
+const gameOptions = GAMES.map((game) => ({
+  defaultPort: game.defaultPort,
+  defaultQueryPort: game.defaultQueryPort,
+  id: game.id,
+  name: game.name,
+}));
+---
+
+<section class="playground" aria-labelledby="query-heading">
+  <div class="playground__heading">
+    <div>
+      <p class="eyebrow">Live query playground</p>
+      <h1 id="query-heading">Query a game server.</h1>
+    </div>
+    <p>
+      Choose a supported game and enter a public server address. QueryHost
+      returns current data, every attempted source, and honest partial results.
+    </p>
+  </div>
+
+  <form
+    class="query-form"
+    id="query-form"
+    data-games={JSON.stringify(gameOptions)}
+  >
+    <div class="query-form__primary">
+      <label class="field">
+        <span>Game</span>
+        <select id="query-game" name="game" required>
+          {
+            gameOptions.map((game) => (
+              <option value={game.id}>{game.name}</option>
+            ))
+          }
+        </select>
+      </label>
+
+      <label class="field field--host">
+        <span>Host or IP</span>
+        <input
+          id="query-host"
+          name="host"
+          type="text"
+          required
+          maxlength="253"
+          autocomplete="off"
+          autocapitalize="none"
+          spellcheck="false"
+          placeholder="play.example.com"
+        />
+      </label>
+
+      <label class="field">
+        <span>Game port</span>
+        <input
+          id="query-port"
+          name="port"
+          type="number"
+          min="1"
+          max="65535"
+          inputmode="numeric"
+        />
+      </label>
+
+      <button class="query-submit" id="query-submit" type="submit">
+        Run query
+      </button>
+    </div>
+
+    <div class="query-form__secondary">
+      <label class="field field--compact">
+        <span>Query port</span>
+        <input
+          id="query-query-port"
+          name="queryPort"
+          type="number"
+          min="1"
+          max="65535"
+          inputmode="numeric"
+          placeholder="Automatic"
+        />
+        <small id="query-port-help">Derived from the selected game.</small>
+      </label>
+
+      <label class="field field--compact">
+        <span>Mode</span>
+        <select id="query-mode" name="mode">
+          <option value="full">Full details</option>
+          <option value="summary">Summary only</option>
+        </select>
+        <small>Full mode requests optional sources.</small>
+      </label>
+
+      <label class="field field--compact">
+        <span>Deadline</span>
+        <select id="query-timeout" name="timeoutMs">
+          <option value="3000">3 seconds</option>
+          <option value="5000" selected>5 seconds</option>
+        </select>
+        <small>One bounded deadline for the entire query.</small>
+      </label>
+
+      <p class="query-form__privacy">
+        Shared URLs contain inputs only. Results and player data are never added
+        to the address.
+      </p>
+    </div>
+
+    <p class="query-form__error" id="query-form-error" role="alert" hidden></p>
+  </form>
+
+  <section
+    class="query-output"
+    id="query-output"
+    aria-live="polite"
+    aria-busy="false"
+  >
+    <div class="query-empty" id="query-empty">
+      <span class="query-empty__mark" aria-hidden="true"></span>
+      <div>
+        <h2>Ready for a server</h2>
+        <p>
+          No network request runs until you submit the form. Public-target and
+          resource checks are repeated by the private query service.
+        </p>
+      </div>
+    </div>
+
+    <div class="query-loading" id="query-loading" hidden>
+      <div class="query-loading__line query-loading__line--short"></div>
+      <div class="query-loading__grid">
+        <span></span><span></span><span></span><span></span>
+      </div>
+      <p>Contacting the server through the selected game profile…</p>
+    </div>
+
+    <div class="query-request-error" id="query-request-error" hidden>
+      <p class="eyebrow" id="query-request-error-code">Request failed</p>
+      <h2 id="query-request-error-title">The query could not be sent.</h2>
+      <p id="query-request-error-message"></p>
+    </div>
+
+    <div class="query-result" id="query-result" hidden>
+      <header class="query-result__header">
+        <div class="query-result__state">
+          <span id="query-result-dot" aria-hidden="true"></span>
+          <div>
+            <p id="query-result-status">Online</p>
+            <h2 id="query-result-name">Server result</h2>
+          </div>
+        </div>
+        <div class="query-result__timing">
+          <span id="query-result-cache">Live query</span>
+          <strong id="query-result-duration">0 ms</strong>
+        </div>
+      </header>
+
+      <div class="query-tabs" role="tablist" aria-label="Query result views">
+        <button
+          type="button"
+          role="tab"
+          id="query-tab-overview"
+          aria-controls="query-panel-overview"
+          aria-selected="true"
+          data-result-tab="overview">Overview</button
+        >
+        <button
+          type="button"
+          role="tab"
+          id="query-tab-data"
+          aria-controls="query-panel-data"
+          aria-selected="false"
+          data-result-tab="data">Game data</button
+        >
+        <button
+          type="button"
+          role="tab"
+          id="query-tab-sources"
+          aria-controls="query-panel-sources"
+          aria-selected="false"
+          data-result-tab="sources">Sources</button
+        >
+        <button
+          type="button"
+          role="tab"
+          id="query-tab-json"
+          aria-controls="query-panel-json"
+          aria-selected="false"
+          data-result-tab="json">JSON</button
+        >
+      </div>
+
+      <div
+        class="query-panel"
+        id="query-panel-overview"
+        role="tabpanel"
+        aria-labelledby="query-tab-overview"
+        data-result-panel="overview"
+      >
+        <dl class="query-overview" id="query-overview"></dl>
+        <div class="query-warnings" id="query-warnings" hidden>
+          <h3>Warnings</h3>
+          <ul id="query-warning-list"></ul>
+        </div>
+      </div>
+
+      <div
+        class="query-panel"
+        id="query-panel-data"
+        role="tabpanel"
+        aria-labelledby="query-tab-data"
+        data-result-panel="data"
+        hidden
+      >
+        <div class="query-data-section">
+          <h3>Game-specific data</h3>
+          <div class="query-data-list" id="query-data"></div>
+        </div>
+        <div class="query-data-section" id="query-raw-section" hidden>
+          <h3>Raw protocol data</h3>
+          <div class="query-data-list" id="query-raw-data"></div>
+        </div>
+      </div>
+
+      <div
+        class="query-panel"
+        id="query-panel-sources"
+        role="tabpanel"
+        aria-labelledby="query-tab-sources"
+        data-result-panel="sources"
+        hidden
+      >
+        <div class="query-source-list" id="query-sources"></div>
+      </div>
+
+      <div
+        class="query-panel query-panel--json"
+        id="query-panel-json"
+        role="tabpanel"
+        aria-labelledby="query-tab-json"
+        data-result-panel="json"
+        hidden
+      >
+        <div class="query-json-toolbar">
+          <span>Hosted response</span>
+          <button type="button" id="query-copy-json">Copy JSON</button>
+        </div>
+        <pre><code id="query-json" /></pre>
+      </div>
+    </div>
+  </section>
+</section>
+
+<script>
+  import type {
+    JsonObject,
+    JsonValue,
+    PlaygroundProxyErrorResponse,
+    PlaygroundQueryInput,
+    PlaygroundQueryResponse,
+  } from "../lib/playground-contracts.js";
+
+  interface ClientGameDefinition {
+    readonly defaultPort: number;
+    readonly defaultQueryPort?: number;
+    readonly id: PlaygroundQueryInput["game"];
+    readonly name: string;
+  }
+
+  function requiredElement<T extends Element>(selector: string): T {
+    const element = document.querySelector<T>(selector);
+    if (element === null) {
+      throw new Error(`Missing playground element: ${selector}`);
+    }
+    return element;
+  }
+
+  function parseJson<T>(text: string): T {
+    return JSON.parse(text) as T;
+  }
+
+  function numericValue(input: HTMLInputElement): number | undefined {
+    if (input.value.length === 0) {
+      return undefined;
+    }
+    const value = Number(input.value);
+    return Number.isSafeInteger(value) ? value : undefined;
+  }
+
+  function milliseconds(value: number): string {
+    return `${Math.round(value * 10) / 10} ms`;
+  }
+
+  function readableKey(value: string): string {
+    return value
+      .replaceAll(/([a-z0-9])([A-Z])/g, "$1 $2")
+      .replaceAll(/[._-]+/g, " ")
+      .replace(/^./, (first) => first.toUpperCase());
+  }
+
+  function scalarText(value: JsonValue): string | undefined {
+    if (value === null) {
+      return "null";
+    }
+    if (typeof value === "boolean") {
+      return value ? "Yes" : "No";
+    }
+    if (typeof value === "number" || typeof value === "string") {
+      return String(value);
+    }
+    return undefined;
+  }
+
+  const form = requiredElement<HTMLFormElement>("#query-form");
+  const gameSelect = requiredElement<HTMLSelectElement>("#query-game");
+  const hostInput = requiredElement<HTMLInputElement>("#query-host");
+  const portInput = requiredElement<HTMLInputElement>("#query-port");
+  const queryPortInput = requiredElement<HTMLInputElement>("#query-query-port");
+  const modeSelect = requiredElement<HTMLSelectElement>("#query-mode");
+  const timeoutSelect = requiredElement<HTMLSelectElement>("#query-timeout");
+  const portHelp = requiredElement<HTMLElement>("#query-port-help");
+  const submitButton = requiredElement<HTMLButtonElement>("#query-submit");
+  const formError = requiredElement<HTMLElement>("#query-form-error");
+  const output = requiredElement<HTMLElement>("#query-output");
+  const emptyState = requiredElement<HTMLElement>("#query-empty");
+  const loadingState = requiredElement<HTMLElement>("#query-loading");
+  const requestError = requiredElement<HTMLElement>("#query-request-error");
+  const resultElement = requiredElement<HTMLElement>("#query-result");
+  const games = parseJson<readonly ClientGameDefinition[]>(
+    form.dataset.games ?? "[]",
+  );
+
+  let activeController: AbortController | undefined;
+  let activeRequest = 0;
+  let previousGameId = gameSelect.value;
+  let responseJson = "";
+
+  function selectedGame(): ClientGameDefinition {
+    const game = games.find((candidate) => candidate.id === gameSelect.value);
+    if (game === undefined) {
+      throw new Error("The selected game is not in the package registry.");
+    }
+    return game;
+  }
+
+  function updateGameFields(previousDefault?: number): void {
+    const game = selectedGame();
+    if (
+      portInput.value.length === 0 ||
+      (previousDefault !== undefined &&
+        Number(portInput.value) === previousDefault)
+    ) {
+      portInput.value = String(game.defaultPort);
+    }
+    queryPortInput.placeholder =
+      game.defaultQueryPort === undefined
+        ? "Automatic"
+        : String(game.defaultQueryPort);
+    portHelp.textContent =
+      game.defaultQueryPort === undefined
+        ? "Uses the game port unless the profile discovers another target."
+        : `Defaults to ${game.defaultQueryPort}; custom game ports preserve the offset.`;
+  }
+
+  function showOnly(state: "empty" | "error" | "loading" | "result"): void {
+    emptyState.hidden = state !== "empty";
+    loadingState.hidden = state !== "loading";
+    requestError.hidden = state !== "error";
+    resultElement.hidden = state !== "result";
+    output.setAttribute("aria-busy", state === "loading" ? "true" : "false");
+  }
+
+  function showFormError(message: string): void {
+    formError.textContent = message;
+    formError.hidden = false;
+  }
+
+  function clearFormError(): void {
+    formError.textContent = "";
+    formError.hidden = true;
+  }
+
+  function proxyError(
+    code: string,
+    message: string,
+    title = "The query could not be sent.",
+  ): void {
+    requiredElement<HTMLElement>("#query-request-error-code").textContent =
+      code;
+    requiredElement<HTMLElement>("#query-request-error-title").textContent =
+      title;
+    requiredElement<HTMLElement>("#query-request-error-message").textContent =
+      message;
+    showOnly("error");
+  }
+
+  function addOverviewRow(
+    container: HTMLDListElement,
+    label: string,
+    value: string,
+  ): void {
+    const group = document.createElement("div");
+    const term = document.createElement("dt");
+    const description = document.createElement("dd");
+    term.textContent = label;
+    description.textContent = value;
+    group.append(term, description);
+    container.append(group);
+  }
+
+  function renderDataObject(container: HTMLElement, data: JsonObject): void {
+    container.replaceChildren();
+    const entries = Object.entries(data);
+    if (entries.length === 0) {
+      const empty = document.createElement("p");
+      empty.className = "query-data-empty";
+      empty.textContent = "This server did not return game-specific fields.";
+      container.append(empty);
+      return;
+    }
+
+    for (const [key, value] of entries) {
+      const row = document.createElement("div");
+      const label = document.createElement("span");
+      const content = document.createElement("div");
+      label.textContent = readableKey(key);
+      const scalar = scalarText(value);
+      if (scalar === undefined) {
+        const pre = document.createElement("pre");
+        const code = document.createElement("code");
+        code.textContent = JSON.stringify(value, null, 2);
+        pre.append(code);
+        content.append(pre);
+      } else {
+        content.textContent = scalar;
+      }
+      row.append(label, content);
+      container.append(row);
+    }
+  }
+
+  function renderSources(result: PlaygroundQueryResponse): void {
+    const container = requiredElement<HTMLElement>("#query-sources");
+    container.replaceChildren();
+    for (const source of result.sources) {
+      const row = document.createElement("div");
+      const identity = document.createElement("div");
+      const dot = document.createElement("span");
+      const name = document.createElement("strong");
+      const status = document.createElement("span");
+      const timing = document.createElement("code");
+      dot.className = `query-source-dot query-source-dot--${source.status}`;
+      name.textContent = source.source;
+      status.textContent = readableKey(source.status);
+      identity.append(dot, name, status);
+      timing.textContent =
+        source.rttMs === undefined ? "—" : milliseconds(source.rttMs);
+      row.append(identity, timing);
+      container.append(row);
+    }
+  }
+
+  function renderWarnings(result: PlaygroundQueryResponse): void {
+    const warningBox = requiredElement<HTMLElement>("#query-warnings");
+    const warningList = requiredElement<HTMLUListElement>(
+      "#query-warning-list",
+    );
+    warningList.replaceChildren();
+    warningBox.hidden = result.warnings.length === 0;
+    for (const warning of result.warnings) {
+      const item = document.createElement("li");
+      const code = document.createElement("code");
+      const message = document.createElement("span");
+      code.textContent = warning.code;
+      message.textContent = warning.message;
+      item.append(code, message);
+      warningList.append(item);
+    }
+  }
+
+  function renderResult(result: PlaygroundQueryResponse, raw: string): void {
+    responseJson = raw;
+    const overview = requiredElement<HTMLDListElement>("#query-overview");
+    const status = requiredElement<HTMLElement>("#query-result-status");
+    const name = requiredElement<HTMLElement>("#query-result-name");
+    const dot = requiredElement<HTMLElement>("#query-result-dot");
+    const cache = requiredElement<HTMLElement>("#query-result-cache");
+    overview.replaceChildren();
+
+    cache.textContent =
+      result.cache.status === "hit"
+        ? `Cache hit · ${milliseconds(result.cache.ageMs)} old`
+        : result.cache.status === "coalesced"
+          ? "Shared in-flight query"
+          : "Live query";
+    requiredElement<HTMLElement>("#query-result-duration").textContent =
+      milliseconds(result.durationMs);
+
+    addOverviewRow(overview, "Game", result.game);
+    if (result.ok) {
+      status.textContent = result.partial ? "Online · partial" : "Online";
+      name.textContent = result.server.name ?? "Unnamed server";
+      dot.className = result.partial ? "is-partial" : "is-online";
+      if (result.server.map !== undefined) {
+        addOverviewRow(overview, "Map", result.server.map);
+      }
+      if (result.server.version !== undefined) {
+        addOverviewRow(overview, "Version", result.server.version);
+      }
+      if (result.server.players !== undefined) {
+        const online = result.server.players.online;
+        const maximum = result.server.players.max;
+        const players =
+          online === undefined
+            ? `— / ${maximum ?? "—"}`
+            : `${online} / ${maximum ?? "—"}`;
+        addOverviewRow(overview, "Players", players);
+      }
+      if (result.server.password !== undefined) {
+        addOverviewRow(
+          overview,
+          "Password",
+          result.server.password ? "Required" : "Not required",
+        );
+      }
+      if (result.server.queryRttMs !== undefined) {
+        addOverviewRow(
+          overview,
+          "Query RTT",
+          milliseconds(result.server.queryRttMs),
+        );
+      }
+      renderDataObject(requiredElement("#query-data"), result.data);
+      const rawSection = requiredElement<HTMLElement>("#query-raw-section");
+      rawSection.hidden = result.rawData === undefined;
+      if (result.rawData !== undefined) {
+        renderDataObject(requiredElement("#query-raw-data"), result.rawData);
+      }
+    } else {
+      status.textContent = "Offline or unreachable";
+      name.textContent = result.error.message;
+      dot.className = "is-offline";
+      addOverviewRow(overview, "Error", result.error.code);
+      if (result.error.source !== undefined) {
+        addOverviewRow(overview, "Required source", result.error.source);
+      }
+      renderDataObject(requiredElement("#query-data"), {});
+      requiredElement<HTMLElement>("#query-raw-section").hidden = true;
+    }
+
+    renderWarnings(result);
+    renderSources(result);
+    requiredElement<HTMLElement>("#query-json").textContent = JSON.stringify(
+      parseJson<JsonValue>(raw),
+      null,
+      2,
+    );
+    activateTab("overview");
+    showOnly("result");
+  }
+
+  function activateTab(name: string): void {
+    for (const tab of document.querySelectorAll<HTMLButtonElement>(
+      "[data-result-tab]",
+    )) {
+      const active = tab.dataset.resultTab === name;
+      tab.setAttribute("aria-selected", active ? "true" : "false");
+      tab.tabIndex = active ? 0 : -1;
+    }
+    for (const panel of document.querySelectorAll<HTMLElement>(
+      "[data-result-panel]",
+    )) {
+      panel.hidden = panel.dataset.resultPanel !== name;
+    }
+  }
+
+  function queryInput(): PlaygroundQueryInput | undefined {
+    if (!form.reportValidity()) {
+      return undefined;
+    }
+    const game = selectedGame();
+    const host = hostInput.value.trim();
+    if (
+      /[\s/?#@]/u.test(host) ||
+      host.includes("[") ||
+      host.includes("]") ||
+      host.includes("%")
+    ) {
+      showFormError("Enter a plain hostname or IP address without URL syntax.");
+      hostInput.focus();
+      return undefined;
+    }
+    const port = numericValue(portInput);
+    const queryPort = numericValue(queryPortInput);
+    const timeoutMs = Number(timeoutSelect.value);
+    return {
+      game: game.id,
+      host,
+      ...(port === undefined ? {} : { port }),
+      ...(queryPort === undefined ? {} : { queryPort }),
+      mode: modeSelect.value === "summary" ? "summary" : "full",
+      timeoutMs,
+    };
+  }
+
+  function updateShareUrl(input: PlaygroundQueryInput): void {
+    const url = new URL(window.location.href);
+    url.search = "";
+    url.searchParams.set("game", input.game);
+    url.searchParams.set("host", input.host);
+    if (input.port !== undefined) {
+      url.searchParams.set("port", String(input.port));
+    }
+    if (input.queryPort !== undefined) {
+      url.searchParams.set("queryPort", String(input.queryPort));
+    }
+    if (input.mode === "summary") {
+      url.searchParams.set("mode", "summary");
+    }
+    if (input.timeoutMs !== undefined && input.timeoutMs !== 5_000) {
+      url.searchParams.set("timeoutMs", String(input.timeoutMs));
+    }
+    history.replaceState(null, "", url);
+  }
+
+  async function runQuery(): Promise<void> {
+    clearFormError();
+    const input = queryInput();
+    if (input === undefined) {
+      return;
+    }
+
+    activeController?.abort();
+    const controller = new AbortController();
+    activeController = controller;
+    activeRequest += 1;
+    const requestId = activeRequest;
+    updateShareUrl(input);
+    submitButton.disabled = true;
+    submitButton.textContent = "Querying…";
+    showOnly("loading");
+
+    try {
+      const response = await fetch("/api/query", {
+        body: JSON.stringify(input),
+        headers: { "Content-Type": "application/json" },
+        method: "POST",
+        signal: controller.signal,
+      });
+      const raw = await response.text();
+      if (requestId !== activeRequest) {
+        return;
+      }
+      if (!response.ok) {
+        const failure = parseJson<PlaygroundProxyErrorResponse>(raw);
+        proxyError(failure.error.code, failure.error.message);
+        return;
+      }
+      renderResult(parseJson<PlaygroundQueryResponse>(raw), raw);
+    } catch (error) {
+      if (requestId !== activeRequest || controller.signal.aborted) {
+        return;
+      }
+      const message =
+        error instanceof Error
+          ? error.message
+          : "The browser could not reach the QueryHost web service.";
+      proxyError("NETWORK_ERROR", message);
+    } finally {
+      if (requestId === activeRequest) {
+        submitButton.disabled = false;
+        submitButton.textContent = "Run query";
+        output.setAttribute("aria-busy", "false");
+      }
+    }
+  }
+
+  function prefillFromUrl(): void {
+    const parameters = new URLSearchParams(window.location.search);
+    const game = parameters.get("game");
+    if (game !== null && games.some((candidate) => candidate.id === game)) {
+      gameSelect.value = game;
+    }
+    previousGameId = gameSelect.value;
+    updateGameFields();
+    const host = parameters.get("host");
+    if (host !== null) {
+      hostInput.value = host;
+    }
+    for (const [name, input] of [
+      ["port", portInput],
+      ["queryPort", queryPortInput],
+    ] as const) {
+      const value = parameters.get(name);
+      if (value !== null && /^\d{1,5}$/u.test(value)) {
+        input.value = value;
+      }
+    }
+    const mode = parameters.get("mode");
+    if (mode === "summary" || mode === "full") {
+      modeSelect.value = mode;
+    }
+    const timeout = parameters.get("timeoutMs");
+    if (timeout === "3000" || timeout === "5000") {
+      timeoutSelect.value = timeout;
+    }
+  }
+
+  gameSelect.addEventListener("change", () => {
+    const previous = games.find(
+      (candidate) => candidate.id === previousGameId,
+    )?.defaultPort;
+    updateGameFields(previous);
+    previousGameId = gameSelect.value;
+  });
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    void runQuery();
+  });
+  for (const tab of document.querySelectorAll<HTMLButtonElement>(
+    "[data-result-tab]",
+  )) {
+    tab.addEventListener("click", () =>
+      activateTab(tab.dataset.resultTab ?? "overview"),
+    );
+    tab.addEventListener("keydown", (event) => {
+      if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") {
+        return;
+      }
+      const tabs = Array.from(
+        document.querySelectorAll<HTMLButtonElement>("[data-result-tab]"),
+      );
+      const currentIndex = tabs.indexOf(tab);
+      const direction = event.key === "ArrowRight" ? 1 : -1;
+      const next = tabs.at(
+        (currentIndex + direction + tabs.length) % tabs.length,
+      );
+      if (next === undefined) {
+        return;
+      }
+      event.preventDefault();
+      activateTab(next.dataset.resultTab ?? "overview");
+      next.focus();
+    });
+  }
+  requiredElement<HTMLButtonElement>("#query-copy-json").addEventListener(
+    "click",
+    (event) => {
+      const button = event.currentTarget;
+      if (!(button instanceof HTMLButtonElement)) {
+        return;
+      }
+      void navigator.clipboard.writeText(responseJson).then(
+        () => {
+          button.textContent = "Copied";
+          window.setTimeout(() => {
+            button.textContent = "Copy JSON";
+          }, 1_500);
+        },
+        () => {
+          button.textContent = "Copy failed";
+        },
+      );
+    },
+  );
+
+  prefillFromUrl();
+</script>

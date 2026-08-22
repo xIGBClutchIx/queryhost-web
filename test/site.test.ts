@@ -58,6 +58,7 @@ describe("hostname routing", () => {
 describe("cache policy", () => {
   it("keeps health uncached and hashes immutable while pages remain short-lived", () => {
     expect(cacheControlForPath("/health")).toBe("no-store");
+    expect(cacheControlForPath("/api/query")).toBe("no-store");
     expect(cacheControlForPath("/_astro/app.123.css")).toContain("immutable");
     expect(cacheControlForPath("/docs/results/")).toBe(
       "public, max-age=300, stale-while-revalidate=86400",

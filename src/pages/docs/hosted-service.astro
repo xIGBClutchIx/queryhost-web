@@ -11,10 +11,32 @@ import DocsLayout from "../../layouts/DocsLayout.astro";
 >
   <h2 id="boundary">Service boundary</h2>
   <p>
-    The browser talks only to the public web service. A future playground route
-    validates and limits callers before forwarding requests over Railway private
-    networking. The private API independently repeats target and resource checks
-    and never exposes its origin token to browser code.
+    The browser sends non-secret inputs to <code>POST /api/query</code> on the public
+    web service. This same-origin route validates and limits callers before forwarding
+    requests over Railway private networking. The private API independently repeats
+    target and resource checks and never exposes its origin token to browser code.
+  </p>
+
+  <h2 id="public-route">Public playground route</h2>
+  <p>
+    The web boundary accepts only the game, host, optional ports, query mode,
+    and deadline. It canonicalizes game aliases, bounds the request body, and
+    applies per-caller, global-start, active-query, and tracked-caller limits
+    before any private API work begins. Successful forwarding returns the hosted
+    response JSON unchanged and adds no private proxy metadata.
+  </p>
+  <ul>
+    <li>At most 8 query starts per caller each minute.</li>
+    <li>At most 60 query starts globally each minute per web instance.</li>
+    <li>At most 8 forwarded queries active at once per web instance.</li>
+    <li>At most 2,048 caller counters retained in memory.</li>
+    <li>Request bodies are capped at 2 KiB.</li>
+    <li>The private API response deadline is capped at 7 seconds.</li>
+  </ul>
+  <p>
+    These are deliberately small in-memory controls, not a distributed quota
+    system. The private API still owns destination, concurrency, and protocol
+    safety.
   </p>
 
   <h2 id="routes">Private API routes</h2>
@@ -58,11 +80,11 @@ import DocsLayout from "../../layouts/DocsLayout.astro";
     redirects, caps concurrency and admission, bounds every parser and
     transport, and fails closed when capacity is exhausted.
   </p>
-  <Callout title="No public query route in this slice">
+  <Callout title="Credentials stay at the server boundary">
     <p>
-      The documentation service is ready, but the browser-facing proxy and
-      caller rate limits belong to the playground slice. Until then, no web
-      route forwards queries to the private API.
+      Browser code addresses only the current origin. The Railway private
+      hostname and <code>QUERYHOST_API_ORIGIN_TOKEN</code> are read by the Node.js
+      server and are never serialized into the page, shared URL, or hosted response.
     </p>
   </Callout>
 

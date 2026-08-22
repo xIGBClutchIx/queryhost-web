@@ -1,8 +1,8 @@
 # QueryHost Web
 
-The public QueryHost website and documentation service. One portable Astro/Node.js application serves `query.host` and `docs.query.host` with a shared design system and hostname-aware entry routing.
+The public QueryHost website, query playground, and documentation service. One portable Astro/Node.js application serves `query.host` and `docs.query.host` with a shared design system and hostname-aware entry routing.
 
-The query playground and trusted private-API proxy are added in the next implementation slice. This repository does not query game servers directly.
+The browser sends non-secret query inputs to the same-origin `POST /api/query` route. That server route validates and throttles callers before forwarding to the private QueryHost API over Railway networking. This repository never implements game protocols or queries game servers directly.
 
 ## Development
 
@@ -12,6 +12,15 @@ Requirements: Node.js 24 and npm 12.
 npm install
 npm run dev
 ```
+
+The playground route requires these server-only variables:
+
+```text
+QUERYHOST_API_BASE_URL=http://api.railway.internal:3000
+QUERYHOST_API_ORIGIN_TOKEN=<shared private token>
+```
+
+The private origin and token must never use a `PUBLIC_` prefix. Optional `QUERYHOST_WEB_*` variables tune the bounded caller gate, request size, and upstream deadline; production defaults are documented on the Hosted service page.
 
 Local and preview hosts use `/` for the site and `/docs/` for documentation so every internal link remains on the current origin. Only the canonical `query.host` and `docs.query.host` domains use cross-origin navigation; production requests to `docs.query.host` map clean documentation paths to the same internal pages.
 
@@ -27,7 +36,7 @@ npm run verify
 
 ## Deployment
 
-`npm run build` creates a standalone Node.js server. Railway runs `npm start`, checks `/health`, and keeps Serverless disabled initially. Domain attachment remains a separate production-readiness step.
+`npm run build` creates a standalone Node.js server. Railway runs `npm start`, checks `/health`, and keeps Serverless disabled initially. The web service talks to the API through its private Railway hostname; only the web service receives a public domain. Domain attachment remains a separate production-readiness step.
 
 ## License
 

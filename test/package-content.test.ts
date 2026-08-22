@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+
 import { describe, expect, it } from "vitest";
 
 import {
@@ -17,6 +19,21 @@ describe("package-owned registry", () => {
       expect(Number.isInteger(game.defaultPort)).toBe(true);
       expect(capabilityEntries(game)).toHaveLength(7);
     }
+  });
+});
+
+describe("browser query boundary", () => {
+  it("addresses only the same-origin proxy and contains no private credentials", () => {
+    const source = readFileSync(
+      new URL("../src/components/QueryPlayground.astro", import.meta.url),
+      "utf8",
+    );
+
+    expect(source).toContain('fetch("/api/query"');
+    expect(source).not.toContain("QUERYHOST_API_BASE_URL");
+    expect(source).not.toContain("QUERYHOST_API_ORIGIN_TOKEN");
+    expect(source).not.toContain("railway.internal");
+    expect(source).not.toContain("x-queryhost-origin-token");
   });
 });
 
