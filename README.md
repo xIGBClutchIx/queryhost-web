@@ -13,7 +13,7 @@ npm install
 npm run dev
 ```
 
-Local routes use `/` for the site and `/docs/` for documentation. Production requests to `docs.query.host` map clean documentation paths to the same internal pages.
+Local and preview hosts use `/` for the site and `/docs/` for documentation so every internal link remains on the current origin. Only the canonical `query.host` and `docs.query.host` domains use cross-origin navigation; production requests to `docs.query.host` map clean documentation paths to the same internal pages.
 
 Run the complete gate before committing:
 

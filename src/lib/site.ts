@@ -3,12 +3,6 @@ export type SiteExperience = "docs" | "site";
 export const DOCS_HOSTNAME = "docs.query.host";
 export const SITE_HOSTNAME = "query.host";
 
-const LOCAL_HOSTNAMES: ReadonlySet<string> = new Set([
-  "127.0.0.1",
-  "localhost",
-  "::1",
-]);
-
 /** Normalizes a Host-style value without accepting a path, credentials, or scheme. */
 export function normalizeHostname(value: string): string {
   const firstValue = value.split(",", 1)[0]?.trim().toLowerCase() ?? "";
@@ -32,8 +26,12 @@ export function experienceForHostname(hostname: string): SiteExperience {
   return normalizeHostname(hostname) === DOCS_HOSTNAME ? "docs" : "site";
 }
 
-export function isLocalHostname(hostname: string): boolean {
-  return LOCAL_HOSTNAMES.has(normalizeHostname(hostname));
+/** Limits cross-origin navigation to QueryHost's two canonical public domains. */
+export function isCanonicalHostname(hostname: string): boolean {
+  const normalizedHostname = normalizeHostname(hostname);
+  return (
+    normalizedHostname === SITE_HOSTNAME || normalizedHostname === DOCS_HOSTNAME
+  );
 }
 
 /** Maps a public clean documentation path to its internal Astro route. */
@@ -43,11 +41,11 @@ export function internalDocumentationPath(pathname: string): string {
   return cleanPath === "/" ? "/docs/" : `/docs${cleanPath}`;
 }
 
-/** Returns the public documentation URL for production and the local route during development. */
+/** Uses the docs domain in production and a same-origin route on every preview host. */
 export function documentationHref(hostname: string, pathname = "/"): string {
   const normalizedPath =
     pathname === "/" ? "/" : `/${pathname.replace(/^\/+|\/+$/g, "")}/`;
-  if (isLocalHostname(hostname)) {
+  if (!isCanonicalHostname(hostname)) {
     return internalDocumentationPath(normalizedPath);
   }
 
@@ -55,7 +53,7 @@ export function documentationHref(hostname: string, pathname = "/"): string {
 }
 
 export function siteHref(hostname: string): string {
-  return isLocalHostname(hostname) ? "/" : `https://${SITE_HOSTNAME}/`;
+  return isCanonicalHostname(hostname) ? `https://${SITE_HOSTNAME}/` : "/";
 }
 
 export function cacheControlForPath(pathname: string): string {

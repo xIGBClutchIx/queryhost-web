@@ -6,8 +6,10 @@ import {
   documentationHref,
   experienceForHostname,
   internalDocumentationPath,
+  isCanonicalHostname,
   normalizeHostname,
   requestHostname,
+  siteHref,
 } from "../src/lib/site.js";
 
 describe("hostname routing", () => {
@@ -34,11 +36,22 @@ describe("hostname routing", () => {
     );
   });
 
-  it("uses local documentation routes without changing production domains", () => {
+  it("keeps all internal navigation on preview hosts", () => {
     expect(documentationHref("localhost", "/games/")).toBe("/docs/games/");
+    expect(
+      documentationHref("web-production-d8918.up.railway.app", "/games/"),
+    ).toBe("/docs/games/");
+    expect(siteHref("web-production-d8918.up.railway.app")).toBe("/");
+  });
+
+  it("crosses origins only between the canonical production domains", () => {
+    expect(isCanonicalHostname("query.host")).toBe(true);
+    expect(isCanonicalHostname("docs.query.host")).toBe(true);
+    expect(isCanonicalHostname("preview.query.host")).toBe(false);
     expect(documentationHref("query.host", "/games/")).toBe(
       "https://docs.query.host/games/",
     );
+    expect(siteHref("docs.query.host")).toBe("https://query.host/");
   });
 });
 
