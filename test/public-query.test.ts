@@ -45,7 +45,7 @@ function queryRequest(body: string, address = "203.0.113.10"): Request {
     body,
     headers: {
       "Content-Type": "application/json",
-      "x-forwarded-for": address,
+      "x-real-ip": address,
     },
     method: "POST",
   });
@@ -146,6 +146,30 @@ describe("public query proxy", () => {
     expect(limited.status).toBe(429);
     expect(limited.headers.get("retry-after")).toBe("60");
     expect(calls).toBe(1);
+  });
+
+  it("uses Railway's client address instead of a supplied forwarding chain", async () => {
+    let calls = 0;
+    const shared = dependencies(
+      () => {
+        calls += 1;
+        return Promise.resolve(
+          new Response("{}", {
+            headers: { "Content-Type": "application/json" },
+          }),
+        );
+      },
+      { ...POLICY, maxStartsPerCaller: 1 },
+    );
+    const body = JSON.stringify({ game: "rust", host: "play.example.com" });
+    const first = queryRequest(body, "203.0.113.20");
+    const second = queryRequest(body, "203.0.113.21");
+    first.headers.set("x-forwarded-for", "198.51.100.8");
+    second.headers.set("x-forwarded-for", "198.51.100.8");
+
+    expect((await handlePublicQuery(first, shared)).status).toBe(200);
+    expect((await handlePublicQuery(second, shared)).status).toBe(200);
+    expect(calls).toBe(2);
   });
 
   it("keeps API failures distinct from unavailable or invalid upstreams", async () => {

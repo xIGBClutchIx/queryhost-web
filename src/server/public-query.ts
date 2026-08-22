@@ -294,8 +294,8 @@ function parseInput(text: string): PlaygroundQueryInput {
 function callerFingerprint(request: Request): string {
   const forwarded = request.headers.get("x-forwarded-for");
   const address =
-    forwarded?.split(",", 1)[0]?.trim() ||
     request.headers.get("x-real-ip")?.trim() ||
+    forwarded?.split(",", 1)[0]?.trim() ||
     "anonymous";
   return createHash("sha256").update(address.slice(0, 128)).digest("hex");
 }
