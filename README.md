@@ -2,7 +2,7 @@
 
 The public QueryHost website, query playground, and documentation service. One portable Astro/Node.js application serves `query.host` and `docs.query.host` with a shared design system and hostname-aware entry routing.
 
-The browser sends non-secret query inputs to the same-origin `POST /api/query` route. That server route validates and throttles callers before forwarding to the private QueryHost API over Railway networking. This repository never implements game protocols or queries game servers directly.
+The browser sends non-secret query inputs to the same-origin `POST /api/query` route. That server route validates and throttles callers before forwarding production requests to the private QueryHost API over Railway networking. During local development, the same route calls the installed `queryhost` package directly, without duplicating any game protocol implementation.
 
 ## Development
 
@@ -13,7 +13,9 @@ npm install
 npm run dev
 ```
 
-The playground route requires these server-only variables:
+No API environment variables are required for `npm run dev`; localhost performs live queries through the installed QueryHost library. Its normal public-target policy remains active.
+
+Production requires these server-only variables:
 
 ```text
 QUERYHOST_API_BASE_URL=http://api.railway.internal:3000

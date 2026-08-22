@@ -3,8 +3,10 @@ import { createHash } from "node:crypto";
 import {
   canonicalGameId,
   isGameInputId,
+  query,
   type GameId,
   type QueryMode,
+  type QueryResult,
 } from "queryhost";
 
 import type {
@@ -27,10 +29,17 @@ const ALLOWED_FIELDS: ReadonlySet<string> = new Set([
 const ORIGIN_TOKEN_HEADER = "x-queryhost-origin-token";
 const MAX_HOST_LENGTH = 253;
 
+export type PublicQueryTarget =
+  | {
+      readonly kind: "hosted";
+      readonly apiBaseUrl: string;
+      readonly apiOriginToken: string;
+    }
+  | { readonly kind: "local" };
+
 export interface PublicQueryConfig {
-  readonly apiBaseUrl: string;
-  readonly apiOriginToken: string;
   readonly maxBodyBytes: number;
+  readonly target: PublicQueryTarget;
   readonly upstreamTimeoutMs: number;
 }
 
@@ -39,10 +48,17 @@ export type ProxyFetcher = (
   init: RequestInit,
 ) => Promise<Response>;
 
+export interface LocalQueryInput extends PlaygroundQueryInput {
+  readonly signal: AbortSignal;
+}
+
+export type LocalQueryRunner = (input: LocalQueryInput) => Promise<QueryResult>;
+
 export interface PublicQueryDependencies {
   readonly config: PublicQueryConfig;
   readonly fetcher: ProxyFetcher;
   readonly gate: ProxyGate;
+  readonly queryRunner: LocalQueryRunner;
 }
 
 class PublicQueryInputError extends Error {
@@ -72,10 +88,18 @@ function integerEnvironment(
   return value;
 }
 
-function apiBaseUrl(environment: NodeJS.ProcessEnv): string {
+function hostedQueryTarget(environment: NodeJS.ProcessEnv): PublicQueryTarget {
   const raw = environment["QUERYHOST_API_BASE_URL"];
   if (raw === undefined) {
-    throw new Error("QUERYHOST_API_BASE_URL is required.");
+    if (environment["NODE_ENV"] === "production") {
+      throw new Error("QUERYHOST_API_BASE_URL is required in production.");
+    }
+    if (environment["QUERYHOST_API_ORIGIN_TOKEN"] !== undefined) {
+      throw new Error(
+        "QUERYHOST_API_ORIGIN_TOKEN requires QUERYHOST_API_BASE_URL.",
+      );
+    }
+    return { kind: "local" };
   }
   const url = new URL(raw);
   if (
@@ -88,25 +112,23 @@ function apiBaseUrl(environment: NodeJS.ProcessEnv): string {
   ) {
     throw new Error("QUERYHOST_API_BASE_URL must be an HTTP origin URL.");
   }
-  return url.origin;
-}
-
-function apiOriginToken(environment: NodeJS.ProcessEnv): string {
   const token = environment["QUERYHOST_API_ORIGIN_TOKEN"];
   if (token === undefined || token.length < 32 || token.length > 256) {
     throw new Error(
       "QUERYHOST_API_ORIGIN_TOKEN must contain 32 through 256 characters.",
     );
   }
-  return token;
+  return {
+    apiBaseUrl: url.origin,
+    apiOriginToken: token,
+    kind: "hosted",
+  };
 }
 
 export function loadPublicQueryConfig(
   environment: NodeJS.ProcessEnv = process.env,
 ): PublicQueryConfig {
   return {
-    apiBaseUrl: apiBaseUrl(environment),
-    apiOriginToken: apiOriginToken(environment),
     maxBodyBytes: integerEnvironment(
       environment,
       "QUERYHOST_WEB_MAX_BODY_BYTES",
@@ -114,6 +136,7 @@ export function loadPublicQueryConfig(
       256,
       16_384,
     ),
+    target: hostedQueryTarget(environment),
     upstreamTimeoutMs: integerEnvironment(
       environment,
       "QUERYHOST_WEB_UPSTREAM_TIMEOUT_MS",
@@ -314,6 +337,23 @@ function forwardedHeaders(upstream: Response): Headers {
   return headers;
 }
 
+function localQueryResponse(result: QueryResult): Response {
+  return new Response(
+    JSON.stringify({
+      ...result,
+      cache: { ageMs: 0, status: "miss", ttlMs: 0 },
+    }),
+    {
+      headers: {
+        "Cache-Control": "no-store",
+        "Content-Type": "application/json; charset=utf-8",
+        "x-queryhost-cache": "miss",
+      },
+      status: 200,
+    },
+  );
+}
+
 /** Validates, admits, and forwards one same-origin playground query. */
 export async function handlePublicQuery(
   request: Request,
@@ -382,19 +422,22 @@ export async function handlePublicQuery(
       request.signal,
       AbortSignal.timeout(dependencies.config.upstreamTimeoutMs),
     ]);
-    const upstream = await dependencies.fetcher(
-      `${dependencies.config.apiBaseUrl}/query`,
-      {
-        body: JSON.stringify(input),
-        headers: {
-          "Content-Type": "application/json",
-          [ORIGIN_TOKEN_HEADER]: dependencies.config.apiOriginToken,
-        },
-        method: "POST",
-        redirect: "error",
-        signal,
+    if (dependencies.config.target.kind === "local") {
+      const result = await dependencies.queryRunner({ ...input, signal });
+      return localQueryResponse(result);
+    }
+
+    const target = dependencies.config.target;
+    const upstream = await dependencies.fetcher(`${target.apiBaseUrl}/query`, {
+      body: JSON.stringify(input),
+      headers: {
+        "Content-Type": "application/json",
+        [ORIGIN_TOKEN_HEADER]: target.apiOriginToken,
       },
-    );
+      method: "POST",
+      redirect: "error",
+      signal,
+    });
     const contentType = upstream.headers.get("content-type") ?? "";
     if (!contentType.startsWith("application/json")) {
       return jsonResponse(
@@ -425,5 +468,6 @@ export function createDefaultPublicQueryDependencies(
     config: loadPublicQueryConfig(environment),
     fetcher: fetch,
     gate: new ProxyGate(loadProxyGatePolicy(environment)),
+    queryRunner: (input) => query(input),
   };
 }

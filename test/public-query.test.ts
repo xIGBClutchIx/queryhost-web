@@ -6,6 +6,7 @@ import {
   handlePublicQuery,
   loadProxyGatePolicy,
   loadPublicQueryConfig,
+  type LocalQueryRunner,
   type ProxyFetcher,
   type PublicQueryDependencies,
 } from "../src/server/public-query.js";
@@ -24,19 +25,26 @@ interface RecordedRequest {
   readonly init: RequestInit;
 }
 
+const unusedQueryRunner: LocalQueryRunner = () =>
+  Promise.reject(new Error("The local query runner should not be called."));
+
 function dependencies(
   fetcher: ProxyFetcher,
   policy: ProxyGatePolicy = POLICY,
 ): PublicQueryDependencies {
   return {
     config: {
-      apiBaseUrl: "http://api.railway.internal:3000",
-      apiOriginToken: TOKEN,
       maxBodyBytes: 2_048,
+      target: {
+        apiBaseUrl: "http://api.railway.internal:3000",
+        apiOriginToken: TOKEN,
+        kind: "hosted",
+      },
       upstreamTimeoutMs: 7_000,
     },
     fetcher,
     gate: new ProxyGate(policy),
+    queryRunner: unusedQueryRunner,
   };
 }
 
@@ -206,19 +214,76 @@ describe("public query proxy", () => {
     expect(unavailable.status).toBe(502);
     expect(await unavailable.text()).toContain("UPSTREAM_UNAVAILABLE");
   });
+
+  it("runs live queries locally without a Railway API dependency", async () => {
+    const inputs: PlaygroundQueryInput[] = [];
+    const queryRunner: LocalQueryRunner = (input) => {
+      inputs.push(input);
+      return Promise.resolve({
+        durationMs: 12,
+        game: input.game,
+        ok: true,
+        partial: false,
+        server: { name: "Local server" },
+        data: {},
+        sources: [],
+        warnings: [],
+      });
+    };
+    const shared: PublicQueryDependencies = {
+      config: {
+        maxBodyBytes: 2_048,
+        target: { kind: "local" },
+        upstreamTimeoutMs: 7_000,
+      },
+      fetcher: () =>
+        Promise.reject(new Error("The hosted API should not be called.")),
+      gate: new ProxyGate(POLICY),
+      queryRunner,
+    };
+
+    const response = await handlePublicQuery(
+      queryRequest(JSON.stringify({ game: "mc", host: "PLAY.EXAMPLE.COM" })),
+      shared,
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("x-queryhost-cache")).toBe("miss");
+    expect(inputs).toHaveLength(1);
+    expect(inputs[0]).toMatchObject({
+      game: "minecraft-java",
+      host: "play.example.com",
+    });
+    const body = JSON.parse(await response.text()) as {
+      readonly cache: { readonly status: string; readonly ttlMs: number };
+      readonly ok: boolean;
+    };
+    expect(body).toMatchObject({
+      cache: { status: "miss", ttlMs: 0 },
+      ok: true,
+    });
+  });
 });
 
 describe("public query configuration", () => {
-  it("requires a bounded private origin and token", () => {
-    expect(() => loadPublicQueryConfig({})).toThrow("QUERYHOST_API_BASE_URL");
+  it("uses local queries outside production and requires hosted production configuration", () => {
+    expect(loadPublicQueryConfig({})).toMatchObject({
+      target: { kind: "local" },
+    });
+    expect(() => loadPublicQueryConfig({ NODE_ENV: "production" })).toThrow(
+      "required in production",
+    );
     expect(
       loadPublicQueryConfig({
         QUERYHOST_API_BASE_URL: "http://api.railway.internal:3000",
         QUERYHOST_API_ORIGIN_TOKEN: TOKEN,
       }),
     ).toMatchObject({
-      apiBaseUrl: "http://api.railway.internal:3000",
-      apiOriginToken: TOKEN,
+      target: {
+        apiBaseUrl: "http://api.railway.internal:3000",
+        apiOriginToken: TOKEN,
+        kind: "hosted",
+      },
     });
     expect(() =>
       loadPublicQueryConfig({
