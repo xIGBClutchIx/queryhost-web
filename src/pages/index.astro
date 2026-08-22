@@ -1,0 +1,113 @@
+---
+import CodeBlock from "../components/CodeBlock.astro";
+import Header from "../components/Header.astro";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { GAMES } from "../lib/queryhost.js";
+import { documentationHref, requestHostname } from "../lib/site.js";
+
+const hostname = requestHostname(Astro.request);
+const queryExample = `import { query } from "queryhost";
+
+const result = await query({
+  game: "rust",
+  host: "play.example.com",
+});
+
+if (result.ok) {
+  console.log(result.server);
+  console.log(result.data);
+}`;
+---
+
+<BaseLayout
+  title="QueryHost"
+  description="Fast, typed game server queries for TypeScript and Node.js."
+>
+  <Header active="site" />
+  <main class="site-main" id="main-content">
+    <section class="site-intro">
+      <div class="site-intro__copy">
+        <p class="eyebrow">Game server query engine</p>
+        <h1>Typed server queries without protocol guesswork.</h1>
+        <p>
+          QueryHost turns decades of game-specific UDP, TCP, HTTP, and DNS
+          behavior into one strict TypeScript contract with honest partial
+          results.
+        </p>
+        <div class="site-actions">
+          <a class="button button--primary" href={documentationHref(hostname)}
+            >Read the docs</a
+          >
+          <a class="button" href={documentationHref(hostname, "/games/")}
+            >Supported games</a
+          >
+        </div>
+      </div>
+      <div class="site-intro__example">
+        <div class="online-line">
+          <span></span> Library queries are live by default
+        </div>
+        <CodeBlock code={queryExample} label="query.ts" language="TypeScript" />
+      </div>
+    </section>
+
+    <section class="registry-preview" aria-labelledby="registry-heading">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Package-owned registry</p>
+          <h2 id="registry-heading">Supported now</h2>
+        </div>
+        <a href={documentationHref(hostname, "/games/")}>Compare capabilities</a
+        >
+      </div>
+      <div class="registry-list">
+        {
+          GAMES.map((game) => (
+            <div class="registry-list__row">
+              <span class="registry-list__name">{game.name}</span>
+              <code>{game.id}</code>
+              <span class="registry-list__port">
+                Default {game.defaultPort}
+              </span>
+            </div>
+          ))
+        }
+      </div>
+    </section>
+
+    <section class="principles" aria-labelledby="principles-heading">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Designed for real servers</p>
+          <h2 id="principles-heading">The response tells you what happened.</h2>
+        </div>
+      </div>
+      <div class="principle-list">
+        <article>
+          <span>01</span>
+          <h3>Common fields stay common</h3>
+          <p>
+            Name, map, version, player counts, and query latency live in a small
+            normalized server object.
+          </p>
+        </article>
+        <article>
+          <span>02</span>
+          <h3>Game data stays typed</h3>
+          <p>
+            Literal game IDs narrow the result to the game-specific data shape
+            instead of one loose object.
+          </p>
+        </article>
+        <article>
+          <span>03</span>
+          <h3>Missing is not empty</h3>
+          <p>
+            Source reports and warnings distinguish skipped, blocked, timed-out,
+            and malformed enrichment.
+          </p>
+        </article>
+      </div>
+    </section>
+  </main>
+</BaseLayout>

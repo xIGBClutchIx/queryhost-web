@@ -1,0 +1,41 @@
+---
+import DocsLayout from "../../../layouts/DocsLayout.astro";
+import {
+  API_REFERENCE_PAGES,
+  apiReferenceLabel,
+  apiReferencePage,
+  renderApiReference,
+} from "../../../lib/api-reference.js";
+import { documentationHref, requestHostname } from "../../../lib/site.js";
+
+const slug = Astro.params.slug ?? "";
+const page = apiReferencePage(slug);
+if (page === undefined) {
+  return Astro.redirect("/404/", 302);
+}
+
+const hostname = requestHostname(Astro.request);
+const referencePrefix = documentationHref(hostname, "/reference/").replace(
+  /\/$/,
+  "",
+);
+const content = renderApiReference(page, referencePrefix);
+const activeHref = `/reference/${page.slug}/`;
+const referenceItems = API_REFERENCE_PAGES.filter(
+  (candidate) => candidate.category === page.category,
+).map((candidate) => ({
+  href: `/reference/${candidate.slug}/`,
+  label: apiReferenceLabel(candidate.title),
+}));
+---
+
+<DocsLayout
+  activeHref={activeHref}
+  eyebrow={`API reference · ${page.category}`}
+  title={page.title}
+  description="Generated from the QueryHost package public TypeScript contract."
+  referenceLabel={page.category.replaceAll("-", " ")}
+  referenceItems={referenceItems}
+>
+  <article class="api-reference" set:html={content} />
+</DocsLayout>

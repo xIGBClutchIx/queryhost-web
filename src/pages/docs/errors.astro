@@ -1,0 +1,87 @@
+---
+import Callout from "../../components/Callout.astro";
+import CodeBlock from "../../components/CodeBlock.astro";
+import DocsLayout from "../../layouts/DocsLayout.astro";
+
+const errorExample = `const result = await query(input);
+
+if (!result.ok) {
+  switch (result.error.code) {
+    case "TIMEOUT":
+      // The required source exceeded the query deadline.
+      break;
+    case "TARGET_BLOCKED":
+      // The destination is not allowed by the public-address policy.
+      break;
+    default:
+      // Handle other stable QueryErrorCode values.
+  }
+}`;
+---
+
+<DocsLayout
+  activeHref="/errors/"
+  eyebrow="Failure handling"
+  title="Errors and warnings"
+  description="Failures use stable public codes; optional-source problems remain attached to successful partial results."
+>
+  <h2 id="failures">Query failures</h2>
+  <p>
+    A failure means the profile's required source could not produce a usable
+    result. The public error contains a stable code, safe message, and optional
+    source name. Internal exceptions are never exposed through the contract.
+  </p>
+  <CodeBlock
+    code={errorExample}
+    label="Handle stable error codes"
+    language="TypeScript"
+  />
+
+  <h2 id="categories">Failure categories</h2>
+  <table class="data-table">
+    <thead
+      ><tr><th>Category</th><th>Examples</th><th>Typical response</th></tr
+      ></thead
+    >
+    <tbody>
+      <tr
+        ><td>Input and target</td><td
+          >Invalid host, port, mode, or blocked address</td
+        ><td>Correct the request; do not retry unchanged.</td></tr
+      >
+      <tr
+        ><td>Discovery and connection</td><td
+          >DNS failure or connection failure</td
+        ><td>Retry only when transient failure is plausible.</td></tr
+      >
+      <tr
+        ><td>Deadline and cancellation</td><td>Timeout or caller abort</td><td
+          >Respect caller intent and bounded retry policy.</td
+        ></tr
+      >
+      <tr
+        ><td>Response integrity</td><td>Malformed or oversized response</td><td
+          >Treat the source as unusable; do not parse around limits.</td
+        ></tr
+      >
+      <tr
+        ><td>Internal</td><td>Unexpected implementation failure</td><td
+          >Log safely outside the result and investigate.</td
+        ></tr
+      >
+    </tbody>
+  </table>
+
+  <h2 id="warnings">Warnings and provenance</h2>
+  <p>
+    Warnings are non-fatal. They explain why <code>partial</code> is true and can
+    point at a specific source. The source report remains the authoritative outcome
+    for every attempted, skipped, blocked, or unsupported source.
+  </p>
+  <Callout title="Do not infer offline from enrichment failure" tone="warning">
+    <p>
+      A timed-out optional player or rules source does not make a server offline
+      when its required status source succeeded.
+    </p>
+  </Callout>
+</DocsLayout>

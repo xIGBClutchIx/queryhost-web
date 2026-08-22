@@ -1,0 +1,76 @@
+---
+import Callout from "../../components/Callout.astro";
+import DocsLayout from "../../layouts/DocsLayout.astro";
+---
+
+<DocsLayout
+  activeHref="/hosted-service/"
+  eyebrow="Hosted architecture"
+  title="Hosted service"
+  description="The public web service and private API add caching and abuse controls without changing the live-by-default library."
+>
+  <h2 id="boundary">Service boundary</h2>
+  <p>
+    The browser talks only to the public web service. A future playground route
+    validates and limits callers before forwarding requests over Railway private
+    networking. The private API independently repeats target and resource checks
+    and never exposes its origin token to browser code.
+  </p>
+
+  <h2 id="routes">Private API routes</h2>
+  <ul>
+    <li><code>POST /query</code> performs a hosted query.</li>
+    <li><code>GET /games</code> returns the package-exported registry.</li>
+    <li>
+      <code>GET /health</code> returns liveness and bounded operational counters.
+    </li>
+  </ul>
+  <p>
+    There is no <code>/v1</code> prefix. The current API is private and has no public
+    domain.
+  </p>
+
+  <h2 id="cache">Caching</h2>
+  <ul>
+    <li>The direct library does not cache.</li>
+    <li>
+      The private API uses a bounded in-memory LRU and in-flight coalescing.
+    </li>
+    <li>
+      Successful results live for 10 seconds, partial results for 5 seconds, and
+      timeout or offline failures for 2 seconds.
+    </li>
+    <li>
+      Invalid, blocked, malformed, aborted, and internal failures are not
+      cached.
+    </li>
+    <li>
+      Static documentation and hashed assets use public cache headers from this
+      web service.
+    </li>
+  </ul>
+
+  <h2 id="security">Security and abuse constraints</h2>
+  <p>
+    User-directed network access can become an SSRF tool, port scanner,
+    internal-network probe, or UDP abuse source. QueryHost restricts inputs to
+    known game profiles, validates and pins public destinations, refuses
+    redirects, caps concurrency and admission, bounds every parser and
+    transport, and fails closed when capacity is exhausted.
+  </p>
+  <Callout title="No public query route in this slice">
+    <p>
+      The documentation service is ready, but the browser-facing proxy and
+      caller rate limits belong to the playground slice. Until then, no web
+      route forwards queries to the private API.
+    </p>
+  </Callout>
+
+  <h2 id="cost">Initial cost boundary</h2>
+  <p>
+    The initial deployment uses one small web service and one private API
+    service with Railway resource limits, usage alerts, and a hard spending
+    limit. It does not add Redis, D1, KV, databases, accounts, billing,
+    persistent monitoring, replicas, or multi-region infrastructure.
+  </p>
+</DocsLayout>

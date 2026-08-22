@@ -1,0 +1,118 @@
+---
+import DocsLayout from "../../layouts/DocsLayout.astro";
+import {
+  CAPABILITY_LABELS,
+  GAMES,
+  SUPPORT_LABELS,
+} from "../../lib/queryhost.js";
+
+const CAPABILITIES = Object.entries(CAPABILITY_LABELS) as readonly (readonly [
+  keyof typeof CAPABILITY_LABELS,
+  string,
+])[];
+const SUPPORT_LEVELS = ["supported", "conditional", "unsupported"] as const;
+---
+
+<DocsLayout
+  activeHref="/games/"
+  eyebrow="Package registry"
+  title="Supported games"
+  description="Every game and capability below is rendered directly from the QueryHost package registry."
+  wide
+>
+  <div class="capability-overview">
+    <p>
+      Required sources are supported. Conditional data depends on optional
+      enrichment or what the server advertises.
+    </p>
+    <div class="capability-legend" aria-label="Capability availability legend">
+      {
+        SUPPORT_LEVELS.map((support) => (
+          <span class={`status status--${support}`}>
+            {SUPPORT_LABELS[support]}
+          </span>
+        ))
+      }
+    </div>
+  </div>
+
+  <div class="capability-table-scroll">
+    <table class="data-table capability-table">
+      <caption class="sr-only">
+        Supported games, ports, and capability availability
+      </caption>
+      <thead>
+        <tr class="capability-table__groups">
+          <th scope="col" rowspan="2">
+            <span class="capability-table__game-group">Game</span>
+            <span class="capability-table__game-label">ID</span>
+          </th>
+          <th scope="colgroup" colspan="2">Ports</th>
+          <th scope="colgroup" colspan="3">Core</th>
+          <th scope="colgroup" colspan="3">Content</th>
+          <th scope="colgroup">Discovery</th>
+        </tr>
+        <tr>
+          <th scope="col">Game</th>
+          <th scope="col">Query</th>
+          {
+            CAPABILITIES.map(([capability, label]) => (
+              <th scope="col">
+                {capability === "summary"
+                  ? "Info"
+                  : capability === "srv"
+                    ? "SRV"
+                    : label}
+              </th>
+            ))
+          }
+        </tr>
+      </thead>
+      <tbody>
+        {
+          GAMES.map((game) => (
+            <tr>
+              <th scope="row" class="capability-table__game">
+                <strong>{game.name}</strong>
+                <code>{game.id}</code>
+              </th>
+              <td class="capability-table__port">{game.defaultPort}</td>
+              <td class="capability-table__port">
+                {game.defaultQueryPort ?? (
+                  <span aria-label="Not applicable">—</span>
+                )}
+              </td>
+              {CAPABILITIES.map(([capability]) => {
+                const support = game.capabilities[capability];
+                return (
+                  <td class="capability-table__support">
+                    <span
+                      class={`capability-symbol capability-symbol--${support}`}
+                      title={SUPPORT_LABELS[support]}
+                    >
+                      {support === "supported" && (
+                        <svg viewBox="0 0 16 16" aria-hidden="true">
+                          <path d="m3.5 8.3 2.8 2.8 6.2-6.2" />
+                        </svg>
+                      )}
+                      {support === "conditional" && (
+                        <svg viewBox="0 0 16 16" aria-hidden="true">
+                          <circle cx="8" cy="8" r="5.25" />
+                          <path d="M5.5 8h5" />
+                        </svg>
+                      )}
+                      {support === "unsupported" && (
+                        <span aria-hidden="true">—</span>
+                      )}
+                      <span class="sr-only">{SUPPORT_LABELS[support]}</span>
+                    </span>
+                  </td>
+                );
+              })}
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </div>
+</DocsLayout>

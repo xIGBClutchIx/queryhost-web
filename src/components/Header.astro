@@ -1,0 +1,46 @@
+---
+import { documentationHref, requestHostname, siteHref } from "../lib/site.js";
+import ThemeToggle from "./ThemeToggle.astro";
+
+interface Props {
+  readonly active: "docs" | "site";
+}
+
+const { active } = Astro.props;
+const hostname = requestHostname(Astro.request);
+---
+
+<header class="topbar">
+  <div
+    class:list={[
+      "topbar__inner",
+      {
+        "topbar__inner--docs": active === "docs",
+        "topbar__inner--site": active === "site",
+      },
+    ]}
+  >
+    <a class="brand" href={siteHref(hostname)} aria-label="QueryHost home">
+      <span class="brand__query">Query</span><span class="brand__host"
+        >Host</span
+      >
+    </a>
+
+    <nav class="primary-nav" aria-label="Primary navigation">
+      <a
+        class:list={["primary-nav__link", { "is-active": active === "site" }]}
+        href={siteHref(hostname)}
+      >
+        Query
+      </a>
+      <a
+        class:list={["primary-nav__link", { "is-active": active === "docs" }]}
+        href={documentationHref(hostname)}
+      >
+        Docs
+      </a>
+    </nav>
+
+    <ThemeToggle />
+  </div>
+</header>

@@ -1,0 +1,87 @@
+---
+import Callout from "../../components/Callout.astro";
+import CodeBlock from "../../components/CodeBlock.astro";
+import DocsLayout from "../../layouts/DocsLayout.astro";
+import { documentationHref, requestHostname } from "../../lib/site.js";
+
+const hostname = requestHostname(Astro.request);
+const installSource = `cd ../query
+npm run verify
+npm pack --pack-destination ../consumer
+cd ../consumer
+npm install ./queryhost-0.0.0.tgz`;
+const firstQuery = `import { query } from "queryhost";
+
+const result = await query({
+  game: "rust",
+  host: "play.example.com",
+  port: 28015,
+});
+
+if (result.ok) {
+  console.log(result.server.name);
+  console.log(result.data.tags);
+} else {
+  console.error(result.error.code);
+}`;
+---
+
+<DocsLayout
+  activeHref="/"
+  eyebrow="Introduction"
+  title="Getting started"
+  description="Install the private package artifact and make a typed game-server query from Node.js."
+>
+  <Callout title="Package status">
+    <p>
+      QueryHost is release-ready but deliberately unpublished at version <code
+        >0.0.0</code
+      >. The current installation flow uses the verified package artifact;
+      publishing is a separate decision.
+    </p>
+  </Callout>
+
+  <h2 id="requirements">Requirements</h2>
+  <ul>
+    <li>Node.js 24 or newer</li>
+    <li>npm 12</li>
+    <li>
+      A server-side Node.js runtime with ordinary DNS, UDP, TCP, and HTTP
+      networking
+    </li>
+  </ul>
+
+  <h2 id="install">Install from a verified source checkout</h2>
+  <p>
+    Build and verify the library before packing it. The resulting tarball is the
+    same artifact used by the hosted services.
+  </p>
+  <CodeBlock code={installSource} label="Terminal" language="shell" />
+
+  <h2 id="first-query">Make a query</h2>
+  <p>
+    The literal <code>rust</code> game ID connects <code>result.data</code> to the
+    <code>RustData</code> type. Always check <code>result.ok</code> before reading
+    success or failure fields.
+  </p>
+  <CodeBlock code={firstQuery} label="query.ts" language="TypeScript" />
+
+  <h2 id="next">Where to go next</h2>
+  <ul>
+    <li>
+      <a href={documentationHref(hostname, "/querying/")}
+        >Understand ports, modes, deadlines, and aliases.</a
+      >
+    </li>
+    <li>
+      <a href={documentationHref(hostname, "/results/")}
+        >Learn normalized, game-specific, raw, and partial result semantics.</a
+      >
+    </li>
+    <li>
+      <a href={documentationHref(hostname, "/games/")}
+        >Compare every supported game and conditional capability.</a
+      >
+    </li>
+  </ul>
+</DocsLayout>

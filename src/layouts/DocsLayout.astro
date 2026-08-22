@@ -1,0 +1,89 @@
+---
+import DocsSidebar from "../components/DocsSidebar.astro";
+import Header from "../components/Header.astro";
+import { DOCUMENTATION_NAVIGATION } from "../lib/navigation.js";
+import type { NavigationItem } from "../lib/navigation.js";
+import { documentationHref, requestHostname } from "../lib/site.js";
+import BaseLayout from "./BaseLayout.astro";
+
+interface Props {
+  readonly activeHref: string;
+  readonly description: string;
+  readonly eyebrow?: string;
+  readonly referenceItems?: readonly NavigationItem[];
+  readonly referenceLabel?: string;
+  readonly title: string;
+  readonly wide?: boolean;
+}
+
+const {
+  activeHref,
+  description,
+  eyebrow,
+  referenceItems,
+  referenceLabel,
+  title,
+  wide = false,
+} = Astro.props;
+const hostname = requestHostname(Astro.request);
+---
+
+<BaseLayout title={title} description={description}>
+  <Header active="docs" />
+  <div class="docs-mobile-nav">
+    <details>
+      <summary>Documentation menu</summary>
+      <nav aria-label="Mobile documentation navigation">
+        {
+          DOCUMENTATION_NAVIGATION.flatMap((section) => section.items).map(
+            (item) => (
+              <a
+                class:list={{ "is-active": activeHref === item.href }}
+                href={documentationHref(hostname, item.href)}
+                aria-current={activeHref === item.href ? "page" : undefined}
+              >
+                {item.label}
+              </a>
+            ),
+          )
+        }
+        {
+          referenceItems !== undefined && referenceLabel !== undefined && (
+            <>
+              <span class="docs-mobile-nav__context">{referenceLabel}</span>
+              {referenceItems.map((item) => (
+                <a
+                  class:list={{ "is-active": activeHref === item.href }}
+                  href={documentationHref(hostname, item.href)}
+                  aria-current={activeHref === item.href ? "page" : undefined}
+                >
+                  {item.label}
+                </a>
+              ))}
+            </>
+          )
+        }
+      </nav>
+    </details>
+  </div>
+  <div class="docs-shell">
+    <aside class="docs-sidebar">
+      <DocsSidebar
+        activeHref={activeHref}
+        referenceItems={referenceItems}
+        referenceLabel={referenceLabel}
+      />
+    </aside>
+    <main
+      class:list={["doc-content", { "doc-content--wide": wide }]}
+      id="main-content"
+    >
+      <header class="doc-heading">
+        {eyebrow !== undefined && <p class="eyebrow">{eyebrow}</p>}
+        <h1>{title}</h1>
+        <p>{description}</p>
+      </header>
+      <div class="doc-prose"><slot /></div>
+    </main>
+  </div>
+</BaseLayout>

@@ -1,0 +1,80 @@
+---
+import Callout from "../../components/Callout.astro";
+import CodeBlock from "../../components/CodeBlock.astro";
+import DocsLayout from "../../layouts/DocsLayout.astro";
+
+const narrowingExample = `const result = await query({ game: "project-zomboid", host });
+
+if (result.ok) {
+  result.server;  // fields shared across games
+  result.data;    // ProjectZomboidData
+  result.rawData; // untouched A2S Rules, when available
+} else {
+  result.error;   // stable QueryError
+}`;
+---
+
+<DocsLayout
+  activeHref="/results/"
+  eyebrow="Response contract"
+  title="Result semantics"
+  description="QueryHost separates normalized server facts, typed game data, untouched protocol data, and source provenance."
+>
+  <CodeBlock
+    code={narrowingExample}
+    label="Discriminated result"
+    language="TypeScript"
+  />
+
+  <h2 id="server">Normalized server fields</h2>
+  <p>
+    <code>server</code> contains only concepts shared honestly across games: name,
+    map, version, password state, player counts, and the primary query round-trip
+    time. Every property is optional because a protocol may not confirm it.
+  </p>
+
+  <h2 id="data">Game-specific data</h2>
+  <p>
+    <code>data</code> is selected by the canonical game ID. Rust tags, Minecraft MOTDs
+    and plugins, Project Zomboid mods, and FiveM resources stay in their game-specific
+    types rather than being flattened into a vague common object.
+  </p>
+
+  <h2 id="raw">Untouched protocol data</h2>
+  <p>
+    <code>rawData</code> is optional and intentionally separate. Current A2S profiles
+    use it for the exact Rules map when that source succeeds. Interpreted values remain
+    in <code>data</code>; raw keys are not promoted into the normalized server
+    contract.
+  </p>
+
+  <h2 id="partial">Partial success</h2>
+  <p>
+    Required-source failure produces <code>ok: false</code>. If the required
+    source succeeds while optional enrichment times out, is blocked, or is
+    malformed, the result remains successful with
+    <code>partial: true</code>, source reports, and warnings.
+  </p>
+  <Callout title="Missing is not empty">
+    <p>
+      An omitted player list means QueryHost could not confirm it. An empty
+      player list means a source completed and confirmed no listed players. The
+      same distinction applies to mods, plugins, and resources.
+    </p>
+  </Callout>
+
+  <h2 id="timing">Timing</h2>
+  <ul>
+    <li>
+      <code>server.queryRttMs</code> measures the primary protocol exchange, not ICMP
+      ping.
+    </li>
+    <li>
+      <code>durationMs</code> measures the entire operation, including discovery and
+      optional sources.
+    </li>
+    <li>
+      Each source can include its own <code>rttMs</code> when an exchange completed.
+    </li>
+  </ul>
+</DocsLayout>

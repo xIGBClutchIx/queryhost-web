@@ -1,0 +1,16 @@
+---
+interface Props {
+  readonly title: string;
+  readonly tone?: "info" | "warning";
+}
+
+const { title, tone = "info" } = Astro.props;
+---
+
+<aside class:list={["callout", `callout--${tone}`]}>
+  <div class="callout__mark" aria-hidden="true">i</div>
+  <div>
+    <h2>{title}</h2>
+    <div class="callout__body"><slot /></div>
+  </div>
+</aside>

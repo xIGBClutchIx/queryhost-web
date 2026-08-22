@@ -1,0 +1,22 @@
+---
+import Header from "../components/Header.astro";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { documentationHref, requestHostname } from "../lib/site.js";
+
+const hostname = requestHostname(Astro.request);
+---
+
+<BaseLayout
+  title="Page not found"
+  description="The requested QueryHost page does not exist."
+>
+  <Header active="site" />
+  <main class="not-found" id="main-content">
+    <p class="eyebrow">404</p>
+    <h1>That page is not here.</h1>
+    <p>The path may have moved, or it may belong to a later QueryHost slice.</p>
+    <a class="button button--primary" href={documentationHref(hostname)}
+      >Open documentation</a
+    >
+  </main>
+</BaseLayout>

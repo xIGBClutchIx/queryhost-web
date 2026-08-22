@@ -1,0 +1,20 @@
+---
+import { highlightCode } from "../lib/highlight.js";
+
+interface Props {
+  readonly code: string;
+  readonly label?: string;
+  readonly language?: string;
+}
+
+const { code, label = "Code example", language = "text" } = Astro.props;
+const highlightedCode = highlightCode(code, language);
+---
+
+<figure class="code-block">
+  <figcaption>
+    <span>{label}</span>
+    <span class="code-block__language">{language}</span>
+  </figcaption>
+  <div class="code-block__source" set:html={highlightedCode} />
+</figure>

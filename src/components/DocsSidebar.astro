@@ -1,0 +1,67 @@
+---
+import { DOCUMENTATION_NAVIGATION } from "../lib/navigation.js";
+import type { NavigationItem } from "../lib/navigation.js";
+import { documentationHref, requestHostname } from "../lib/site.js";
+
+interface Props {
+  readonly activeHref: string;
+  readonly referenceItems?: readonly NavigationItem[] | undefined;
+  readonly referenceLabel?: string | undefined;
+}
+
+const { activeHref, referenceItems, referenceLabel } = Astro.props;
+const hostname = requestHostname(Astro.request);
+---
+
+<nav class="docs-nav" aria-label="Documentation navigation">
+  <a class="docs-search" href={documentationHref(hostname, "/reference/")}>
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="11" cy="11" r="6.5"></circle>
+      <path d="m16 16 4 4"></path>
+    </svg>
+    <span>Browse API reference</span>
+  </a>
+
+  {
+    DOCUMENTATION_NAVIGATION.map((section) => (
+      <section class="docs-nav__section">
+        <h2>{section.label}</h2>
+        <ul>
+          {section.items.map((item) => (
+            <li>
+              <a
+                class:list={{ "is-active": activeHref === item.href }}
+                href={documentationHref(hostname, item.href)}
+                aria-current={activeHref === item.href ? "page" : undefined}
+              >
+                {item.label}
+              </a>
+            </li>
+          ))}
+        </ul>
+        {section.label === "Reference" &&
+          referenceItems !== undefined &&
+          referenceLabel !== undefined && (
+            <div class="docs-nav__reference-context">
+              <h3>{referenceLabel}</h3>
+              <ul>
+                {referenceItems.map((item) => (
+                  <li>
+                    <a
+                      class:list={{ "is-active": activeHref === item.href }}
+                      href={documentationHref(hostname, item.href)}
+                      aria-current={
+                        activeHref === item.href ? "page" : undefined
+                      }
+                    >
+                      {item.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+      </section>
+    ))
+  }
+</nav>
