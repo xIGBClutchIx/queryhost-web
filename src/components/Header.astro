@@ -19,7 +19,12 @@ const hostname = requestHostname(Astro.request);
       },
     ]}
   >
-    <a class="brand" href={siteHref(hostname)} aria-label="QueryHost home">
+    <a
+      class="brand"
+      href={siteHref(hostname)}
+      aria-label="QueryHost home"
+      data-astro-reload={active === "docs"}
+    >
       <span class="brand__query">Query</span><span class="brand__host"
         >Host</span
       >

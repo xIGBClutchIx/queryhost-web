@@ -44,6 +44,9 @@ describe("packaged API reference", () => {
       API_REFERENCE_PAGES.length,
     );
     expect(apiReferencePage("functions/query")?.title).toContain("query");
+    expect(apiReferencePage("type-aliases/CanonicalGameId")?.title).toBe(
+      "Type Alias: CanonicalGameId<G>",
+    );
   });
 
   it("rewrites generated Markdown links to documentation routes", () => {

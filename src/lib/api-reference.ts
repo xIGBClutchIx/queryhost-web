@@ -33,10 +33,18 @@ function slugFromPath(pathname: string): string {
     .replace(/\/README$/, "");
 }
 
+function cleanGeneratedTitle(title: string): string {
+  return title
+    .replaceAll("`", "")
+    .replaceAll("\\<", "<")
+    .replaceAll("\\>", ">")
+    .replaceAll("\\_", "_");
+}
+
 function titleFromMarkdown(markdown: string, slug: string): string {
   const heading = /^#\s+(.+)$/m.exec(markdown)?.[1]?.trim();
   if (heading !== undefined && heading.length > 0) {
-    return heading.replaceAll("`", "");
+    return cleanGeneratedTitle(heading);
   }
 
   const lastSegment = slug.split("/").at(-1);
@@ -71,11 +79,10 @@ export function apiReferencePage(slug: string): ApiReferencePage | undefined {
 }
 
 export function apiReferenceLabel(title: string): string {
-  return title
-    .replace(/^(Function|Interface|Type Alias|Variable):\s+/, "")
-    .replaceAll("\\<", "<")
-    .replaceAll("\\>", ">")
-    .replaceAll("\\_", "_");
+  return cleanGeneratedTitle(title).replace(
+    /^(Function|Interface|Type Alias|Variable):\s+/,
+    "",
+  );
 }
 
 function referenceLink(

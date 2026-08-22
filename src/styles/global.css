@@ -54,6 +54,47 @@ body {
   line-height: 1.6;
 }
 
+@view-transition {
+  navigation: auto;
+}
+
+@keyframes page-leave {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+  }
+}
+
+::view-transition-old(root) {
+  animation: 70ms ease-out both page-leave;
+}
+
+::view-transition-new(root) {
+  animation: 120ms 70ms cubic-bezier(0.16, 1, 0.3, 1) both page-enter;
+}
+
+html:has(body.docs-page)::view-transition-old(root),
+html:has(body.docs-page)::view-transition-new(root) {
+  animation: none;
+}
+
+::view-transition-old(queryhost-header),
+::view-transition-new(queryhost-header) {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+  }
+}
+
 .home-page {
   position: relative;
   isolation: isolate;
@@ -140,6 +181,7 @@ a {
   border-bottom: 0;
   background: color-mix(in srgb, var(--background) 92%, transparent);
   backdrop-filter: blur(12px);
+  view-transition-name: queryhost-header;
 }
 
 .topbar__inner {
@@ -335,10 +377,25 @@ a {
   padding: 3.75rem clamp(2rem, 6vw, 5.5rem) 7rem;
 }
 
+@keyframes docs-content-enter {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.docs-page .doc-content {
+  opacity: 0;
+  animation: docs-content-enter 140ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
 .doc-content--wide {
   width: 100%;
   padding-right: clamp(1.5rem, 3vw, 3rem);
-  padding-left: clamp(1.5rem, 4vw, 4rem);
+  padding-left: clamp(2rem, 6vw, 5.5rem);
 }
 
 .doc-content--wide .doc-prose {
@@ -423,12 +480,12 @@ a {
 
 .code-block {
   margin: 1.35rem 0;
-  border: 0;
+  border: 1px solid color-mix(in srgb, var(--line-strong) 72%, transparent);
   border-radius: 0.6rem;
   overflow: hidden;
   background: var(--code-background);
   box-shadow: inset 0 1px 0
-    color-mix(in srgb, var(--text-strong) 7%, transparent);
+    color-mix(in srgb, var(--text-strong) 4%, transparent);
 }
 
 .code-block figcaption {
@@ -436,6 +493,11 @@ a {
   justify-content: space-between;
   padding: 0.55rem 0.8rem;
   border-bottom: 1px solid color-mix(in srgb, var(--line) 68%, transparent);
+  background: color-mix(
+    in srgb,
+    var(--surface-raised) 38%,
+    var(--code-background)
+  );
   color: var(--muted);
   font-size: 0.75rem;
 }
@@ -592,11 +654,11 @@ a {
 
 .api-reference pre {
   margin-block: 1rem;
-  border: 0;
+  border: 1px solid color-mix(in srgb, var(--line-strong) 72%, transparent);
   border-radius: 0.6rem;
   background: var(--code-background);
   box-shadow: inset 0 1px 0
-    color-mix(in srgb, var(--text-strong) 7%, transparent);
+    color-mix(in srgb, var(--text-strong) 4%, transparent);
 }
 
 .api-reference hr {
@@ -868,6 +930,7 @@ a {
   flex: none;
   width: 0.45rem;
   height: 0.45rem;
+  margin-left: auto;
   margin-top: -0.2rem;
   border-right: 1.5px solid var(--muted);
   border-bottom: 1.5px solid var(--muted);
@@ -1903,6 +1966,11 @@ a {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .docs-page .doc-content {
+    opacity: 1;
+    animation: none;
+  }
+
   *,
   *::before,
   *::after {

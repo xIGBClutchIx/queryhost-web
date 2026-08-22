@@ -13,7 +13,11 @@ const { activeHref, referenceItems, referenceLabel } = Astro.props;
 const hostname = requestHostname(Astro.request);
 ---
 
-<nav class="docs-nav" aria-label="Documentation navigation">
+<nav
+  class="docs-nav"
+  aria-label="Documentation navigation"
+  transition:persist={referenceItems === undefined}
+>
   {
     DOCUMENTATION_NAVIGATION.map((section) => (
       <section class="docs-nav__section">
@@ -57,3 +61,32 @@ const hostname = requestHostname(Astro.request);
     ))
   }
 </nav>
+
+<script>
+  function synchronizeActiveDocumentationLink(): void {
+    const navigation = document.querySelector<HTMLElement>(".docs-nav");
+    if (navigation === null) {
+      return;
+    }
+
+    const currentPath = window.location.pathname;
+    for (const link of navigation.querySelectorAll<HTMLAnchorElement>("a")) {
+      const active = new URL(link.href).pathname === currentPath;
+      link.classList.toggle("is-active", active);
+      if (active) {
+        link.setAttribute("aria-current", "page");
+      } else {
+        link.removeAttribute("aria-current");
+      }
+    }
+  }
+
+  document.addEventListener(
+    "astro:page-load",
+    synchronizeActiveDocumentationLink,
+  );
+  document.addEventListener(
+    "astro:after-swap",
+    synchronizeActiveDocumentationLink,
+  );
+</script>
