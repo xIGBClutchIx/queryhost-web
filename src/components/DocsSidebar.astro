@@ -14,14 +14,6 @@ const hostname = requestHostname(Astro.request);
 ---
 
 <nav class="docs-nav" aria-label="Documentation navigation">
-  <a class="docs-search" href={documentationHref(hostname, "/reference/")}>
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <circle cx="11" cy="11" r="6.5"></circle>
-      <path d="m16 16 4 4"></path>
-    </svg>
-    <span>Browse API reference</span>
-  </a>
-
   {
     DOCUMENTATION_NAVIGATION.map((section) => (
       <section class="docs-nav__section">

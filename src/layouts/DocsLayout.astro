@@ -28,7 +28,7 @@ const {
 const hostname = requestHostname(Astro.request);
 ---
 
-<BaseLayout title={title} description={description}>
+<BaseLayout bodyClass="docs-page" title={title} description={description}>
   <Header active="docs" />
   <div class="docs-mobile-nav">
     <details>

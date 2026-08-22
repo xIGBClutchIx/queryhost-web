@@ -1,4 +1,5 @@
 ---
+import CustomSelect from "./CustomSelect.astro";
 import { GAMES } from "../lib/queryhost.js";
 
 const gameOptions = GAMES.map((game) => ({
@@ -6,19 +7,25 @@ const gameOptions = GAMES.map((game) => ({
   defaultQueryPort: game.defaultQueryPort,
   id: game.id,
   name: game.name,
+})).toSorted((left, right) => left.name.localeCompare(right.name, "en"));
+const gameSelectOptions = gameOptions.map((game) => ({
+  label: game.name,
+  value: game.id,
 }));
+const modeOptions = [
+  { label: "Full details", value: "full" },
+  { label: "Summary only", value: "summary" },
+] as const;
+const timeoutOptions = [
+  { label: "3 seconds", value: "3000" },
+  { label: "5 seconds", value: "5000" },
+] as const;
 ---
 
 <section class="playground" aria-labelledby="query-heading">
   <div class="playground__heading">
-    <div>
-      <p class="eyebrow">Live query playground</p>
-      <h1 id="query-heading">Query a game server.</h1>
-    </div>
-    <p>
-      Choose a supported game and enter a public server address. QueryHost
-      returns current data, every attempted source, and honest partial results.
-    </p>
+    <h1 id="query-heading">Query a server</h1>
+    <p>Enter a public game server address to get its current status.</p>
   </div>
 
   <form
@@ -27,16 +34,14 @@ const gameOptions = GAMES.map((game) => ({
     data-games={JSON.stringify(gameOptions)}
   >
     <div class="query-form__primary">
-      <label class="field">
-        <span>Game</span>
-        <select id="query-game" name="game" required>
-          {
-            gameOptions.map((game) => (
-              <option value={game.id}>{game.name}</option>
-            ))
-          }
-        </select>
-      </label>
+      <CustomSelect
+        id="query-game"
+        name="game"
+        label="Game"
+        options={gameSelectOptions}
+        selectedValue="minecraft-java"
+        required
+      />
 
       <label class="field field--host">
         <span>Host or IP</span>
@@ -66,47 +71,63 @@ const gameOptions = GAMES.map((game) => ({
       </label>
 
       <button class="query-submit" id="query-submit" type="submit">
-        Run query
+        Query
       </button>
     </div>
 
-    <div class="query-form__secondary">
-      <label class="field field--compact">
-        <span>Query port</span>
-        <input
-          id="query-query-port"
-          name="queryPort"
-          type="number"
-          min="1"
-          max="65535"
-          inputmode="numeric"
-          placeholder="Automatic"
-        />
-        <small id="query-port-help">Derived from the selected game.</small>
-      </label>
+    <div class="query-form__advanced" id="query-advanced">
+      <button
+        class="query-form__advanced-trigger"
+        id="query-advanced-trigger"
+        type="button"
+        aria-expanded="false"
+        aria-controls="query-advanced-content"
+      >
+        Advanced options
+      </button>
+      <div
+        class="query-form__advanced-content"
+        id="query-advanced-content"
+        aria-hidden="true"
+        inert
+      >
+        <div class="query-form__advanced-content-inner">
+          <div class="query-form__secondary">
+            <label class="field field--compact">
+              <span>Query port</span>
+              <input
+                id="query-query-port"
+                name="queryPort"
+                type="number"
+                min="1"
+                max="65535"
+                inputmode="numeric"
+                placeholder="Automatic"
+              />
+              <small id="query-port-help">Derived from the selected game.</small
+              >
+            </label>
 
-      <label class="field field--compact">
-        <span>Mode</span>
-        <select id="query-mode" name="mode">
-          <option value="full">Full details</option>
-          <option value="summary">Summary only</option>
-        </select>
-        <small>Full mode requests optional sources.</small>
-      </label>
+            <CustomSelect
+              id="query-mode"
+              name="mode"
+              label="Mode"
+              options={modeOptions}
+              selectedValue="full"
+              help="Full mode requests optional sources."
+            />
 
-      <label class="field field--compact">
-        <span>Deadline</span>
-        <select id="query-timeout" name="timeoutMs">
-          <option value="3000">3 seconds</option>
-          <option value="5000" selected>5 seconds</option>
-        </select>
-        <small>One bounded deadline for the entire query.</small>
-      </label>
-
-      <p class="query-form__privacy">
-        Shared URLs contain inputs only. Results and player data are never added
-        to the address.
-      </p>
+            <CustomSelect
+              id="query-timeout"
+              name="timeoutMs"
+              label="Deadline"
+              options={timeoutOptions}
+              selectedValue="5000"
+              help="One deadline for the entire query."
+            />
+          </div>
+        </div>
+      </div>
     </div>
 
     <p class="query-form__error" id="query-form-error" role="alert" hidden></p>
@@ -118,17 +139,6 @@ const gameOptions = GAMES.map((game) => ({
     aria-live="polite"
     aria-busy="false"
   >
-    <div class="query-empty" id="query-empty">
-      <span class="query-empty__mark" aria-hidden="true"></span>
-      <div>
-        <h2>Ready for a server</h2>
-        <p>
-          No network request runs until you submit the form. Public-target and
-          resource checks are repeated by the private query service.
-        </p>
-      </div>
-    </div>
-
     <div class="query-loading" id="query-loading" hidden>
       <div class="query-loading__line query-loading__line--short"></div>
       <div class="query-loading__grid">
@@ -278,6 +288,17 @@ const gameOptions = GAMES.map((game) => ({
     return element;
   }
 
+  function requiredDescendant<T extends Element>(
+    root: ParentNode,
+    selector: string,
+  ): T {
+    const element = root.querySelector<T>(selector);
+    if (element === null) {
+      throw new Error(`Missing playground descendant: ${selector}`);
+    }
+    return element;
+  }
+
   function parseJson<T>(text: string): T {
     return JSON.parse(text) as T;
   }
@@ -321,16 +342,25 @@ const gameOptions = GAMES.map((game) => ({
   const queryPortInput = requiredElement<HTMLInputElement>("#query-query-port");
   const modeSelect = requiredElement<HTMLSelectElement>("#query-mode");
   const timeoutSelect = requiredElement<HTMLSelectElement>("#query-timeout");
+  const advancedOptions = requiredElement<HTMLElement>("#query-advanced");
+  const advancedTrigger = requiredElement<HTMLButtonElement>(
+    "#query-advanced-trigger",
+  );
+  const advancedContent = requiredElement<HTMLElement>(
+    "#query-advanced-content",
+  );
   const portHelp = requiredElement<HTMLElement>("#query-port-help");
   const submitButton = requiredElement<HTMLButtonElement>("#query-submit");
   const formError = requiredElement<HTMLElement>("#query-form-error");
   const output = requiredElement<HTMLElement>("#query-output");
-  const emptyState = requiredElement<HTMLElement>("#query-empty");
   const loadingState = requiredElement<HTMLElement>("#query-loading");
   const requestError = requiredElement<HTMLElement>("#query-request-error");
   const resultElement = requiredElement<HTMLElement>("#query-result");
   const games = parseJson<readonly ClientGameDefinition[]>(
     form.dataset.games ?? "[]",
+  );
+  const customSelectRoots = Array.from(
+    document.querySelectorAll<HTMLElement>("[data-custom-select]"),
   );
 
   let activeController: AbortController | undefined;
@@ -365,8 +395,171 @@ const gameOptions = GAMES.map((game) => ({
         : `Defaults to ${game.defaultQueryPort}; custom game ports preserve the offset.`;
   }
 
-  function showOnly(state: "empty" | "error" | "loading" | "result"): void {
-    emptyState.hidden = state !== "empty";
+  function setAdvancedOptionsOpen(open: boolean): void {
+    advancedOptions.classList.toggle("is-open", open);
+    advancedTrigger.setAttribute("aria-expanded", String(open));
+    advancedContent.setAttribute("aria-hidden", String(!open));
+    advancedContent.inert = !open;
+  }
+
+  function syncCustomSelect(select: HTMLSelectElement): void {
+    const root = select.closest<HTMLElement>("[data-custom-select]");
+    if (root === null) {
+      throw new Error(`Custom select root is missing for ${select.id}.`);
+    }
+    const selected = select.selectedOptions.item(0);
+    if (selected === null) {
+      throw new Error(`Custom select ${select.id} has no selected option.`);
+    }
+    requiredDescendant<HTMLElement>(
+      root,
+      "[data-custom-select-value]",
+    ).textContent = selected.textContent;
+    for (const option of root.querySelectorAll<HTMLButtonElement>(
+      "[data-custom-select-option]",
+    )) {
+      option.setAttribute(
+        "aria-selected",
+        String(option.dataset.value === select.value),
+      );
+    }
+  }
+
+  function setCustomSelectOpen(root: HTMLElement, open: boolean): void {
+    const trigger = requiredDescendant<HTMLButtonElement>(
+      root,
+      "[data-custom-select-trigger]",
+    );
+    const menu = requiredDescendant<HTMLElement>(
+      root,
+      "[data-custom-select-menu]",
+    );
+    root.classList.toggle("is-open", open);
+    trigger.setAttribute("aria-expanded", String(open));
+    menu.setAttribute("aria-hidden", String(!open));
+    menu.inert = !open;
+  }
+
+  function closeOtherCustomSelects(activeRoot: HTMLElement): void {
+    for (const root of customSelectRoots) {
+      if (root !== activeRoot) {
+        setCustomSelectOpen(root, false);
+      }
+    }
+  }
+
+  function focusCustomSelectOption(
+    root: HTMLElement,
+    position: "first" | "last" | "selected",
+  ): void {
+    const options = Array.from(
+      root.querySelectorAll<HTMLButtonElement>("[data-custom-select-option]"),
+    );
+    const option =
+      position === "first"
+        ? options.at(0)
+        : position === "last"
+          ? options.at(-1)
+          : options.find(
+              (candidate) => candidate.getAttribute("aria-selected") === "true",
+            );
+    option?.focus();
+  }
+
+  function initializeCustomSelects(): void {
+    for (const root of customSelectRoots) {
+      const select = requiredDescendant<HTMLSelectElement>(
+        root,
+        "[data-custom-select-native]",
+      );
+      const trigger = requiredDescendant<HTMLButtonElement>(
+        root,
+        "[data-custom-select-trigger]",
+      );
+      const options = Array.from(
+        root.querySelectorAll<HTMLButtonElement>("[data-custom-select-option]"),
+      );
+
+      syncCustomSelect(select);
+      trigger.addEventListener("click", () => {
+        const open = trigger.getAttribute("aria-expanded") !== "true";
+        closeOtherCustomSelects(root);
+        setCustomSelectOpen(root, open);
+      });
+      trigger.addEventListener("keydown", (event) => {
+        if (event.key !== "ArrowDown" && event.key !== "ArrowUp") {
+          return;
+        }
+        event.preventDefault();
+        closeOtherCustomSelects(root);
+        setCustomSelectOpen(root, true);
+        focusCustomSelectOption(
+          root,
+          event.key === "ArrowDown" ? "selected" : "last",
+        );
+      });
+
+      for (const [index, option] of options.entries()) {
+        option.addEventListener("click", () => {
+          const value = option.dataset.value;
+          if (value === undefined) {
+            return;
+          }
+          select.value = value;
+          syncCustomSelect(select);
+          select.dispatchEvent(new Event("change", { bubbles: true }));
+          setCustomSelectOpen(root, false);
+          trigger.focus();
+        });
+        option.addEventListener("keydown", (event) => {
+          if (event.key === "Escape") {
+            event.preventDefault();
+            setCustomSelectOpen(root, false);
+            trigger.focus();
+            return;
+          }
+          if (event.key === "Home" || event.key === "End") {
+            event.preventDefault();
+            focusCustomSelectOption(
+              root,
+              event.key === "Home" ? "first" : "last",
+            );
+            return;
+          }
+          if (event.key !== "ArrowDown" && event.key !== "ArrowUp") {
+            return;
+          }
+          event.preventDefault();
+          const direction = event.key === "ArrowDown" ? 1 : -1;
+          options
+            .at((index + direction + options.length) % options.length)
+            ?.focus();
+        });
+      }
+
+      root.addEventListener("focusout", (event) => {
+        const nextTarget = event.relatedTarget;
+        if (nextTarget instanceof Node && root.contains(nextTarget)) {
+          return;
+        }
+        setCustomSelectOpen(root, false);
+      });
+    }
+
+    document.addEventListener("pointerdown", (event) => {
+      const target = event.target;
+      if (!(target instanceof Node)) {
+        return;
+      }
+      for (const root of customSelectRoots) {
+        if (!root.contains(target)) {
+          setCustomSelectOpen(root, false);
+        }
+      }
+    });
+  }
+
+  function showOnly(state: "error" | "loading" | "result"): void {
     loadingState.hidden = state !== "loading";
     requestError.hidden = state !== "error";
     resultElement.hidden = state !== "result";
@@ -672,7 +865,7 @@ const gameOptions = GAMES.map((game) => ({
     } finally {
       if (requestId === activeRequest) {
         submitButton.disabled = false;
-        submitButton.textContent = "Run query";
+        submitButton.textContent = "Query";
         output.setAttribute("aria-busy", "false");
       }
     }
@@ -707,6 +900,9 @@ const gameOptions = GAMES.map((game) => ({
     if (timeout === "3000" || timeout === "5000") {
       timeoutSelect.value = timeout;
     }
+    setAdvancedOptionsOpen(
+      parameters.has("queryPort") || mode === "summary" || timeout === "3000",
+    );
   }
 
   gameSelect.addEventListener("change", () => {
@@ -715,6 +911,11 @@ const gameOptions = GAMES.map((game) => ({
     )?.defaultPort;
     updateGameFields(previous);
     previousGameId = gameSelect.value;
+  });
+  advancedTrigger.addEventListener("click", () => {
+    setAdvancedOptionsOpen(
+      advancedTrigger.getAttribute("aria-expanded") !== "true",
+    );
   });
   form.addEventListener("submit", (event) => {
     event.preventDefault();
@@ -768,4 +969,5 @@ const gameOptions = GAMES.map((game) => ({
   );
 
   prefillFromUrl();
+  initializeCustomSelects();
 </script>

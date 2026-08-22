@@ -22,7 +22,7 @@ const LANGUAGE_ALIASES: Readonly<Record<string, HighlightLanguage>> = {
 
 const highlighter = await createHighlighter({
   langs: ["typescript", "javascript", "json", "shellscript", "html", "css"],
-  themes: ["github-light", "github-dark"],
+  themes: ["github-dark"],
 });
 
 function highlightLanguage(language: string): HighlightLanguage {
@@ -32,11 +32,7 @@ function highlightLanguage(language: string): HighlightLanguage {
 /** Render trusted documentation source as escaped, token-highlighted HTML. */
 export function highlightCode(code: string, language: string): string {
   return highlighter.codeToHtml(code, {
-    defaultColor: false,
     lang: highlightLanguage(language),
-    themes: {
-      dark: "github-dark",
-      light: "github-light",
-    },
+    theme: "github-dark",
   });
 }

@@ -1,6 +1,5 @@
 ---
 import { documentationHref, requestHostname, siteHref } from "../lib/site.js";
-import ThemeToggle from "./ThemeToggle.astro";
 
 interface Props {
   readonly active: "docs" | "site";
@@ -28,19 +27,11 @@ const hostname = requestHostname(Astro.request);
 
     <nav class="primary-nav" aria-label="Primary navigation">
       <a
-        class:list={["primary-nav__link", { "is-active": active === "site" }]}
-        href={siteHref(hostname)}
-      >
-        Query
-      </a>
-      <a
         class:list={["primary-nav__link", { "is-active": active === "docs" }]}
         href={documentationHref(hostname)}
       >
         Docs
       </a>
     </nav>
-
-    <ThemeToggle />
   </div>
 </header>

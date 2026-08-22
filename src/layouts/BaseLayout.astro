@@ -4,47 +4,26 @@ import "@fontsource-variable/geist-mono";
 import "../styles/global.css";
 
 interface Props {
+  readonly bodyClass?: string;
   readonly description: string;
   readonly title: string;
 }
 
-const { description, title } = Astro.props;
+const { bodyClass, description, title } = Astro.props;
 const pageTitle = title === "QueryHost" ? title : `${title} · QueryHost`;
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content={description} />
-    <meta
-      name="theme-color"
-      content="#0c1215"
-      media="(prefers-color-scheme: dark)"
-    />
-    <meta
-      name="theme-color"
-      content="#f7f9f9"
-      media="(prefers-color-scheme: light)"
-    />
+    <meta name="theme-color" content="#0c1215" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>{pageTitle}</title>
-    <script is:inline>
-      (() => {
-        const saved = localStorage.getItem("queryhost-theme");
-        const theme =
-          saved === "dark" || saved === "light"
-            ? saved
-            : window.matchMedia("(prefers-color-scheme: dark)").matches
-              ? "dark"
-              : "light";
-        document.documentElement.dataset.theme = theme;
-        document.documentElement.style.colorScheme = theme;
-      })();
-    </script>
   </head>
-  <body>
+  <body class={bodyClass}>
     <a class="skip-link" href="#main-content">Skip to content</a>
     <slot />
   </body>

@@ -74,7 +74,7 @@ describe("packaged API reference", () => {
     expect(html).toContain("Returns");
   });
 
-  it("syntax-highlights fenced examples with dual-theme token colors", () => {
+  it("syntax-highlights fenced examples with the dark code theme", () => {
     const html = renderApiReference(
       {
         category: "Functions",
@@ -85,8 +85,8 @@ describe("packaged API reference", () => {
       "/docs/reference",
     );
 
-    expect(html).toContain('class="shiki');
-    expect(html).toContain("--shiki-dark");
+    expect(html).toContain('class="shiki github-dark"');
+    expect(html).not.toContain("--shiki-light");
     expect(html.replace(/<[^>]+>/g, "")).toContain("const online");
   });
 });

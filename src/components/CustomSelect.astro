@@ -1,0 +1,97 @@
+---
+interface SelectOption {
+  readonly label: string;
+  readonly value: string;
+}
+
+interface Props {
+  readonly help?: string;
+  readonly id: string;
+  readonly label: string;
+  readonly name: string;
+  readonly options: readonly SelectOption[];
+  readonly required?: boolean;
+  readonly selectedValue: string;
+}
+
+const {
+  help,
+  id,
+  label,
+  name,
+  options,
+  required = false,
+  selectedValue,
+} = Astro.props;
+const selectedOption = options.find((option) => option.value === selectedValue);
+if (selectedOption === undefined) {
+  throw new Error(`Custom select ${id} has no selected option.`);
+}
+
+const labelId = `${id}-label`;
+const valueId = `${id}-value`;
+const menuId = `${id}-menu`;
+---
+
+<div class="field">
+  <span id={labelId}>{label}</span>
+  <div class="custom-select" data-custom-select>
+    <select
+      class="custom-select__native"
+      id={id}
+      name={name}
+      required={required}
+      tabindex="-1"
+      aria-hidden="true"
+      data-custom-select-native
+    >
+      {
+        options.map((option) => (
+          <option
+            value={option.value}
+            selected={option.value === selectedValue}
+          >
+            {option.label}
+          </option>
+        ))
+      }
+    </select>
+    <button
+      class="custom-select__trigger"
+      type="button"
+      aria-haspopup="listbox"
+      aria-expanded="false"
+      aria-controls={menuId}
+      aria-labelledby={`${labelId} ${valueId}`}
+      data-custom-select-trigger
+    >
+      <span id={valueId} data-custom-select-value>{selectedOption.label}</span>
+      <span class="custom-select__chevron" aria-hidden="true"></span>
+    </button>
+    <div
+      class="custom-select__menu"
+      id={menuId}
+      role="listbox"
+      aria-labelledby={labelId}
+      aria-hidden="true"
+      inert
+      data-custom-select-menu
+    >
+      {
+        options.map((option) => (
+          <button
+            class="custom-select__option"
+            type="button"
+            role="option"
+            aria-selected={option.value === selectedValue}
+            data-custom-select-option
+            data-value={option.value}
+          >
+            {option.label}
+          </button>
+        ))
+      }
+    </div>
+  </div>
+  {help !== undefined && <small>{help}</small>}
+</div>
