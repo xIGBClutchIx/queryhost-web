@@ -1,6 +1,7 @@
 ---
 import CustomSelect from "./CustomSelect.astro";
 import { GAMES } from "../lib/queryhost.js";
+import { defaultQueryMode } from "../lib/playground-defaults.js";
 
 const gameOptions = GAMES.map((game) => ({
   defaultPort: game.defaultPort,
@@ -115,7 +116,7 @@ const timeoutOptions = [
                 name="mode"
                 label="Mode"
                 options={modeOptions}
-                selectedValue="full"
+                selectedValue={defaultQueryMode("minecraft-java")}
                 help="Full mode requests optional sources."
               />
 
@@ -287,6 +288,7 @@ const timeoutOptions = [
     PlaygroundQueryInput,
     PlaygroundQueryResponse,
   } from "../lib/playground-contracts.js";
+  import { defaultQueryMode } from "../lib/playground-defaults.js";
   import { queryPathItems } from "../lib/query-path.js";
 
   interface ClientGameDefinition {
@@ -1046,6 +1048,8 @@ const timeoutOptions = [
     const mode = parameters.get("mode");
     if (mode === "summary" || mode === "full") {
       modeSelect.value = mode;
+    } else {
+      modeSelect.value = defaultQueryMode(selectedGame().id);
     }
     const timeout = parameters.get("timeoutMs");
     if (timeout === "3000" || timeout === "5000") {
@@ -1061,6 +1065,8 @@ const timeoutOptions = [
       (candidate) => candidate.id === previousGameId,
     )?.defaultPort;
     updateGameFields(previous);
+    modeSelect.value = defaultQueryMode(selectedGame().id);
+    syncCustomSelect(modeSelect);
     previousGameId = gameSelect.value;
   });
   advancedTrigger.addEventListener("click", () => {
