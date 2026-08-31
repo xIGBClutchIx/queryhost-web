@@ -156,6 +156,93 @@ describe("public query proxy", () => {
     expect(calls).toBe(1);
   });
 
+  it("stops reading streamed bodies when the byte limit is exceeded", async () => {
+    let cancelled = false;
+    let calls = 0;
+    let chunks = 0;
+    const stream = new ReadableStream<Uint8Array>({
+      cancel(): void {
+        cancelled = true;
+      },
+      pull(controller): void {
+        chunks += 1;
+        controller.enqueue(new Uint8Array(1_025));
+        if (chunks === 3) {
+          controller.close();
+        }
+      },
+    });
+    const requestInit: RequestInit & { readonly duplex: "half" } = {
+      body: stream,
+      duplex: "half",
+      headers: { "Content-Type": "application/json" },
+      method: "POST",
+    };
+    const request = new Request("https://query.host/api/query", requestInit);
+    const response = await handlePublicQuery(
+      request,
+      dependencies(() => {
+        calls += 1;
+        return Promise.resolve(
+          new Response("{}", {
+            headers: { "Content-Type": "application/json" },
+          }),
+        );
+      }),
+    );
+
+    expect(response.status).toBe(413);
+    expect(cancelled).toBe(true);
+    expect(calls).toBe(0);
+  });
+
+  it("rejects invalid Content-Length before reading the body", async () => {
+    let calls = 0;
+    const request = queryRequest(
+      JSON.stringify({ game: "rust", host: "play.example.com" }),
+    );
+    request.headers.set("Content-Length", "invalid");
+    const response = await handlePublicQuery(
+      request,
+      dependencies(() => {
+        calls += 1;
+        return Promise.resolve(
+          new Response("{}", {
+            headers: { "Content-Type": "application/json" },
+          }),
+        );
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    expect(calls).toBe(0);
+  });
+
+  it("accepts a valid JSON body at the exact byte limit", async () => {
+    let calls = 0;
+    const body = JSON.stringify({ game: "rust", host: "play.example.com" });
+    const shared = dependencies(() => {
+      calls += 1;
+      return Promise.resolve(
+        new Response("{}", {
+          headers: { "Content-Type": "application/json" },
+        }),
+      );
+    });
+    const exactLimit: PublicQueryDependencies = {
+      ...shared,
+      config: {
+        ...shared.config,
+        maxBodyBytes: new TextEncoder().encode(body).byteLength,
+      },
+    };
+
+    expect(
+      (await handlePublicQuery(queryRequest(body), exactLimit)).status,
+    ).toBe(200);
+    expect(calls).toBe(1);
+  });
+
   it("uses Railway's client address instead of a supplied forwarding chain", async () => {
     let calls = 0;
     const shared = dependencies(

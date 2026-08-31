@@ -38,7 +38,9 @@ npm run verify
 
 ## Deployment
 
-`npm run build` creates a standalone Node.js server. Railway runs `npm start`, checks `/health`, and keeps Serverless disabled initially. The web service talks to the API through its private Railway hostname; only the web service receives a public domain. Domain attachment remains a separate production-readiness step.
+`npm run build` creates a standalone Node.js server. Railway runs `npm start`, checks `/health`, and keeps Serverless disabled initially. Production runs one 0.5 vCPU, 0.5 GB replica in the same US East region as the private API. The web service talks to the API through its private Railway hostname; only the web service receives a public domain. Domain attachment remains a separate production-readiness step.
+
+See [docs/Operations.md](docs/Operations.md) for the production baseline, verification steps, and rollback procedure.
 
 ## License
 

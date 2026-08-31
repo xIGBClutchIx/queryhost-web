@@ -68,6 +68,18 @@ class PublicQueryInputError extends Error {
   }
 }
 
+type PublicQueryBodyErrorCode = "BAD_REQUEST" | "BODY_TOO_LARGE";
+
+class PublicQueryBodyError extends Error {
+  public readonly code: PublicQueryBodyErrorCode;
+
+  public constructor(code: PublicQueryBodyErrorCode, message: string) {
+    super(message);
+    this.name = "PublicQueryBodyError";
+    this.code = code;
+  }
+}
+
 function integerEnvironment(
   environment: NodeJS.ProcessEnv,
   name: string,
@@ -228,6 +240,73 @@ function jsonObject(value: JsonValue): JsonObject {
   return value;
 }
 
+async function readBoundedBody(
+  request: Request,
+  maxBytes: number,
+): Promise<string> {
+  const declaredLength = request.headers.get("content-length");
+  if (declaredLength !== null) {
+    if (!/^\d+$/u.test(declaredLength)) {
+      throw new PublicQueryBodyError(
+        "BAD_REQUEST",
+        "Content-Length is invalid.",
+      );
+    }
+    const bytes = Number(declaredLength);
+    if (!Number.isSafeInteger(bytes)) {
+      throw new PublicQueryBodyError(
+        "BAD_REQUEST",
+        "Content-Length is invalid.",
+      );
+    }
+    if (bytes > maxBytes) {
+      throw new PublicQueryBodyError(
+        "BODY_TOO_LARGE",
+        "The query request is too large.",
+      );
+    }
+  }
+
+  if (request.body === null) {
+    return "";
+  }
+
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+  try {
+    while (true) {
+      const result = await reader.read();
+      if (result.done) {
+        break;
+      }
+      totalBytes += result.value.byteLength;
+      if (totalBytes > maxBytes) {
+        try {
+          await reader.cancel();
+        } catch {
+          // Cancellation is best-effort; the size violation still determines the response.
+        }
+        throw new PublicQueryBodyError(
+          "BODY_TOO_LARGE",
+          "The query request is too large.",
+        );
+      }
+      chunks.push(result.value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  const bytes = new Uint8Array(totalBytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return new TextDecoder().decode(bytes);
+}
+
 function optionalInteger(
   value: JsonValue | undefined,
   name: string,
@@ -374,27 +453,18 @@ export async function handlePublicQuery(
     );
   }
 
-  const declaredLength = request.headers.get("content-length");
-  if (
-    declaredLength !== null &&
-    Number(declaredLength) > dependencies.config.maxBodyBytes
-  ) {
-    return jsonResponse(
-      413,
-      "BODY_TOO_LARGE",
-      "The query request is too large.",
-    );
-  }
-
-  const text = await request.text();
-  if (
-    new TextEncoder().encode(text).byteLength > dependencies.config.maxBodyBytes
-  ) {
-    return jsonResponse(
-      413,
-      "BODY_TOO_LARGE",
-      "The query request is too large.",
-    );
+  let text: string;
+  try {
+    text = await readBoundedBody(request, dependencies.config.maxBodyBytes);
+  } catch (error) {
+    if (error instanceof PublicQueryBodyError) {
+      return jsonResponse(
+        error.code === "BODY_TOO_LARGE" ? 413 : 400,
+        error.code,
+        error.message,
+      );
+    }
+    throw error;
   }
 
   let input: PlaygroundQueryInput;
