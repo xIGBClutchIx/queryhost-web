@@ -215,6 +215,15 @@ const timeoutOptions = [
         aria-labelledby="query-tab-overview"
         data-result-panel="overview"
       >
+        <div
+          class="query-path"
+          id="query-path"
+          aria-labelledby="query-path-label"
+        >
+          <span class="query-path__label" id="query-path-label">Query path</span
+          >
+          <ol id="query-path-list"></ol>
+        </div>
         <div class="query-game-summary" id="query-game-summary" hidden></div>
         <dl class="query-overview" id="query-overview"></dl>
         <div class="query-warnings" id="query-warnings" hidden>
@@ -278,6 +287,7 @@ const timeoutOptions = [
     PlaygroundQueryInput,
     PlaygroundQueryResponse,
   } from "../lib/playground-contracts.js";
+  import { queryPathItems } from "../lib/query-path.js";
 
   interface ClientGameDefinition {
     readonly defaultPort: number;
@@ -768,6 +778,32 @@ const timeoutOptions = [
     }
   }
 
+  function renderQueryPath(result: PlaygroundQueryResponse): void {
+    const path = requiredElement<HTMLElement>("#query-path");
+    const list = requiredElement<HTMLOListElement>("#query-path-list");
+    const items = queryPathItems(result.sources);
+    list.replaceChildren();
+    path.hidden = items.length === 0;
+    list.style.setProperty("--query-path-count", String(items.length));
+
+    for (const item of items) {
+      const step = document.createElement("li");
+      const node = document.createElement("span");
+      const content = document.createElement("div");
+      const label = document.createElement("strong");
+      const detail = document.createElement("code");
+      step.className = `query-path__step query-path__step--${item.status}`;
+      step.title = item.source;
+      node.className = "query-path__node";
+      node.ariaHidden = "true";
+      label.textContent = item.label;
+      detail.textContent = item.detail;
+      content.append(label, detail);
+      step.append(node, content);
+      list.append(step);
+    }
+  }
+
   function renderWarnings(result: PlaygroundQueryResponse): void {
     const warningBox = requiredElement<HTMLElement>("#query-warnings");
     const warningList = requiredElement<HTMLUListElement>(
@@ -859,6 +895,7 @@ const timeoutOptions = [
     }
 
     renderWarnings(result);
+    renderQueryPath(result);
     renderSources(result);
     requiredElement<HTMLElement>("#query-json").textContent = JSON.stringify(
       parseJson<JsonValue>(raw),

@@ -1357,6 +1357,108 @@ a {
   padding: 1.25rem;
 }
 
+.query-path {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 1rem;
+  align-items: center;
+  min-height: 3rem;
+  padding: 0.6rem 0.85rem;
+  margin-bottom: 1rem;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--surface-raised) 54%, transparent);
+}
+
+.query-path__label {
+  color: var(--faint);
+  font-size: 0.67rem;
+  font-weight: 650;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.query-path ol {
+  display: grid;
+  grid-template-columns: repeat(var(--query-path-count, 1), minmax(0, 1fr));
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.query-path__step {
+  position: relative;
+  min-width: 0;
+  padding: 0.95rem 0.55rem 0 0;
+}
+
+.query-path__step:last-child {
+  padding-right: 0;
+}
+
+.query-path__step:not(:last-child)::after {
+  position: absolute;
+  top: 0.31rem;
+  right: 0.1rem;
+  left: 0.65rem;
+  height: 1px;
+  background: var(--line-strong);
+  content: "";
+}
+
+.query-path__node {
+  position: absolute;
+  top: 0.05rem;
+  left: 0;
+  z-index: 1;
+  width: 0.55rem;
+  height: 0.55rem;
+  border: 2px solid var(--surface-raised);
+  border-radius: 50%;
+  background: var(--faint);
+  box-shadow: 0 0 0 1px var(--line-strong);
+}
+
+.query-path__step--ok .query-path__node {
+  background: var(--accent);
+  box-shadow: 0 0 0 1px
+    color-mix(in srgb, var(--accent-strong) 70%, var(--line-strong));
+}
+
+.query-path__step--blocked .query-path__node,
+.query-path__step--failed .query-path__node,
+.query-path__step--malformed .query-path__node,
+.query-path__step--timeout .query-path__node {
+  background: var(--warning);
+  box-shadow: 0 0 0 1px
+    color-mix(in srgb, var(--warning) 70%, var(--line-strong));
+}
+
+.query-path__step > div {
+  display: flex;
+  gap: 0.4rem;
+  align-items: baseline;
+  min-width: 0;
+  padding-right: 0.35rem;
+}
+
+.query-path__step strong,
+.query-path__step code {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.query-path__step strong {
+  color: var(--text-strong);
+  font-size: 0.72rem;
+  font-weight: 610;
+}
+
+.query-path__step code {
+  color: var(--faint);
+  font-size: 0.66rem;
+}
+
 .query-game-summary {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
@@ -2083,6 +2185,29 @@ a {
   .query-result__toolbar {
     align-items: start;
     padding: 1rem 1rem 0;
+  }
+
+  .query-path {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+    padding: 0.65rem 0.75rem;
+  }
+
+  .query-path__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .query-path__step > div {
+    display: grid;
+    gap: 0;
   }
 
   .query-tabs {
