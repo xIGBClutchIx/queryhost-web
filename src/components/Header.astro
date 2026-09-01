@@ -1,5 +1,10 @@
 ---
-import { documentationHref, requestHostname, siteHref } from "../lib/site.js";
+import {
+  documentationHref,
+  GITHUB_REPOSITORY_URL,
+  requestHostname,
+  siteHref,
+} from "../lib/site.js";
 
 interface Props {
   readonly active: "docs" | "site";
@@ -37,6 +42,7 @@ const hostname = requestHostname(Astro.request);
       >
         Docs
       </a>
+      <a class="primary-nav__link" href={GITHUB_REPOSITORY_URL}> GitHub </a>
     </nav>
   </div>
 </header>

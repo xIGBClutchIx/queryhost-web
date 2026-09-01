@@ -1,8 +1,11 @@
 ---
-import Callout from "../../components/Callout.astro";
 import CodeBlock from "../../components/CodeBlock.astro";
 import DocsLayout from "../../layouts/DocsLayout.astro";
-import { documentationHref, requestHostname } from "../../lib/site.js";
+import {
+  documentationHref,
+  GITHUB_REPOSITORY_URL,
+  requestHostname,
+} from "../../lib/site.js";
 
 const hostname = requestHostname(Astro.request);
 const installSource = `cd ../query
@@ -30,31 +33,44 @@ if (result.ok) {
   activeHref="/"
   eyebrow="Introduction"
   title="Getting started"
-  description="Install the private package artifact and make a typed game-server query from Node.js."
+  description="Verify the package, install its artifact, and make a typed game-server query from Node.js."
 >
-  <Callout title="Package status">
-    <p>
-      QueryHost is release-ready but deliberately unpublished at version <code
-        >0.0.0</code
-      >. The current installation flow uses the verified package artifact;
-      publishing is a separate decision.
-    </p>
-  </Callout>
+  <section class="docs-start-panel" aria-labelledby="package-status">
+    <div class="docs-start-panel__summary">
+      <p class="docs-start-panel__label">Package status</p>
+      <h2 id="package-status">Release-ready, not yet published</h2>
+      <p>
+        QueryHost remains at <code>0.0.0</code> while distribution stays on the verified
+        package artifact. Publishing to npm is a separate release decision.
+      </p>
+      <a class="docs-source-link" href={GITHUB_REPOSITORY_URL}>
+        View QueryHost on GitHub
+      </a>
+    </div>
 
-  <h2 id="requirements">Requirements</h2>
-  <ul>
-    <li>Node.js 24 or newer</li>
-    <li>npm 12</li>
-    <li>
-      A server-side Node.js runtime with ordinary DNS, UDP, TCP, and HTTP
-      networking
-    </li>
-  </ul>
+    <div class="docs-start-panel__requirements" aria-labelledby="requirements">
+      <h2 id="requirements">Before you start</h2>
+      <dl>
+        <div>
+          <dt>Node.js</dt>
+          <dd>24 or newer</dd>
+        </div>
+        <div>
+          <dt>npm</dt>
+          <dd>12</dd>
+        </div>
+        <div>
+          <dt>Runtime</dt>
+          <dd>Server-side DNS, UDP, TCP, and HTTP</dd>
+        </div>
+      </dl>
+    </div>
+  </section>
 
-  <h2 id="install">Install from a verified source checkout</h2>
+  <h2 id="install">Install from source</h2>
   <p>
     Build and verify the library before packing it. The resulting tarball is the
-    same artifact used by the hosted services.
+    same artifact consumed by the hosted services.
   </p>
   <CodeBlock code={installSource} label="Terminal" language="shell" />
 
@@ -66,22 +82,23 @@ if (result.ok) {
   </p>
   <CodeBlock code={firstQuery} label="query.ts" language="TypeScript" />
 
-  <h2 id="next">Where to go next</h2>
-  <ul>
-    <li>
-      <a href={documentationHref(hostname, "/querying/")}
-        >Understand ports, modes, deadlines, and aliases.</a
-      >
-    </li>
-    <li>
-      <a href={documentationHref(hostname, "/results/")}
-        >Learn normalized, game-specific, raw, and partial result semantics.</a
-      >
-    </li>
-    <li>
-      <a href={documentationHref(hostname, "/games/")}
-        >Compare every supported game and conditional capability.</a
-      >
-    </li>
-  </ul>
+  <h2 id="next">Continue with the docs</h2>
+  <nav class="docs-next-links" aria-label="Continue with the documentation">
+    <a href={documentationHref(hostname, "/querying/")}>
+      <strong>Query a server</strong>
+      <span>Ports, modes, deadlines, and accepted aliases.</span>
+    </a>
+    <a href={documentationHref(hostname, "/results/")}>
+      <strong>Read a result</strong>
+      <span>Normalized, game-specific, raw, and partial result semantics.</span>
+    </a>
+    <a href={documentationHref(hostname, "/games/")}>
+      <strong>Compare supported games</strong>
+      <span>Capabilities and conditional fields for every game profile.</span>
+    </a>
+    <a href={documentationHref(hostname, "/reference/")}>
+      <strong>Open the API reference</strong>
+      <span>Generated exports, signatures, and type contracts.</span>
+    </a>
+  </nav>
 </DocsLayout>

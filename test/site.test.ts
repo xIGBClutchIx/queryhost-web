@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   cacheControlForPath,
   DOCS_HOSTNAME,
+  GITHUB_REPOSITORY_URL,
   documentationHref,
   experienceForHostname,
   internalDocumentationPath,
@@ -52,6 +53,14 @@ describe("hostname routing", () => {
       "https://docs.query.host/games/",
     );
     expect(siteHref("docs.query.host")).toBe("https://query.host/");
+  });
+});
+
+describe("public destinations", () => {
+  it("points source links at the QueryHost library repository", () => {
+    expect(GITHUB_REPOSITORY_URL).toBe(
+      "https://github.com/xIGBClutchIx/queryhost",
+    );
   });
 });
 

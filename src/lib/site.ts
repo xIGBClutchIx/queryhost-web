@@ -1,6 +1,8 @@
 export type SiteExperience = "docs" | "site";
 
 export const DOCS_HOSTNAME = "docs.query.host";
+export const GITHUB_REPOSITORY_URL =
+  "https://github.com/xIGBClutchIx/queryhost";
 export const SITE_HOSTNAME = "query.host";
 
 /** Normalizes a Host-style value without accepting a path, credentials, or scheme. */
