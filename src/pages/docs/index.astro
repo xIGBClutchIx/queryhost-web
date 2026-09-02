@@ -8,11 +8,7 @@ import {
 } from "../../lib/site.js";
 
 const hostname = requestHostname(Astro.request);
-const installSource = `cd ../query
-npm run verify
-npm pack --pack-destination ../consumer
-cd ../consumer
-npm install ./queryhost-0.0.0.tgz`;
+const installSource = "npm install queryhost@1.0.0";
 const firstQuery = `import { query } from "queryhost";
 
 const result = await query({
@@ -33,15 +29,15 @@ if (result.ok) {
   activeHref="/"
   eyebrow="Introduction"
   title="Getting started"
-  description="Verify the package, install its artifact, and make a typed game-server query from Node.js."
+  description="Install QueryHost and make a typed game-server query from Node.js."
 >
   <section class="docs-start-panel" aria-labelledby="package-status">
     <div class="docs-start-panel__summary">
       <p class="docs-start-panel__label">Package status</p>
-      <h2 id="package-status">Release-ready, not yet published</h2>
+      <h2 id="package-status">QueryHost 1.0.0</h2>
       <p>
-        QueryHost remains at <code>0.0.0</code> while distribution stays on the verified
-        package artifact. Publishing to npm is a separate release decision.
+        The first stable release establishes the reviewed package-root contract
+        and supports the six documented game profiles.
       </p>
       <a class="docs-source-link" href={GITHUB_REPOSITORY_URL}>
         View QueryHost on GitHub
@@ -67,10 +63,11 @@ if (result.ok) {
     </div>
   </section>
 
-  <h2 id="install">Install from source</h2>
+  <h2 id="install">Install from npm</h2>
   <p>
-    Build and verify the library before packing it. The resulting tarball is the
-    same artifact consumed by the hosted services.
+    Install the exact first stable version with Node.js 24 or newer.
+    Applications can relax the version range after choosing their own update
+    policy.
   </p>
   <CodeBlock code={installSource} label="Terminal" language="shell" />
 

@@ -32,13 +32,13 @@ Run the complete gate before committing:
 npm run verify
 ```
 
-## Library snapshot
+## Library dependency
 
-`vendor/queryhost-0.0.0.tgz` is the verified package artifact that supplies the game registry, public types, and generated API Markdown. Refresh it only from a verified sibling `query` checkout; do not copy or maintain a second game list in this repository.
+The web service pins exact `queryhost@1.0.0` from the public npm registry for the game registry, public types, and generated API Markdown. Do not copy or maintain a second game list in this repository.
 
 ## Deployment
 
-`npm run build` creates a standalone Node.js server. Railway runs `npm start`, checks `/health`, and keeps Serverless disabled initially. Production runs one 0.5 vCPU, 0.5 GB replica in the same US East region as the private API. The web service talks to the API through its private Railway hostname; only the web service receives a public domain. Domain attachment remains a separate production-readiness step.
+`npm run build` creates a standalone Node.js server. Railway runs `npm start`, checks `/health`, and keeps Serverless disabled initially. Production runs one 0.5 vCPU, 0.5 GB replica in the same US East region as the private API. The web service talks to the API through its private Railway hostname. `query.host` and `docs.query.host` point to the web service, and its Railway-generated domain remains available for rollback.
 
 See [docs/Operations.md](docs/Operations.md) for the production baseline, verification steps, and rollback procedure.
 
