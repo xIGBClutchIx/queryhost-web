@@ -24,12 +24,15 @@ describe("package-owned registry", () => {
 
 describe("browser query boundary", () => {
   it("addresses only the same-origin proxy and contains no private credentials", () => {
-    const source = readFileSync(
-      new URL("../src/components/QueryPlayground.astro", import.meta.url),
-      "utf8",
-    );
+    const source = [
+      "../src/components/QueryPlayground.astro",
+      "../src/lib/playground-query.ts",
+      "../src/lib/webmcp.ts",
+    ]
+      .map((path) => readFileSync(new URL(path, import.meta.url), "utf8"))
+      .join("\n");
 
-    expect(source).toContain('fetch("/api/query"');
+    expect(source).toContain('fetcher("/api/query"');
     expect(source).not.toContain("QUERYHOST_API_BASE_URL");
     expect(source).not.toContain("QUERYHOST_API_ORIGIN_TOKEN");
     expect(source).not.toContain("railway.internal");

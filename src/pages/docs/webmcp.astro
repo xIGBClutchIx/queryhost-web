@@ -1,0 +1,68 @@
+---
+import Callout from "../../components/Callout.astro";
+import DocsLayout from "../../layouts/DocsLayout.astro";
+---
+
+<DocsLayout
+  activeHref="/webmcp/"
+  eyebrow="Agent collaboration"
+  title="WebMCP tools"
+  description="Use QueryHost's public playground with a compatible browser agent while keeping the result visible and controllable in the page."
+>
+  <h2 id="available-tools">Available tools</h2>
+  <table class="data-table">
+    <thead><tr><th>Tool</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><code>list_supported_games</code></td>
+        <td>
+          Lists canonical game IDs, ports, recommended modes, and capability
+          support from the installed QueryHost registry.
+        </td>
+      </tr>
+      <tr>
+        <td><code>query_game_server</code></td>
+        <td>
+          Queries a public game server through the same bounded route as the
+          human playground and renders the returned result in the page.
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2 id="shared-workflow">People and agents share one result</h2>
+  <p>
+    An agent can discover a supported profile and start a query without guessing
+    at the page controls. QueryHost then fills the existing form, updates the
+    share URL, and displays the same overview, game data, source provenance,
+    warnings, and JSON available to a person. The person can inspect that
+    result, change any input, and continue with the normal playground.
+  </p>
+
+  <h2 id="boundary">Same security boundary</h2>
+  <p>
+    WebMCP does not create another API or grant new network access. Tool
+    execution calls the same-origin <code>POST /api/query</code> route, which preserves
+    the web caller gate, private API authentication, target validation, resource limits,
+    cache semantics, and stable result contract. The private Railway hostname and
+    origin token never enter browser code.
+  </p>
+  <Callout title="Server responses are untrusted data">
+    <p>
+      Names, MOTDs, rules, player details, and other server-provided values are
+      returned as data, not instructions. The query tool declares this
+      explicitly to compatible agents.
+    </p>
+  </Callout>
+
+  <h2 id="browser-support">Browser support</h2>
+  <p>
+    QueryHost uses the current imperative <code>document.modelContext</code> API and
+    registers tools only when the browser exposes it. Browsers without WebMCP keep
+    the complete human playground with no polyfill or compatibility layer.
+  </p>
+  <p>
+    Open <a href="https://query.host/">query.host</a> in ChatGPT's in-app browser
+    or a WebMCP-enabled version of Chrome to let a compatible agent discover the tools.
+  </p>
+</DocsLayout>

@@ -4,6 +4,17 @@ The public QueryHost website, query playground, and documentation service. One p
 
 The browser sends non-secret query inputs to the same-origin `POST /api/query` route. That server route validates and throttles callers before forwarding production requests to the private QueryHost API over Railway networking. During local development, the same route calls the installed `queryhost` package directly, without duplicating any game protocol implementation.
 
+## WebMCP
+
+The playground registers two imperative WebMCP tools when the browser exposes `document.modelContext`:
+
+- `list_supported_games` returns the package-owned game registry, ports, recommended modes, and capabilities.
+- `query_game_server` uses the existing same-origin query route and renders the same result in the visible playground.
+
+Both tools are read-only. Game-server responses are marked as untrusted content because names, MOTDs, rules, and player data come from external servers. Unsupported browsers keep the complete human interface without a polyfill. See the [WebMCP tools documentation](https://docs.query.host/webmcp/) and the current [WebMCP draft](https://webmachinelearning.github.io/webmcp/).
+
+This WebMCP integration was added after August 25, 2026 for the WebMCP hackathon. Its implementation is isolated to the web application and does not add browser APIs to the portable library or private API.
+
 ## Development
 
 Requirements: Node.js 24 and npm 12.
@@ -35,6 +46,12 @@ npm run verify
 ## Library dependency
 
 The web service pins exact `queryhost@1.0.0` from the public npm registry for the game registry, public types, and generated API Markdown. Do not copy or maintain a second game list in this repository.
+
+## Source repositories
+
+- [QueryHost web and WebMCP integration](https://github.com/xIGBClutchIx/queryhost-web)
+- [QueryHost hosted API source (private runtime)](https://github.com/xIGBClutchIx/queryhost-api)
+- [QueryHost TypeScript library](https://github.com/xIGBClutchIx/queryhost)
 
 ## Deployment
 

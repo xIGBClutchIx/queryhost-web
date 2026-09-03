@@ -1,10 +1,12 @@
 import type {
+  GameCapability,
   GameId,
   QueryError,
   QueryMode,
   QuerySource,
   QueryWarning,
   ServerInfo,
+  SupportLevel,
 } from "queryhost";
 
 export type JsonPrimitive = boolean | number | string | null;
@@ -12,6 +14,16 @@ export type JsonValue = JsonPrimitive | JsonObject | JsonValue[];
 
 export interface JsonObject {
   readonly [key: string]: JsonValue;
+}
+
+/** Browser-safe game metadata serialized from QueryHost's package registry. */
+export interface PlaygroundGameDefinition {
+  readonly capabilities: Readonly<Record<GameCapability, SupportLevel>>;
+  readonly defaultMode: QueryMode;
+  readonly defaultPort: number;
+  readonly defaultQueryPort?: number;
+  readonly id: GameId;
+  readonly name: string;
 }
 
 /** Non-secret fields accepted from the public playground. */
@@ -60,6 +72,7 @@ export type PlaygroundProxyErrorCode =
   | "BAD_REQUEST"
   | "BODY_TOO_LARGE"
   | "METHOD_NOT_ALLOWED"
+  | "NETWORK_ERROR"
   | "RATE_LIMITED"
   | "UPSTREAM_INVALID"
   | "UPSTREAM_UNAVAILABLE";

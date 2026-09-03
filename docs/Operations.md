@@ -29,6 +29,12 @@ After a deployment or infrastructure change:
 6. Inspect both services' logs for the same request window. Logs must not contain the target host, request body, player data, origin token, or arbitrary exception contents.
 7. Check CPU and memory metrics before raising either replica ceiling.
 
+For WebMCP releases, also open `query.host` in a compatible browser and require
+exactly `list_supported_games` and `query_game_server` to be discoverable. Invoke
+the registry tool, run one approved query, cancel one in-flight query, and confirm
+that each agent query updates the visible playground. Chrome's Lighthouse
+registered-WebMCP-tools audit provides an independent discovery check.
+
 Do not use arbitrary public game servers for deployment tests. Use a server owned by the project operator or explicitly approved for testing.
 
 ## Initial production validation

@@ -4,6 +4,8 @@ import { GAMES } from "../lib/queryhost.js";
 import { defaultQueryMode } from "../lib/playground-defaults.js";
 
 const gameOptions = GAMES.map((game) => ({
+  capabilities: game.capabilities,
+  defaultMode: defaultQueryMode(game.id),
   defaultPort: game.defaultPort,
   defaultQueryPort: game.defaultQueryPort,
   id: game.id,
@@ -284,19 +286,16 @@ const timeoutOptions = [
   import type {
     JsonObject,
     JsonValue,
+    PlaygroundGameDefinition,
     PlaygroundProxyErrorResponse,
     PlaygroundQueryInput,
     PlaygroundQueryResponse,
   } from "../lib/playground-contracts.js";
   import { defaultQueryMode } from "../lib/playground-defaults.js";
+  import { requestPlaygroundQuery } from "../lib/playground-query.js";
+  import { PlaygroundRequestCoordinator } from "../lib/playground-request-coordinator.js";
   import { queryPathItems } from "../lib/query-path.js";
-
-  interface ClientGameDefinition {
-    readonly defaultPort: number;
-    readonly defaultQueryPort?: number;
-    readonly id: PlaygroundQueryInput["game"];
-    readonly name: string;
-  }
+  import { registerQueryHostWebMcp } from "../lib/webmcp.js";
 
   function requiredElement<T extends Element>(selector: string): T {
     const element = document.querySelector<T>(selector);
@@ -376,15 +375,17 @@ const timeoutOptions = [
   const loadingState = requiredElement<HTMLElement>("#query-loading");
   const requestError = requiredElement<HTMLElement>("#query-request-error");
   const resultElement = requiredElement<HTMLElement>("#query-result");
-  const games = parseJson<readonly ClientGameDefinition[]>(
+  const games = parseJson<readonly PlaygroundGameDefinition[]>(
     form.dataset.games ?? "[]",
   );
   const customSelectRoots = Array.from(
     document.querySelectorAll<HTMLElement>("[data-custom-select]"),
   );
 
-  let activeController: AbortController | undefined;
-  let activeRequest = 0;
+  const pageController = new AbortController();
+  const requestCoordinator = new PlaygroundRequestCoordinator(
+    pageController.signal,
+  );
   let previousGameId = gameSelect.value;
   let responseJson = "";
 
@@ -407,7 +408,7 @@ const timeoutOptions = [
     { once: true },
   );
 
-  function selectedGame(): ClientGameDefinition {
+  function selectedGame(): PlaygroundGameDefinition {
     const game = games.find((candidate) => candidate.id === gameSelect.value);
     if (game === undefined) {
       throw new Error("The selected game is not in the package registry.");
@@ -598,7 +599,7 @@ const timeoutOptions = [
     });
   }
 
-  function showOnly(state: "error" | "loading" | "result"): void {
+  function showOnly(state: "error" | "idle" | "loading" | "result"): void {
     loadingState.hidden = state !== "loading";
     requestError.hidden = state !== "error";
     resultElement.hidden = state !== "result";
@@ -923,7 +924,7 @@ const timeoutOptions = [
     }
   }
 
-  function queryInput(): PlaygroundQueryInput | undefined {
+  function formQueryInput(): PlaygroundQueryInput | undefined {
     if (!form.reportValidity()) {
       return undefined;
     }
@@ -952,6 +953,34 @@ const timeoutOptions = [
     };
   }
 
+  function applyQueryInput(input: PlaygroundQueryInput): void {
+    const game = games.find((candidate) => candidate.id === input.game);
+    if (game === undefined) {
+      return;
+    }
+
+    gameSelect.value = game.id;
+    previousGameId = game.id;
+    updateGameFields();
+    hostInput.value = typeof input.host === "string" ? input.host : "";
+    portInput.value = typeof input.port === "number" ? String(input.port) : "";
+    queryPortInput.value =
+      typeof input.queryPort === "number" ? String(input.queryPort) : "";
+    modeSelect.value =
+      input.mode === "full" || input.mode === "summary"
+        ? input.mode
+        : "summary";
+    timeoutSelect.value = input.timeoutMs === 3_000 ? "3000" : "5000";
+    syncCustomSelect(gameSelect);
+    syncCustomSelect(modeSelect);
+    syncCustomSelect(timeoutSelect);
+    setAdvancedOptionsOpen(
+      input.queryPort !== undefined ||
+        input.mode === "full" ||
+        input.timeoutMs === 3_000,
+    );
+  }
+
   function updateShareUrl(input: PlaygroundQueryInput): void {
     const url = new URL(window.location.href);
     url.search = "";
@@ -972,51 +1001,48 @@ const timeoutOptions = [
     history.replaceState(null, "", url);
   }
 
-  async function runQuery(): Promise<void> {
+  async function runQuery(
+    input: PlaygroundQueryInput,
+    executionSignal?: AbortSignal,
+  ): Promise<PlaygroundProxyErrorResponse | PlaygroundQueryResponse> {
     clearFormError();
-    const input = queryInput();
-    if (input === undefined) {
-      return;
-    }
-
-    activeController?.abort();
-    const controller = new AbortController();
-    activeController = controller;
-    activeRequest += 1;
-    const requestId = activeRequest;
+    const request = requestCoordinator.start(executionSignal);
     updateShareUrl(input);
     submitButton.disabled = true;
     submitButton.textContent = "Querying…";
     showOnly("loading");
 
     try {
-      const response = await fetch("/api/query", {
-        body: JSON.stringify(input),
-        headers: { "Content-Type": "application/json" },
-        method: "POST",
-        signal: controller.signal,
-      });
-      const raw = await response.text();
-      if (requestId !== activeRequest) {
-        return;
+      const response = await requestPlaygroundQuery(input, request.signal);
+      if (!request.isCurrent()) {
+        throw new DOMException("The query was superseded.", "AbortError");
       }
-      if (!response.ok) {
-        const failure = parseJson<PlaygroundProxyErrorResponse>(raw);
+      if (response.kind === "proxy-error") {
+        const failure = response.body;
         proxyError(failure.error.code, failure.error.message);
-        return;
+        return failure;
       }
-      renderResult(parseJson<PlaygroundQueryResponse>(raw), raw);
+      renderResult(response.body, response.raw);
+      return response.body;
     } catch (error) {
-      if (requestId !== activeRequest || controller.signal.aborted) {
-        return;
+      if (!request.isCurrent()) {
+        throw new DOMException("The query was cancelled.", "AbortError");
+      }
+      if (request.signal.aborted) {
+        showOnly("idle");
+        throw new DOMException("The query was cancelled.", "AbortError");
       }
       const message =
         error instanceof Error
           ? error.message
           : "The browser could not reach the QueryHost web service.";
-      proxyError("NETWORK_ERROR", message);
+      const failure: PlaygroundProxyErrorResponse = {
+        error: { code: "NETWORK_ERROR", message },
+      };
+      proxyError(failure.error.code, failure.error.message);
+      return failure;
     } finally {
-      if (requestId === activeRequest) {
+      if (request.isCurrent()) {
         submitButton.disabled = false;
         submitButton.textContent = "Query";
         output.setAttribute("aria-busy", "false");
@@ -1076,7 +1102,11 @@ const timeoutOptions = [
   });
   form.addEventListener("submit", (event) => {
     event.preventDefault();
-    void runQuery();
+    clearFormError();
+    const input = formQueryInput();
+    if (input !== undefined) {
+      void runQuery(input).catch(() => undefined);
+    }
   });
   for (const tab of document.querySelectorAll<HTMLButtonElement>(
     "[data-result-tab]",
@@ -1127,4 +1157,21 @@ const timeoutOptions = [
 
   prefillFromUrl();
   initializeCustomSelects();
+  const webMcpRegistration = registerQueryHostWebMcp(document, games, {
+    queryGameServer: (input, signal) => {
+      applyQueryInput(input);
+      return runQuery(input, signal);
+    },
+  });
+  void webMcpRegistration?.ready.catch(() => {
+    console.warn("QueryHost could not register its WebMCP tools.");
+  });
+  window.addEventListener(
+    "pagehide",
+    () => {
+      webMcpRegistration?.abort();
+      pageController.abort();
+    },
+    { once: true },
+  );
 </script>
