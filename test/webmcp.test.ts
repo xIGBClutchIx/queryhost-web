@@ -152,6 +152,31 @@ describe("QueryHost WebMCP tools", () => {
     });
   });
 
+  it("supports Chrome testing executions that omit callback options", async () => {
+    let executionSignal: AbortSignal | undefined;
+    const [listTool, queryTool] = queryHostWebMcpTools(GAMES, {
+      queryGameServer: (_input, signal) => {
+        executionSignal = signal;
+        return Promise.resolve({
+          error: { code: "UPSTREAM_UNAVAILABLE", message: "Unavailable." },
+        });
+      },
+    });
+    if (listTool === undefined || queryTool === undefined) {
+      throw new Error("The expected WebMCP tools are missing.");
+    }
+
+    await expect(listTool.execute({})).resolves.toEqual({ games: GAMES });
+    await expect(
+      queryTool.execute({
+        game: "minecraft-java",
+        host: "test-minecraft.nodecraft.gg",
+      }),
+    ).resolves.toMatchObject({ error: { code: "UPSTREAM_UNAVAILABLE" } });
+    expect(executionSignal).toBeInstanceOf(AbortSignal);
+    expect(executionSignal?.aborted).toBe(false);
+  });
+
   it("is a no-op when the browser does not expose modelContext", () => {
     expect(
       registerQueryHostWebMcp(documentWith(), GAMES, {
