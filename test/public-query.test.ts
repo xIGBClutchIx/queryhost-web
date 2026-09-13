@@ -143,6 +143,27 @@ describe("public query proxy", () => {
     expect(invalid.status).toBe(400);
     expect(calls).toBe(0);
 
+    const missingA2sPort = await handlePublicQuery(
+      queryRequest(JSON.stringify({ game: "a2s", host: "play.example.com" })),
+      shared,
+    );
+    expect(missingA2sPort.status).toBe(400);
+    expect(calls).toBe(0);
+
+    const duplicateA2sPort = await handlePublicQuery(
+      queryRequest(
+        JSON.stringify({
+          game: "a2s",
+          host: "play.example.com",
+          port: 27_015,
+          queryPort: 27_016,
+        }),
+      ),
+      shared,
+    );
+    expect(duplicateA2sPort.status).toBe(400);
+    expect(calls).toBe(0);
+
     const validBody = JSON.stringify({
       game: "rust",
       host: "play.example.com",
@@ -308,7 +329,7 @@ describe("public query proxy", () => {
       inputs.push(input);
       return Promise.resolve({
         durationMs: 12,
-        game: input.game,
+        game: "minecraft-java",
         ok: true,
         partial: false,
         server: { name: "Local server" },

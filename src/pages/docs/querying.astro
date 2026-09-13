@@ -33,7 +33,7 @@ const fullQuery = `const result = await query({
         ></tr
       >
       <tr
-        ><td><code>port</code></td><td>No</td><td
+        ><td><code>port</code></td><td>No*</td><td
           >Game or service port. The registry default is used when omitted.</td
         ></tr
       >
@@ -61,6 +61,13 @@ const fullQuery = `const result = await query({
       >
     </tbody>
   </table>
+
+  <p>
+    Generic <code>a2s</code> queries require <code>port</code>, which is the
+    actual A2S query destination. They do not accept <code>queryPort</code>.
+    Named profiles retain their normal game-port defaults and query-port
+    conventions.
+  </p>
   <CodeBlock
     code={fullQuery}
     label="Full Minecraft Java query"

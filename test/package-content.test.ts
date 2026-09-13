@@ -16,7 +16,11 @@ describe("package-owned registry", () => {
 
     for (const game of GAMES) {
       expect(game.name.length).toBeGreaterThan(0);
-      expect(Number.isInteger(game.defaultPort)).toBe(true);
+      if (game.id === "a2s") {
+        expect(game.defaultPort).toBeUndefined();
+      } else {
+        expect(Number.isInteger(game.defaultPort)).toBe(true);
+      }
       expect(capabilityEntries(game)).toHaveLength(7);
     }
   });

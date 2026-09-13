@@ -20,7 +20,7 @@ export interface JsonObject {
 export interface PlaygroundGameDefinition {
   readonly capabilities: Readonly<Record<GameCapability, SupportLevel>>;
   readonly defaultMode: QueryMode;
-  readonly defaultPort: number;
+  readonly defaultPort?: number;
   readonly defaultQueryPort?: number;
   readonly id: GameId;
   readonly name: string;

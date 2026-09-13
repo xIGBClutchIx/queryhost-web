@@ -76,7 +76,9 @@ const SUPPORT_LEVELS = ["supported", "conditional", "unsupported"] as const;
                 <strong>{game.name}</strong>
                 <code>{game.id}</code>
               </th>
-              <td class="capability-table__port">{game.defaultPort}</td>
+              <td class="capability-table__port">
+                {game.defaultPort ?? "Required"}
+              </td>
               <td class="capability-table__port">
                 {game.defaultQueryPort ?? (
                   <span aria-label="Not applicable">—</span>

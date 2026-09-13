@@ -63,7 +63,7 @@ const timeoutOptions = [
         </label>
 
         <label class="field">
-          <span>Game port</span>
+          <span id="query-port-label">Game port</span>
           <input
             id="query-port"
             name="port"
@@ -97,7 +97,7 @@ const timeoutOptions = [
         >
           <div class="query-form__advanced-content-inner">
             <div class="query-form__secondary">
-              <label class="field field--compact">
+              <label class="field field--compact" id="query-query-port-field">
                 <span>Query port</span>
                 <input
                   id="query-query-port"
@@ -358,7 +358,11 @@ const timeoutOptions = [
   const gameSelect = requiredElement<HTMLSelectElement>("#query-game");
   const hostInput = requiredElement<HTMLInputElement>("#query-host");
   const portInput = requiredElement<HTMLInputElement>("#query-port");
+  const portLabel = requiredElement<HTMLElement>("#query-port-label");
   const queryPortInput = requiredElement<HTMLInputElement>("#query-query-port");
+  const queryPortField = requiredElement<HTMLElement>(
+    "#query-query-port-field",
+  );
   const modeSelect = requiredElement<HTMLSelectElement>("#query-mode");
   const timeoutSelect = requiredElement<HTMLSelectElement>("#query-timeout");
   const advancedOptions = requiredElement<HTMLElement>("#query-advanced");
@@ -416,14 +420,23 @@ const timeoutOptions = [
     return game;
   }
 
-  function updateGameFields(previousDefault?: number): void {
+  function updateGameFields(previousGame?: PlaygroundGameDefinition): void {
     const game = selectedGame();
     if (
       portInput.value.length === 0 ||
-      (previousDefault !== undefined &&
-        Number(portInput.value) === previousDefault)
+      previousGame?.defaultPort === undefined ||
+      Number(portInput.value) === previousGame.defaultPort
     ) {
-      portInput.value = String(game.defaultPort);
+      portInput.value =
+        game.defaultPort === undefined ? "" : String(game.defaultPort);
+    }
+    const genericA2s = game.id === "a2s";
+    portLabel.textContent = genericA2s ? "Query port" : "Game port";
+    portInput.required = genericA2s;
+    queryPortField.hidden = genericA2s;
+    queryPortInput.disabled = genericA2s;
+    if (genericA2s) {
+      queryPortInput.value = "";
     }
     queryPortInput.placeholder =
       game.defaultQueryPort === undefined
@@ -1087,9 +1100,7 @@ const timeoutOptions = [
   }
 
   gameSelect.addEventListener("change", () => {
-    const previous = games.find(
-      (candidate) => candidate.id === previousGameId,
-    )?.defaultPort;
+    const previous = games.find((candidate) => candidate.id === previousGameId);
     updateGameFields(previous);
     modeSelect.value = defaultQueryMode(selectedGame().id);
     syncCustomSelect(modeSelect);

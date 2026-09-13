@@ -101,14 +101,14 @@ function queryInputSchema(
       },
       port: {
         description:
-          "Optional game port. Omit it to use profile defaults and discovery.",
+          "Game port for named profiles. Required for generic a2s, where it is the actual A2S query port.",
         maximum: 65_535,
         minimum: 1,
         type: "integer",
       },
       queryPort: {
         description:
-          "Optional separate query port for profiles that support one.",
+          "Optional separate query port for named profiles. Omit it for generic a2s.",
         maximum: 65_535,
         minimum: 1,
         type: "integer",

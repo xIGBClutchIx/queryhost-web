@@ -21,7 +21,7 @@ protocol results. WebMCP gives the browser agent a small typed interface to the
 same live playground instead of making it guess at form controls or bypass the
 site's safety boundary.
 
-The `list_supported_games` tool exposes the six canonical profiles directly
+The `list_supported_games` tool exposes the six named profiles and generic A2S directly
 from the installed `queryhost@1.0.0` registry. The `query_game_server` tool
 accepts a canonical game, plain host, bounded ports, mode, and deadline. It
 sends the request through the existing same-origin `/api/query` route and
@@ -50,8 +50,8 @@ Use a project-owned or explicitly approved public game server. Rehearse once
 with the same game, ports, and mode that will appear in the recording.
 
 1. **0:00-0:15 — Frame the problem.** Open <https://query.host/> in ChatGPT's
-   in-app browser or WebMCP-enabled Chrome. Say that QueryHost turns six
-   game-specific query protocols into one safe, inspectable playground.
+   in-app browser or WebMCP-enabled Chrome. Say that QueryHost turns six named
+   game profiles plus generic A2S into one safe, inspectable playground.
 2. **0:15-0:40 — Discover capabilities.** Ask the browser agent to call
    `list_supported_games`. Show the canonical IDs, defaults, recommended modes,
    and capabilities coming from `queryhost@1.0.0`.

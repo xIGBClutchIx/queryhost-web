@@ -380,6 +380,16 @@ function parseInput(text: string): PlaygroundQueryInput {
   const game: GameId = canonicalGameId(gameValue);
   const port = optionalInteger(body["port"], "port", 1, 65_535);
   const queryPort = optionalInteger(body["queryPort"], "queryPort", 1, 65_535);
+  if (game === "a2s" && port === undefined) {
+    throw new PublicQueryInputError(
+      "port is required for generic A2S queries.",
+    );
+  }
+  if (game === "a2s" && queryPort !== undefined) {
+    throw new PublicQueryInputError(
+      "Use port as the query destination for generic A2S queries.",
+    );
+  }
   const mode = queryMode(body["mode"]);
   const timeoutMs = optionalInteger(body["timeoutMs"], "timeoutMs", 1, 5_000);
 
