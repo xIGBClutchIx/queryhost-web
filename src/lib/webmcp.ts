@@ -35,6 +35,7 @@ export interface WebMcpRegisterOptions {
 }
 
 export interface WebMcpModelContext {
+  unregisterTool?(name: string): void;
   registerTool(
     tool: WebMcpTool,
     options?: WebMcpRegisterOptions,
@@ -184,10 +185,23 @@ export function registerQueryHostWebMcp(
   }
 
   const controller = new AbortController();
+  const registered = new Set<string>();
+  function unregister(): void {
+    for (const name of registered) modelContext?.unregisterTool?.(name);
+    registered.clear();
+  }
+  controller.signal.addEventListener("abort", unregister, { once: true });
   const ready = (async (): Promise<void> => {
     try {
       for (const tool of queryHostWebMcpTools(games, handlers)) {
+        if (controller.signal.aborted) break;
+        registered.add(tool.name);
         await modelContext.registerTool(tool, { signal: controller.signal });
+        // Registration can settle after disposal in implementations that ignore signals.
+        if (controller.signal.aborted) {
+          modelContext.unregisterTool?.(tool.name);
+          break;
+        }
       }
     } catch (error) {
       controller.abort();

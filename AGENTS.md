@@ -15,4 +15,4 @@ This repository contains the public site and documentation service. It owns `que
 
 Run `npm run verify`. For visual changes, also inspect the built site at desktop and mobile widths.
 
-Use a concise commit subject. Add a list-form commit body when the change spans multiple meaningful concerns. Do not deploy, publish, push, or attach domains without explicit approval.
+Use a concise commit subject. Add a list-form commit body when the change spans multiple meaningful concerns. Push, deploy, publish, or expose domains only when the current request authorizes that action. Prepare and verify the requested work first; ask once if authorization or the destination remains unresolved.

@@ -37,5 +37,6 @@ describe("playground request coordinator", () => {
     rootController.abort();
 
     expect(request.signal.aborted).toBe(true);
+    expect(request.isCurrent()).toBe(false);
   });
 });

@@ -37,6 +37,10 @@ The private origin and token must never use a `PUBLIC_` prefix. Optional `QUERYH
 
 Local and preview hosts use `/` for the site and `/docs/` for documentation so every internal link remains on the current origin. Only the canonical `query.host` and `docs.query.host` domains use cross-origin navigation; production requests to `docs.query.host` map clean documentation paths to the same internal pages.
 
+Astro ClientRouter handles same-origin HTML navigation, with its built-in link prefetching. Moving between `query.host` and `docs.query.host` requires a full document load because they are different origins. External links, downloads, modified clicks, and intentional full-page navigation retain their browser behavior.
+
+The vanilla playground browser module initializes on page load and Astro navigation. Its lifecycle disposes listeners, observers, feedback timers, WebMCP registrations, and requests before a page swap or full-page exit, and initializes again on history restoration. Share URLs retain Astro's history state. A Vue island could simplify result templates and reactive form state if the playground grows substantially; it would not make Astro navigation or cross-origin navigation faster, so this implementation keeps vanilla browser modules.
+
 Run the complete gate before committing:
 
 ```bash

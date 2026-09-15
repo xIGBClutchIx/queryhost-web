@@ -13,11 +13,7 @@ const { activeHref, referenceItems, referenceLabel } = Astro.props;
 const hostname = requestHostname(Astro.request);
 ---
 
-<nav
-  class="docs-nav"
-  aria-label="Documentation navigation"
-  transition:persist={referenceItems === undefined}
->
+<nav class="docs-nav" aria-label="Documentation navigation">
   {
     DOCUMENTATION_NAVIGATION.map((section) => (
       <section class="docs-nav__section">
@@ -63,11 +59,16 @@ const hostname = requestHostname(Astro.request);
 </nav>
 
 <script>
+  let sidebarScroll = 0;
+  document.addEventListener("astro:before-swap", () => {
+    sidebarScroll = document.querySelector(".docs-nav")?.scrollTop ?? 0;
+  });
   function synchronizeActiveDocumentationLink(): void {
     const navigation = document.querySelector<HTMLElement>(".docs-nav");
     if (navigation === null) {
       return;
     }
+    navigation.scrollTop = sidebarScroll;
 
     const currentPath = window.location.pathname;
     for (const link of navigation.querySelectorAll<HTMLAnchorElement>("a")) {

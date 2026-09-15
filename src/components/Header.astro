@@ -28,7 +28,7 @@ const hostname = requestHostname(Astro.request);
       class="brand"
       href={siteHref(hostname)}
       aria-label="QueryHost home"
-      data-astro-reload={active === "docs"}
+      aria-current={active === "site" ? "page" : undefined}
     >
       <span class="brand__query">Query</span><span class="brand__host"
         >Host</span
@@ -39,6 +39,7 @@ const hostname = requestHostname(Astro.request);
       <a
         class:list={["primary-nav__link", { "is-active": active === "docs" }]}
         href={documentationHref(hostname)}
+        aria-current={active === "docs" ? "page" : undefined}
       >
         Docs
       </a>

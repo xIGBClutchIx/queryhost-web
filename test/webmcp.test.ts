@@ -177,6 +177,38 @@ describe("QueryHost WebMCP tools", () => {
     expect(executionSignal?.aborted).toBe(false);
   });
 
+  it("stops registration and unregisters tools when disposed during registration", async () => {
+    let settle: (() => void) | undefined;
+    const names: string[] = [];
+    const removed: string[] = [];
+    const registration = registerQueryHostWebMcp(
+      documentWith({
+        registerTool: (tool) => {
+          names.push(tool.name);
+          return new Promise<void>((resolve) => {
+            settle = resolve;
+          });
+        },
+        unregisterTool: (name) => {
+          removed.push(name);
+        },
+      }),
+      GAMES,
+      {
+        queryGameServer: () =>
+          Promise.resolve({
+            error: { code: "UPSTREAM_UNAVAILABLE", message: "Unavailable" },
+          }),
+      },
+    );
+    registration?.abort();
+    registration?.abort();
+    settle?.();
+    await registration?.ready;
+    expect(names).toEqual([LIST_SUPPORTED_GAMES_TOOL_NAME]);
+    expect(removed).toContain(LIST_SUPPORTED_GAMES_TOOL_NAME);
+  });
+
   it("is a no-op when the browser does not expose modelContext", () => {
     expect(
       registerQueryHostWebMcp(documentWith(), GAMES, {

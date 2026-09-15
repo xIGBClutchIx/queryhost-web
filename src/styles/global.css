@@ -71,20 +71,19 @@ body {
 }
 
 ::view-transition-old(root) {
-  animation: 70ms ease-out both page-leave;
+  animation: 120ms ease-out both page-leave;
 }
 
 ::view-transition-new(root) {
-  animation: 120ms 70ms cubic-bezier(0.16, 1, 0.3, 1) both page-enter;
-}
-
-html:has(body.docs-page)::view-transition-old(root),
-html:has(body.docs-page)::view-transition-new(root) {
-  animation: none;
+  animation: 120ms ease-out both page-enter;
 }
 
 ::view-transition-old(queryhost-header),
 ::view-transition-new(queryhost-header) {
+  animation: none;
+}
+
+::view-transition-group(queryhost-header) {
   animation: none;
 }
 

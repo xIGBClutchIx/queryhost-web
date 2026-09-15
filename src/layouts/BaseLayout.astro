@@ -12,7 +12,7 @@ interface Props {
   readonly title: string;
 }
 
-const { bodyClass, clientRouter = false, description, title } = Astro.props;
+const { bodyClass, clientRouter = true, description, title } = Astro.props;
 const pageTitle = title === "QueryHost" ? title : `${title} · QueryHost`;
 ---
 
@@ -25,7 +25,7 @@ const pageTitle = title === "QueryHost" ? title : `${title} · QueryHost`;
     <meta name="theme-color" content="#0c1215" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>{pageTitle}</title>
-    {clientRouter && <ClientRouter />}
+    {clientRouter && <ClientRouter fallback="swap" />}
   </head>
   <body class={bodyClass}>
     <a class="skip-link" href="#main-content">Skip to content</a>
@@ -52,6 +52,8 @@ const pageTitle = title === "QueryHost" ? title : `${title} · QueryHost`;
         if (
           link === null ||
           link.hasAttribute("download") ||
+          link.hasAttribute("data-astro-reload") ||
+          new URL(link.href).hash !== "" ||
           (link.target !== "" && link.target !== "_self") ||
           new URL(link.href).href !== window.location.href
         ) {
@@ -63,6 +65,15 @@ const pageTitle = title === "QueryHost" ? title : `${title} · QueryHost`;
       }
 
       window.addEventListener("click", preventRedundantNavigation, true);
+      document.addEventListener("keydown", (event) => {
+        if (event.key !== "Escape") return;
+        const menu = document.querySelector<HTMLDetailsElement>(
+          ".docs-mobile-nav details[open]",
+        );
+        if (menu === null) return;
+        menu.open = false;
+        menu.querySelector<HTMLElement>("summary")?.focus();
+      });
     </script>
   </body>
 </html>

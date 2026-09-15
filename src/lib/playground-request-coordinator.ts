@@ -25,7 +25,8 @@ export class PlaygroundRequestCoordinator {
     }
 
     return {
-      isCurrent: () => requestId === this.#sequence,
+      isCurrent: () =>
+        requestId === this.#sequence && !this.#rootSignal.aborted,
       signal: AbortSignal.any(signals),
     };
   }
