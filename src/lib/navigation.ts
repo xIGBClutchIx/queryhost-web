@@ -15,6 +15,7 @@ export const DOCUMENTATION_NAVIGATION: readonly NavigationSection[] = [
       { href: "/", label: "Getting started" },
       { href: "/querying/", label: "Query a server" },
       { href: "/results/", label: "Result semantics" },
+      { href: "/changelog/", label: "Changelog" },
     ],
   },
   {

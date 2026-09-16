@@ -8,6 +8,27 @@ import {
   renderApiReference,
 } from "../src/lib/api-reference.js";
 import { capabilityEntries, GAMES } from "../src/lib/queryhost.js";
+import { CHANGELOG_HTML } from "../src/lib/changelog.js";
+
+describe("packaged changelog", () => {
+  it("renders the installed release history and release links without a duplicate title", () => {
+    const markdown = readFileSync(
+      new URL("../node_modules/queryhost/CHANGELOG.md", import.meta.url),
+      "utf8",
+    );
+    const versions = Array.from(
+      markdown.matchAll(/^## \[([^\]]+)\]/gm),
+      (match) => match[1],
+    );
+
+    expect(versions.length).toBeGreaterThan(0);
+    for (const version of versions) {
+      expect(CHANGELOG_HTML).toContain(`/releases/tag/v${version}`);
+      expect(CHANGELOG_HTML).toContain(`>${version}</a>`);
+    }
+    expect(CHANGELOG_HTML).not.toContain("<h1");
+  });
+});
 
 describe("package-owned registry", () => {
   it("exposes distinct valid definitions with complete capability metadata", () => {
