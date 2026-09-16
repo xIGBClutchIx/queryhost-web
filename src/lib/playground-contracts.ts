@@ -22,6 +22,7 @@ export interface PlaygroundGameDefinition {
   readonly defaultMode: QueryMode;
   readonly defaultPort?: number;
   readonly defaultQueryPort?: number;
+  readonly queryPortStrategy?: "offset" | "fixed";
   readonly id: GameId;
   readonly name: string;
 }
