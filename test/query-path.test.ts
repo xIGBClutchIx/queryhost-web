@@ -3,6 +3,26 @@ import { describe, expect, it } from "vitest";
 import { queryPathItems } from "../src/lib/query-path.js";
 
 describe("compact query path", () => {
+  it("labels the new game's sources without losing source provenance", () => {
+    expect(
+      queryPathItems([
+        { source: "redm-info", status: "ok" },
+        { source: "redm-dynamic", status: "ok" },
+        { source: "redm-players", status: "not-requested" },
+        { source: "satisfactory-lightweight", status: "ok" },
+        { source: "satisfactory-health", status: "timeout" },
+        { source: "vintage-story-query", status: "ok" },
+      ]).map(({ label }) => label),
+    ).toEqual([
+      "Server info",
+      "Status",
+      "Players",
+      "Server state",
+      "Health",
+      "Server query",
+    ]);
+  });
+
   it("uses concise labels while preserving confirmed zero timings", () => {
     expect(
       queryPathItems([

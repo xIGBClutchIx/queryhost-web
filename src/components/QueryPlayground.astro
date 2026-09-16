@@ -8,6 +8,7 @@ const gameOptions = GAMES.map((game) => ({
   defaultMode: defaultQueryMode(game.id),
   defaultPort: game.defaultPort,
   defaultQueryPort: game.defaultQueryPort,
+  queryPortStrategy: game.queryPortStrategy,
   id: game.id,
   name: game.name,
 })).toSorted((left, right) => left.name.localeCompare(right.name, "en"));

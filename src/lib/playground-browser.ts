@@ -162,7 +162,9 @@ export function initializePlayground(playground: HTMLElement): () => void {
     portHelp.textContent =
       game.defaultQueryPort === undefined
         ? "Uses the game port unless the profile discovers another target."
-        : `Defaults to ${game.defaultQueryPort}; custom game ports preserve the offset.`;
+        : game.queryPortStrategy === "fixed"
+          ? `Defaults to ${game.defaultQueryPort}; independent of the game port.`
+          : `Defaults to ${game.defaultQueryPort}; custom game ports preserve the offset.`;
   }
 
   function setAdvancedOptionsOpen(open: boolean): void {
