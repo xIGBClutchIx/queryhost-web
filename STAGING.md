@@ -1,6 +1,6 @@
 # Game-support staging
 
-The initial game-support test deployed the site to `web-staging` using a package packed from library commit `c33e128`. The site now consumes the exact public `queryhost` 1.2.0 release for staging and production.
+The initial game-support test deployed the site to `web-staging` using a package packed from library commit `c33e128`. The site now consumes the exact public `queryhost` 1.2.1 release for staging and production.
 
 The server-only `QUERYHOST_API_BASE_URL` references `api-staging.RAILWAY_PRIVATE_DOMAIN` on port 3000. `QUERYHOST_API_ORIGIN_TOKEN` references that service's staging-only origin token. Browser queries continue to use same-origin `POST /api/query`. The staging Railway hostname keeps site and documentation navigation on the same preview origin.
 
