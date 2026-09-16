@@ -27,6 +27,9 @@ describe("packaged changelog", () => {
       expect(CHANGELOG_HTML).toContain(`>${version}</a>`);
     }
     expect(CHANGELOG_HTML).not.toContain("<h1");
+    expect(CHANGELOG_HTML).not.toContain(
+      "QueryHost records user-visible package changes in this file.",
+    );
   });
 });
 

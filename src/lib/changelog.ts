@@ -11,6 +11,6 @@ if (markdown === undefined) {
 }
 
 export const CHANGELOG_HTML = marked.parse(
-  markdown.replace(/^# Changelog\r?\n+/, ""),
+  markdown.replace(/^# Changelog[\s\S]*?(?=^## )/m, ""),
   { async: false },
 );
