@@ -9,6 +9,7 @@ import type {
 import { defaultQueryMode } from "./playground-defaults.js";
 import { requestPlaygroundQuery } from "./playground-query.js";
 import { PlaygroundRequestCoordinator } from "./playground-request-coordinator.js";
+import { formatPlayerCount, playerFillRatio } from "./player-count.js";
 import { queryPathItems } from "./query-path.js";
 import { registerQueryHostWebMcp } from "./webmcp.js";
 
@@ -366,7 +367,7 @@ export function initializePlayground(playground: HTMLElement): () => void {
     container: HTMLDListElement,
     label: string,
     value: string,
-  ): void {
+  ): HTMLDivElement {
     const group = document.createElement("div");
     const term = document.createElement("dt");
     const description = document.createElement("dd");
@@ -374,6 +375,7 @@ export function initializePlayground(playground: HTMLElement): () => void {
     description.textContent = value;
     group.append(term, description);
     container.append(group);
+    return group;
   }
 
   function isJsonObject(value: JsonValue | undefined): value is JsonObject {
@@ -575,7 +577,12 @@ export function initializePlayground(playground: HTMLElement): () => void {
     requiredElement<HTMLElement>("#query-result-duration").textContent =
       milliseconds(result.durationMs);
 
-    addOverviewRow(overview, "Game", result.game);
+    addOverviewRow(
+      overview,
+      "Game",
+      games.find((candidate) => candidate.id === result.game)?.name ??
+        result.game,
+    );
     if (result.ok) {
       status.textContent = result.partial ? "Online · partial" : "Online";
       name.textContent = result.server.name ?? "Unnamed server";
@@ -587,13 +594,19 @@ export function initializePlayground(playground: HTMLElement): () => void {
         addOverviewRow(overview, "Version", result.server.version);
       }
       if (result.server.players !== undefined) {
-        const online = result.server.players.online;
-        const maximum = result.server.players.max;
-        const players =
-          online === undefined
-            ? `— / ${maximum ?? "—"}`
-            : `${online} / ${maximum ?? "—"}`;
-        addOverviewRow(overview, "Players", players);
+        const group = addOverviewRow(
+          overview,
+          "Players",
+          formatPlayerCount(result.server.players),
+        );
+        const ratio = playerFillRatio(result.server.players);
+        if (ratio !== undefined) {
+          const meter = document.createElement("span");
+          meter.className = "query-overview__meter";
+          meter.setAttribute("aria-hidden", "true");
+          meter.style.setProperty("--fill", `${ratio * 100}%`);
+          group.append(meter);
+        }
       }
       if (result.server.password !== undefined) {
         addOverviewRow(
