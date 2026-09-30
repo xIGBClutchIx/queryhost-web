@@ -6,9 +6,12 @@ import {
   GITHUB_REPOSITORY_URL,
   requestHostname,
 } from "../../lib/site.js";
+import { QUERYHOST_VERSION } from "../../lib/package-version.js";
+import { GAMES } from "../../lib/queryhost.js";
 
 const hostname = requestHostname(Astro.request);
-const installSource = "npm install queryhost@1.0.0";
+const installSource = `npm install queryhost@${QUERYHOST_VERSION}`;
+const namedGameCount = GAMES.filter((game) => game.id !== "a2s").length;
 const firstQuery = `import { query } from "queryhost";
 
 const result = await query({
@@ -34,10 +37,10 @@ if (result.ok) {
   <section class="docs-start-panel" aria-labelledby="package-status">
     <div class="docs-start-panel__summary">
       <p class="docs-start-panel__label">Package status</p>
-      <h2 id="package-status">QueryHost 1.0.0</h2>
+      <h2 id="package-status">QueryHost {QUERYHOST_VERSION}</h2>
       <p>
-        The first stable release establishes the reviewed package-root contract
-        and supports six named game profiles plus generic A2S.
+        The current release supports {namedGameCount} named game profiles plus generic
+        A2S through one reviewed package-root contract.
       </p>
       <a class="docs-source-link" href={GITHUB_REPOSITORY_URL}>
         View QueryHost on GitHub
@@ -65,9 +68,8 @@ if (result.ok) {
 
   <h2 id="install">Install from npm</h2>
   <p>
-    Install the exact first stable version with Node.js 24 or newer.
-    Applications can relax the version range after choosing their own update
-    policy.
+    Install the exact current version with Node.js 24 or newer. Applications can
+    relax the version range after choosing their own update policy.
   </p>
   <CodeBlock code={installSource} label="Terminal" language="shell" />
 

@@ -9,6 +9,7 @@ import {
 } from "../src/lib/api-reference.js";
 import { capabilityEntries, GAMES } from "../src/lib/queryhost.js";
 import { CHANGELOG_HTML } from "../src/lib/changelog.js";
+import { QUERYHOST_VERSION } from "../src/lib/package-version.js";
 
 describe("packaged changelog", () => {
   it("renders the installed release history and release links without a duplicate title", () => {
@@ -122,5 +123,16 @@ describe("packaged API reference", () => {
     expect(html).toContain('class="shiki github-dark"');
     expect(html).not.toContain("--shiki-light");
     expect(html.replace(/<[^>]+>/g, "")).toContain("const online");
+  });
+});
+
+describe("documented package version", () => {
+  it("matches the installed queryhost package", () => {
+    const manifest = readFileSync(
+      new URL("../node_modules/queryhost/package.json", import.meta.url),
+      "utf8",
+    );
+
+    expect(manifest).toContain(`"version": "${QUERYHOST_VERSION}"`);
   });
 });
