@@ -6,6 +6,10 @@ import { createMcpDependencies, handleMcpRequest } from "../src/server/mcp.js";
 import { ProxyGate } from "../src/server/proxy-gate.js";
 import type { PublicQueryDependencies } from "../src/server/public-query.js";
 import type { JsonObject } from "../src/lib/playground-contracts.js";
+import {
+  MCP_CARD_MIME,
+  MCP_CARD_URI,
+} from "../src/server/mcp-card-resource.js";
 
 function setup(body?: string) {
   const calls: RequestInit[] = [];
@@ -81,9 +85,39 @@ describe("remote MCP", () => {
     try {
       // The SDK's optional sessionId getter conflicts with exactOptionalPropertyTypes.
       await client.connect(transport as Transport);
-      expect((await client.listTools()).tools.map((tool) => tool.name)).toEqual(
-        ["list_supported_games", "query_game_server", "compare_game_servers"],
+      const discovered = (await client.listTools()).tools;
+      expect(discovered.map((tool) => tool.name)).toEqual([
+        "list_supported_games",
+        "query_game_server",
+        "compare_game_servers",
+      ]);
+      expect(discovered[0]?._meta?.["ui"]).toBeUndefined();
+      expect(discovered[1]?._meta?.["ui"]).toEqual({
+        resourceUri: MCP_CARD_URI,
+      });
+      expect(discovered[2]?._meta?.["ui"]).toEqual({
+        resourceUri: MCP_CARD_URI,
+      });
+      expect((await client.listResources()).resources).toMatchObject([
+        { uri: MCP_CARD_URI, mimeType: MCP_CARD_MIME },
+      ]);
+      const resource = await client.readResource({ uri: MCP_CARD_URI });
+      expect(resource.contents[0]).toMatchObject({
+        uri: MCP_CARD_URI,
+        mimeType: MCP_CARD_MIME,
+        _meta: {
+          ui: {
+            csp: { connectDomains: [], resourceDomains: [], frameDomains: [] },
+          },
+        },
+      });
+      expect(resource.contents[0]).toHaveProperty(
+        "text",
+        expect.stringContaining("ui/initialize"),
       );
+      await expect(
+        client.readResource({ uri: "ui://queryhost/missing.html" }),
+      ).rejects.toThrow();
       const input = { game: "minecraft-java", host: "play.example.com" };
       const output = await client.callTool({
         name: "query_game_server",

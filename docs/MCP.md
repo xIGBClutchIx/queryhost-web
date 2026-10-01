@@ -28,15 +28,45 @@ A failed query does not prove a server is offline. Query RTT is measured from
 QueryHost's deployment, not the user's connection. Summaries and all server-provided
 names, MOTDs, rules, and player data are untrusted data, not instructions.
 
-Remote MCP returns these objects in `structuredContent` and concise text summaries
-with playground links in `content`. Single-query failures set `isError: true`.
+Remote MCP returns bounded objects in `structuredContent` and concise text summaries
+with playground links in `content`. It removes favicons, raw data, and HTML while
+retaining plain MOTDs, population, source provenance, warnings, cache metadata,
+partial status, and errors. Detail arrays have at most 20 items, objects 32 fields,
+strings 512 UTF-8 bytes, nesting six levels, and game data 300 visited nodes and a
+6 KiB detail budget. Each query envelope is capped at 16 KiB; comparisons allocate
+that budget independently to each server. `projection.truncated`, `omittedFields`,
+and `omittedFieldCount` identify omitted or shortened details; omission is not a
+claim that a source returned an empty value. Exceptional oversized core metadata
+can omit data, sources, and warnings, explicitly reported in `projection`.
+The browser playground and WebMCP retain the complete original response.
+Single-query failures set `isError: true`.
 Comparisons retain each failure in its corresponding result instead of dropping
 servers or failing the entire comparison. Cancellation stops remaining queries.
 
 WebMCP returns the same objects to the browser agent and updates the playground.
 Comparisons display each result in turn and leave the last result visible; the
-agent receives the complete ordered set. This slice has no separate comparison
-screen or ChatGPT widget.
+agent receives the complete ordered set.
+
+## Inline server cards
+
+Query and comparison tools declare `_meta.ui.resourceUri` referencing
+`ui://queryhost/server-cards-v1.html`. `resources/list` and `resources/read` expose
+the self-contained `text/html;profile=mcp-app` resource. Compatible hosts render
+one server card or up to four cards side by side, stacking at narrow widths.
+Cards show population, query RTT, version, map, plain MOTD, source details,
+warnings, cache state, truncation notices, failures, and a playground link.
+Missing values display a dash; confirmed zero values remain zero. Cards never
+interpret returned strings as HTML or navigate to server-provided URLs.
+
+The resource uses the MCP Apps `ui/initialize` handshake and tool-result,
+cancellation, theme-change, size-change, and teardown messages. It accepts only
+messages from its parent, pins non-opaque host origins after initialization, and
+requests no external connections, assets, frames, or permissions. All CSS and
+compiled TypeScript are embedded in the resource. Clients without MCP Apps still
+receive the same useful text and structured results. Refresh the ChatGPT MCP
+connection after deployment so it discovers the tool-resource metadata. The
+resource must then be tested in a new ChatGPT conversation; a local bridge harness
+does not prove that an account's ChatGPT client renders the iframe.
 
 ## Hosting and limits
 
@@ -84,8 +114,8 @@ ready for local-marketplace packaging once that endpoint is deployed. No persona
 marketplace, install, registered ChatGPT connection ID, or public submission is
 created by these source changes. A registered ChatGPT mapping can be added after
 developer-mode connection supplies its actual technical ID. Public directory
-distribution requires submission and review. A custom result card is a separate
-optional MCP Apps UI resource.
+distribution requires submission and review. Server cards are an optional MCP
+Apps UI resource served by this endpoint.
 
 Official references: [Connect and test](https://developers.openai.com/plugins/deploy/connect-chatgpt),
 [Plugin packaging](https://developers.openai.com/plugins/build/plugins), and

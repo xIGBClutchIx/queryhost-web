@@ -46,7 +46,9 @@ import DocsLayout from "../../layouts/DocsLayout.astro";
     using Streamable HTTP. This server endpoint exposes the same tools and returns
     structured data directly, without requiring an open playground. The existing private
     Railway API still performs production queries. No client account or API token
-    is required. Availability starts after the endpoint is deployed.
+    is required. Remote responses omit binary assets and raw data and bound large
+    detail lists. Omitted details are reported explicitly; the playground retains
+    the full result.
   </p>
   <p>
     An agent can discover a supported profile and start a query without guessing
@@ -58,6 +60,17 @@ import DocsLayout from "../../layouts/DocsLayout.astro";
     the agent receives the complete ordered set. Query failures do not prove a
     server is offline, and query RTT is measured from QueryHost, not the user's
     machine.
+  </p>
+
+  <h2 id="server-cards">Server cards in ChatGPT</h2>
+  <p>
+    Compatible MCP Apps hosts can show query results as inline server cards and
+    comparisons side by side. Cards show population, version, map, query RTT,
+    warnings, and expandable source details, with links to the full playground.
+    Missing values stay missing, and a failed query is shown as a query failure.
+    Text and structured results remain available in clients without card
+    support. Refresh your MCP connection after a deployment that changes tool
+    metadata.
   </p>
 
   <h2 id="boundary">Same security boundary</h2>
