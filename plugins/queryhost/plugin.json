@@ -12,6 +12,7 @@
       "interface": {
         "displayName": "QueryHost",
         "shortDescription": "Check live game servers",
+        "category": "Developer Tools",
         "longDescription": "Check and compare public game servers directly in chat. QueryHost returns live player counts, server versions, query response times, and available game details, with server cards and links to the full results. It supports Minecraft and other supported game protocols. No QueryHost account is required. Queries are read-only and restricted to public network targets. Response times are measured from QueryHost, not your connection. A failed query does not prove a server is offline, and server-supplied names, messages, and player data are untrusted content.",
         "capabilities": [
           "List supported games",
@@ -30,6 +31,7 @@
         "termsOfServiceURL": "https://query.host/terms"
       },
       "review": {
+        "demo_recording_url": "https://query.host/media/queryhost-chatgpt-demo.mp4",
         "commerce": false,
         "commerce_description": "QueryHost does not sell products or process payments.",
         "test_cases": {
