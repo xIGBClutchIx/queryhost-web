@@ -68,6 +68,14 @@ connection after deployment so it discovers the tool-resource metadata. The
 resource must then be tested in a new ChatGPT conversation; a local bridge harness
 does not prove that an account's ChatGPT client renders the iframe.
 
+Cards inline the official `@openai/mcp-extensions` stylesheet and inherit the
+host's supported color, font, radius, and cursor tokens at initialization and on
+context updates. Neutral fallback styles support hosts that omit those tokens.
+The host already identifies QueryHost, so the resource starts with the server
+identity and statistics. Query sources, cache information, and projection details
+are grouped under the keyboard-accessible “Query details” disclosure. No external
+font CSS or assets are loaded.
+
 ## Hosting and limits
 
 MCP lives in the existing public web service. It shares the browser query gate,

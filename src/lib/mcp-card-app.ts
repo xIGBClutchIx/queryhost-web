@@ -58,6 +58,43 @@ export function startMcpCards(): void {
   function theme(context: JsonObject): void {
     if (context["theme"] === "dark" || context["theme"] === "light")
       document.documentElement.dataset["theme"] = context["theme"];
+    const variables = object(object(context["styles"])["variables"]);
+    // Only presentation tokens used by this resource; no host CSS or font fetches.
+    for (const [key, property] of [
+      ["--color-background-primary", "color"],
+      ["--color-background-secondary", "color"],
+      ["--color-text-primary", "color"],
+      ["--color-text-secondary", "color"],
+      ["--color-text-info", "color"],
+      ["--color-text-inverse", "color"],
+      ["--color-text-success", "color"],
+      ["--color-text-warning", "color"],
+      ["--color-border-primary", "color"],
+      ["--color-border-secondary", "color"],
+      ["--color-ring-primary", "color"],
+      ["--font-sans", "font-family"],
+      ["--font-text-md-size", "font-size"],
+      ["--font-weight-normal", "font-weight"],
+      ["--font-weight-medium", "font-weight"],
+      ["--border-radius-lg", "border-radius"],
+    ] as const) {
+      const value = variables[key];
+      if (
+        typeof value === "string" &&
+        value.length <= 512 &&
+        CSS.supports(property, value)
+      )
+        document.documentElement.style.setProperty(key, value);
+      else if (key in variables)
+        document.documentElement.style.removeProperty(key);
+    }
+    const cursor = variables["--cursor-interaction"];
+    if (cursor === "default" || cursor === "pointer")
+      document.documentElement.style.setProperty(
+        "--cursor-interaction",
+        cursor,
+      );
+    resize();
   }
   function render(output: JsonObject): void {
     const values = Array.isArray(output["results"])
@@ -72,19 +109,26 @@ export function startMcpCards(): void {
       if (!host || !("ok" in result || "error" in result)) continue;
       const server = object(result["server"]);
       const success = result["ok"] === true;
-      const article = element("article", "", "card");
-      article.append(
-        element("p", text(input["game"]).replaceAll("-", " "), "game"),
-      );
-      article.append(element("h2", text(server["name"]) || host));
-      article.append(
-        element(
-          "p",
-          `${host}${typeof input["port"] === "number" ? `:${input["port"]}` : ""}`,
-          "host",
-        ),
-      );
-      article.append(
+      const card = element("article", "", "card");
+      const article = element("div", "", "server-content");
+      const heading = element("div", "", "server-heading");
+      const game = text(input["game"])
+        .split("-")
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(" ");
+      heading.append(element("p", game, "game"));
+      const identity = element("div");
+      const name = text(server["name"]) || host;
+      identity.append(element("h2", name));
+      if (name !== host || typeof input["port"] === "number")
+        identity.append(
+          element(
+            "p",
+            `${host}${typeof input["port"] === "number" ? `:${input["port"]}` : ""}`,
+            "host",
+          ),
+        );
+      heading.append(
         element(
           "p",
           success
@@ -92,9 +136,14 @@ export function startMcpCards(): void {
               ? "Partial result"
               : "Query succeeded"
             : "Query failed",
-          success ? "badge success" : "badge failure",
+          success
+            ? result["partial"] === true
+              ? "badge partial"
+              : "badge success"
+            : "badge failure",
         ),
       );
+      article.append(heading, identity);
       if (success) {
         const players = object(server["players"]);
         const stats = element("dl", "", "stats");
@@ -158,9 +207,11 @@ export function startMcpCards(): void {
         article.append(list);
       }
       const sources = result["sources"];
+      const diagnostics = element("details", "", "diagnostics");
+      const summary = element("summary", "Query details", "cursor-interaction");
+      const diagnosticContent = element("div", "", "diagnostic-content");
+      diagnostics.append(summary, diagnosticContent);
       if (Array.isArray(sources) && sources.length > 0) {
-        const details = element("details");
-        details.append(element("summary", "Query sources"));
         const list = element("ul", "", "sources");
         for (const source of sources.slice(0, 20)) {
           const item = object(source);
@@ -171,11 +222,10 @@ export function startMcpCards(): void {
             ),
           );
         }
-        details.append(list);
-        article.append(details);
+        diagnosticContent.append(list);
       }
       if (object(envelope["projection"])["truncated"] === true)
-        article.append(
+        diagnosticContent.append(
           element(
             "p",
             "Some details are omitted. Open QueryHost for the full result.",
@@ -184,13 +234,21 @@ export function startMcpCards(): void {
         );
       const cache = object(result["cache"]);
       if (typeof cache["status"] === "string")
-        article.append(
+        diagnosticContent.append(
           element(
             "p",
             `Cache: ${text(cache["status"])} · age ${number(cache["ageMs"])} ms`,
             "muted",
           ),
         );
+      diagnosticContent.append(
+        element(
+          "p",
+          "Query RTT is measured from QueryHost, not your connection.",
+          "muted",
+        ),
+      );
+      article.append(diagnostics);
       // Never navigate to an address supplied by a game server or a forged host message.
       try {
         const url = new URL(text(envelope["playgroundUrl"]));
@@ -202,6 +260,7 @@ export function startMcpCards(): void {
         ) {
           const link = document.createElement("a");
           link.textContent = "Open in QueryHost ↗";
+          link.className = "btn cursor-interaction";
           link.href = url.href;
           link.target = "_blank";
           link.rel = "noopener noreferrer";
@@ -228,16 +287,19 @@ export function startMcpCards(): void {
               hostOrigin ?? "*",
             );
           });
-          article.append(link);
+          const footer = element("div", "", "card-footer");
+          footer.append(link);
+          article.append(footer);
         }
       } catch {
         /* A malformed link must not hide the query result. */
       }
-      cards.append(article);
+      card.append(article);
+      cards.append(card);
     }
     notice.textContent =
       cards.childElementCount > 0
-        ? "Query RTT is measured from QueryHost, not your connection."
+        ? ""
         : "No server result was returned. Ask ChatGPT to query a public game server.";
     resize();
   }
