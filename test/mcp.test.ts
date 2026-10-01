@@ -10,6 +10,8 @@ import {
   MCP_CARD_MIME,
   MCP_CARD_URI,
 } from "../src/server/mcp-card-resource.js";
+import { WORKSPACE_URI } from "../src/server/mcp-workspace-resource.js";
+import { FULL_RESULT_KEY } from "../src/lib/mcp-workspace-contract.js";
 
 function setup(body?: string) {
   const calls: RequestInit[] = [];
@@ -72,6 +74,82 @@ function rpc(
 }
 
 describe("remote MCP", () => {
+  it("advertises both app-only entrypoints and opens their catalog without network work", async () => {
+    const { dependencies, calls } = setup();
+    const discovery = await handleMcpRequest(rpc("tools/list"), dependencies);
+    const body = (await discovery.json()) as JsonObject;
+    expect(body).toMatchObject({
+      result: {
+        tools: expect.arrayContaining([
+          expect.objectContaining({
+            name: "open_queryhost",
+            title: "QueryHost",
+            _meta: {
+              ui: { resourceUri: WORKSPACE_URI, visibility: ["app"] },
+              "openai/ui": { entrypoints: [{ type: "global" }] },
+            },
+          }),
+          expect.objectContaining({
+            name: "open_server_query",
+            title: "Server query",
+            _meta: {
+              ui: { resourceUri: WORKSPACE_URI, visibility: ["app"] },
+              "openai/ui": { entrypoints: [{ type: "thread" }] },
+            },
+          }),
+        ]) as object,
+      },
+    });
+    for (const name of ["open_queryhost", "open_server_query"]) {
+      const response = await handleMcpRequest(
+        rpc("tools/call", { name, arguments: {} }),
+        dependencies,
+      );
+      expect(await response.json()).toMatchObject({
+        result: {
+          content: [],
+          structuredContent: {
+            games: expect.arrayContaining([
+              expect.objectContaining({ id: "minecraft-java" }),
+            ]) as object,
+          },
+        },
+      });
+      const invalid = await handleMcpRequest(
+        rpc("tools/call", { name, arguments: { host: "example.com" } }),
+        dependencies,
+      );
+      expect(await invalid.json()).toMatchObject({ result: { isError: true } });
+    }
+    const resource = await handleMcpRequest(
+      rpc("resources/read", { uri: WORKSPACE_URI }),
+      dependencies,
+    );
+    expect(await resource.json()).toMatchObject({
+      result: {
+        contents: [
+          {
+            uri: WORKSPACE_URI,
+            _meta: {
+              ui: {
+                permissions: { clipboardWrite: {} },
+                csp: {
+                  connectDomains: [],
+                  resourceDomains: [],
+                  frameDomains: [],
+                },
+              },
+              "openai/ui": {
+                preferredDisplayMode: "fullscreen",
+                availableDisplayModes: ["inline", "fullscreen"],
+              },
+            },
+          },
+        ],
+      },
+    });
+    expect(calls).toEqual([]);
+  });
   it("supports real SDK initialization, tool discovery, data returns and comparison", async () => {
     const { calls, dependencies } = setup();
     const client = new Client({ name: "test", version: "1.0.0" });
@@ -90,15 +168,20 @@ describe("remote MCP", () => {
         "list_supported_games",
         "query_game_server",
         "compare_game_servers",
+        "open_queryhost",
+        "open_server_query",
       ]);
       expect(discovered[0]?._meta?.["ui"]).toBeUndefined();
       expect(discovered[1]?._meta?.["ui"]).toEqual({
         resourceUri: MCP_CARD_URI,
+        visibility: ["model", "app"],
       });
       expect(discovered[2]?._meta?.["ui"]).toEqual({
         resourceUri: MCP_CARD_URI,
+        visibility: ["model", "app"],
       });
       expect((await client.listResources()).resources).toMatchObject([
+        { uri: WORKSPACE_URI, mimeType: MCP_CARD_MIME },
         { uri: MCP_CARD_URI, mimeType: MCP_CARD_MIME },
       ]);
       const resource = await client.readResource({ uri: MCP_CARD_URI });
@@ -124,6 +207,10 @@ describe("remote MCP", () => {
         arguments: input,
       });
       expect(output.isError).toBe(false);
+      expect(output._meta?.[FULL_RESULT_KEY]).toMatchObject({
+        input,
+        result: { ok: true },
+      });
       expect(output.structuredContent).toMatchObject({
         input,
         summary: expect.stringContaining("players online: 0") as string,

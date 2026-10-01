@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>QueryHost</title>
+    <!-- STYLES -->
+  </head>
+  <body>
+    <main class="workspace">
+      <header>
+        <h1>Query a server</h1>
+        <p class="muted">Live game server details, in one place.</p>
+      </header>
+      <form id="query-form" class="card">
+        <div class="query-fields">
+          <label>Game<select id="game" name="game" disabled></select></label>
+          <label class="host-field"
+            >Server address<input
+              id="host"
+              name="host"
+              placeholder="test-minecraft.nodecraft.gg"
+              required
+              maxlength="253"
+              autocomplete="off"
+              spellcheck="false"
+          /></label>
+          <label class="port-field"
+            >Port<input
+              id="port"
+              name="port"
+              type="number"
+              min="1"
+              max="65535"
+              inputmode="numeric"
+          /></label>
+          <button
+            id="query"
+            class="button btn btn-primary"
+            type="button"
+            disabled
+          >
+            Query
+          </button>
+        </div>
+        <details class="advanced">
+          <summary>Advanced options</summary>
+          <div class="advanced-fields">
+            <label id="query-port-label" hidden
+              >Query port<input
+                id="query-port"
+                name="queryPort"
+                type="number"
+                min="1"
+                max="65535"
+                inputmode="numeric"
+            /></label>
+            <label
+              >Details<select id="mode" name="mode">
+                <option value="summary">Summary only</option>
+                <option value="full">Full details</option>
+              </select></label
+            >
+            <label
+              >Timeout<select id="timeout" name="timeoutMs">
+                <option value="5000">5 seconds</option>
+                <option value="3000">3 seconds</option>
+              </select></label
+            >
+          </div>
+          <p id="port-help" class="muted"></p>
+        </details>
+      </form>
+      <div class="feedback">
+        <p id="status" role="status" aria-live="polite">
+          Connecting to ChatGPT…
+        </p>
+        <button id="cancel" type="button" class="button btn" hidden>
+          Cancel
+        </button>
+      </div>
+      <section id="empty" class="empty">
+        <h2>Start with a server address</h2>
+        <p class="muted">
+          Choose its game, then query public status and available details.
+        </p>
+      </section>
+      <section id="result" class="result" aria-label="Query result" hidden>
+        <div class="result-heading">
+          <div>
+            <p id="result-game" class="muted"></p>
+            <h2 id="result-host"></h2>
+          </div>
+          <span id="result-state" class="badge"></span>
+        </div>
+        <p id="detail-notice" class="muted" hidden></p>
+        <div class="tabs" role="tablist" aria-label="Result details">
+          <button
+            type="button"
+            id="tab-overview"
+            role="tab"
+            aria-controls="panel-overview"
+            aria-selected="true"
+            data-tab="overview"
+          >
+            Overview
+          </button>
+          <button
+            type="button"
+            id="tab-data"
+            role="tab"
+            aria-controls="panel-data"
+            aria-selected="false"
+            tabindex="-1"
+            data-tab="data"
+          >
+            Game data
+          </button>
+          <button
+            type="button"
+            id="tab-sources"
+            role="tab"
+            aria-controls="panel-sources"
+            aria-selected="false"
+            tabindex="-1"
+            data-tab="sources"
+          >
+            Sources
+          </button>
+          <button
+            type="button"
+            id="tab-json"
+            role="tab"
+            aria-controls="panel-json"
+            aria-selected="false"
+            tabindex="-1"
+            data-tab="json"
+          >
+            JSON
+          </button>
+        </div>
+        <div
+          id="panel-overview"
+          role="tabpanel"
+          aria-labelledby="tab-overview"
+          tabindex="0"
+        ></div>
+        <div
+          id="panel-data"
+          role="tabpanel"
+          aria-labelledby="tab-data"
+          tabindex="0"
+          hidden
+        ></div>
+        <div
+          id="panel-sources"
+          role="tabpanel"
+          aria-labelledby="tab-sources"
+          tabindex="0"
+          hidden
+        ></div>
+        <div
+          id="panel-json"
+          role="tabpanel"
+          aria-labelledby="tab-json"
+          tabindex="0"
+          hidden
+        >
+          <button id="copy" type="button" class="button btn">Copy JSON</button>
+          <pre id="json"></pre>
+        </div>
+        <footer>
+          <p class="muted">Query RTT is measured from QueryHost.</p>
+          <button id="open" type="button" class="button btn">
+            Open in QueryHost ↗
+          </button>
+        </footer>
+      </section>
+    </main>
+    <!-- SCRIPT -->
+  </body>
+</html>

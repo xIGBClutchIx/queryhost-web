@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "queryhost",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Query and compare live public game servers with QueryHost.",
   "homepage": "https://query.host",
   "repository": "https://github.com/xIGBClutchIx/queryhost-web",
@@ -17,7 +17,8 @@
         "capabilities": [
           "List supported games",
           "Query public game servers",
-          "Compare public game servers"
+          "Compare public game servers",
+          "Query servers in a sidebar workspace or conversation panel"
         ],
         "websiteURL": "https://query.host",
         "supportURL": "https://github.com/xIGBClutchIx/queryhost-web/issues",
@@ -36,6 +37,18 @@
         "commerce_description": "QueryHost does not sell products or process payments.",
         "test_cases": {
           "positive": [
+            {
+              "description": "Open the QueryHost sidebar workspace",
+              "prompt": "Open QueryHost from the sidebar, enter test-minecraft.nodecraft.gg as a Minecraft Java server, and query it.",
+              "tools_triggered": "open_queryhost, query_game_server",
+              "expected_behavior": "Opening the workspace returns the game catalog without querying a server. Querying from the form renders available details in Overview, Game data, Sources, and JSON tabs. Preserve confirmed zero values and distinguish failures from offline status."
+            },
+            {
+              "description": "Use the Server query conversation panel",
+              "prompt": "Open the Server query panel alongside this conversation and query test-minecraft.nodecraft.gg. Inspect its game data and sources.",
+              "tools_triggered": "open_server_query, query_game_server",
+              "expected_behavior": "The supported host opens the same native workspace in a conversation panel. The layout adapts to the narrow width, queries through the host bridge, and does not repeat a query merely when opening the panel."
+            },
             {
               "description": "Discover supported game protocols",
               "prompt": "Which games and server protocols does QueryHost support?",
@@ -87,7 +100,7 @@
         }
       },
       "publication": {
-        "release_notes": "Initial release with supported-game discovery, live public game-server queries, bounded comparisons, and native server cards."
+        "release_notes": "Add a native query workspace for supported sidebar and conversation-panel entrypoints, with advanced query options and full result details."
       }
     }
   }

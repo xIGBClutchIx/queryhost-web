@@ -1,4 +1,5 @@
 dist/
+src/generated/
 .astro/
 node_modules/
 vendor/*.tgz

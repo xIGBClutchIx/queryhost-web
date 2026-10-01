@@ -81,6 +81,52 @@ shipping HTML, JavaScript, or CSS changes so hosts cannot reuse a cached older
 card. Resource registration and tool metadata share `MCP_CARD_URI`. After a URI
 change, refresh the ChatGPT connection and query in a new conversation.
 
+## Sidebar workspace
+
+`open_queryhost` (global entrypoint, titled QueryHost) and `open_server_query`
+(thread entrypoint, titled Server query) are app-only tools. Both accept `{}` and
+return the packaged game catalog without querying a server. They share
+`ui://queryhost/query-app-v1.html`, supporting inline and fullscreen placement.
+Availability depends on the host; the current extension specification excludes
+classic ChatGPT web from sidebar support. Existing cards and the website remain
+available when entrypoints are unsupported.
+
+The workspace provides game/address/port inputs, advanced query options, and
+Overview, Game data, Sources, and JSON tabs. It uses the official MCP Apps bridge
+and OpenAI native CSS. Scripts and styles are bundled into the resource; no
+direct API fetch, external assets, private tokens, or persistent state enter the
+iframe. Queries call `query_game_server` through the host, retaining all existing
+validation and admission limits. Clipboard writing is the only requested sandbox
+permission and has a manual-copy fallback.
+
+Single-query results include UI-only `_meta["queryhost/fullResult"]` with full
+validated details and raw data where available, excluding favicons. Model-facing
+text and `structuredContent` keep their existing projection budgets. UI details
+have a 2 MiB total budget and 32-level nesting limit; `queryhost/detailLimited`
+reports fallback or depth omissions. Comparisons retain the existing compact
+cards. Optional model context receives only the active input and a trusted status
+summary, never server text. Separate app instances do not synchronize results.
+
+The app consumes the opening result without re-querying, supports manual
+cancellation, ignores stale responses, and disposes requests and listeners on
+teardown. `npm run build:mcp-app` generates the ignored HTML bundle; development,
+tests, type checks, verification, and production builds regenerate it automatically.
+Development edits to workspace files require re-running this command to refresh
+the bundle. No generated files belong in a commit.
+
+The local plugin manifest is the follow-up 0.2.0 draft. Its existing demo URL still
+shows inline cards and must be replaced with the workspace recording before
+submission. This is a follow-up release. Do not replace or cancel the current directory
+submission. After its review finishes, prepare version 0.2.0 with sidebar/panel
+capabilities and review cases, deploy with release authorization, refresh the
+connection, and test both entrypoints in a supported host. Record a new short demo
+showing launch, query, and panel use before submitting; the current inline-card
+demo does not demonstrate the workspace. A local bridge test does not prove
+ChatGPT host availability or publication.
+
+Official references: [Extensions](https://developers.openai.com/plugins/build/extensions)
+and [MCP extension SDK](https://github.com/openai/mcp-extensions/blob/main/typescript/README.md).
+
 ## Hosting and limits
 
 MCP lives in the existing public web service. It shares the browser query gate,
