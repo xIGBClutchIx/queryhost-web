@@ -50,7 +50,7 @@ agent receives the complete ordered set.
 ## Inline server cards
 
 Query and comparison tools declare `_meta.ui.resourceUri` referencing
-`ui://queryhost/server-cards-v1.html`. `resources/list` and `resources/read` expose
+`ui://queryhost/server-cards-v2.html`. `resources/list` and `resources/read` expose
 the self-contained `text/html;profile=mcp-app` resource. Compatible hosts render
 one server card or up to four cards side by side, stacking at narrow widths.
 Cards show population, query RTT, version, map, plain MOTD, source details,
@@ -75,6 +75,11 @@ The host already identifies QueryHost, so the resource starts with the server
 identity and statistics. Query sources, cache information, and projection details
 are grouped under the keyboard-accessible “Query details” disclosure. No external
 font CSS or assets are loaded.
+
+Treat the resource URI as a UI release identifier. Advance its version when
+shipping HTML, JavaScript, or CSS changes so hosts cannot reuse a cached older
+card. Resource registration and tool metadata share `MCP_CARD_URI`. After a URI
+change, refresh the ChatGPT connection and query in a new conversation.
 
 ## Hosting and limits
 

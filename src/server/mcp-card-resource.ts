@@ -1,7 +1,8 @@
 import { startMcpCards } from "../lib/mcp-card-app.js";
 import nativeStyles from "@openai/mcp-extensions/app/styles.css?raw";
 
-export const MCP_CARD_URI = "ui://queryhost/server-cards-v1.html";
+// Hosts cache resource contents by URI; advance this version when shipping UI changes.
+export const MCP_CARD_URI = "ui://queryhost/server-cards-v2.html";
 export const MCP_CARD_MIME = "text/html;profile=mcp-app";
 
 /** A portable, self-contained resource: no external scripts, fonts, images or API calls. */
