@@ -1,17 +1,7 @@
 ---
 import CustomSelect from "./CustomSelect.astro";
-import { GAMES } from "../lib/queryhost.js";
+import { PLAYGROUND_GAMES as gameOptions } from "../lib/playground-games.js";
 import { defaultQueryMode } from "../lib/playground-defaults.js";
-
-const gameOptions = GAMES.map((game) => ({
-  capabilities: game.capabilities,
-  defaultMode: defaultQueryMode(game.id),
-  defaultPort: game.defaultPort,
-  defaultQueryPort: game.defaultQueryPort,
-  queryPortStrategy: game.queryPortStrategy,
-  id: game.id,
-  name: game.name,
-})).toSorted((left, right) => left.name.localeCompare(right.name, "en"));
 const gameSelectOptions = gameOptions.map((game) => ({
   label: game.name,
   value: game.id,

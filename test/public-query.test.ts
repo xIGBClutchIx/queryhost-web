@@ -60,6 +60,33 @@ function queryRequest(body: string, address = "203.0.113.10"): Request {
 }
 
 describe("public query proxy", () => {
+  it("bounds upstream response bytes before returning data and releases admission", async () => {
+    let cancelled = false;
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new Uint8Array(2_097_153));
+      },
+      cancel() {
+        cancelled = true;
+      },
+    });
+    const deps = dependencies(() =>
+      Promise.resolve(
+        new Response(stream, {
+          headers: { "Content-Type": "application/json" },
+        }),
+      ),
+    );
+    const response = await handlePublicQuery(
+      queryRequest(
+        JSON.stringify({ game: "minecraft-java", host: "example.com" }),
+      ),
+      deps,
+    );
+    expect(response.status).toBe(502);
+    expect(cancelled).toBe(true);
+    expect(deps.gate.active).toBe(0);
+  });
   it("canonicalizes validated input and keeps the origin token server-side", async () => {
     const calls: RecordedRequest[] = [];
     const hostedBody = JSON.stringify({

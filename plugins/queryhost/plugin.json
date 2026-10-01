@@ -1,0 +1,9 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "queryhost",
+  "version": "0.1.0",
+  "description": "Query and compare live public game servers with QueryHost.",
+  "homepage": "https://query.host",
+  "repository": "https://github.com/xIGBClutchIx/queryhost-web",
+  "license": "Apache-2.0"
+}

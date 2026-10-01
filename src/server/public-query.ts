@@ -17,6 +17,7 @@ import type {
   PlaygroundQueryInput,
 } from "../lib/playground-contracts.js";
 import { ProxyGate, type ProxyGatePolicy } from "./proxy-gate.js";
+import { readBoundedText } from "./bounded-text.js";
 
 const ALLOWED_FIELDS: ReadonlySet<string> = new Set([
   "game",
@@ -403,7 +404,7 @@ function parseInput(text: string): PlaygroundQueryInput {
   };
 }
 
-function callerFingerprint(request: Request): string {
+export function callerFingerprint(request: Request): string {
   const forwarded = request.headers.get("x-forwarded-for");
   const address =
     request.headers.get("x-real-ip")?.trim() ||
@@ -526,10 +527,13 @@ export async function handlePublicQuery(
         "The query service returned an invalid response.",
       );
     }
-    return new Response(await upstream.text(), {
-      headers: forwardedHeaders(upstream),
-      status: upstream.status,
-    });
+    return new Response(
+      await readBoundedText(upstream.body, 2_097_152, signal),
+      {
+        headers: forwardedHeaders(upstream),
+        status: upstream.status,
+      },
+    );
   } catch {
     return jsonResponse(
       502,

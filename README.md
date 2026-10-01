@@ -6,12 +6,15 @@ The browser sends non-secret query inputs to the same-origin `POST /api/query` r
 
 ## WebMCP
 
-The playground registers two imperative WebMCP tools when the browser exposes `document.modelContext`:
+The playground registers three imperative WebMCP tools when the browser exposes `document.modelContext`:
 
 - `list_supported_games` returns the package-owned game registry, ports, recommended modes, and capabilities.
-- `query_game_server` uses the existing same-origin query route and renders the same result in the visible playground.
+- `query_game_server` returns a summary, playground link, and complete structured result while rendering it in the visible playground.
+- `compare_game_servers` queries two to four servers sequentially and returns ordered results, including individual failures.
 
-Both tools are read-only. Game-server responses are marked as untrusted content because names, MOTDs, rules, and player data come from external servers. Unsupported browsers keep the complete human interface without a polyfill. See the [WebMCP tools documentation](https://docs.query.host/webmcp/), [hackathon submission guide](docs/WebMCPSubmission.md), and current [WebMCP draft](https://webmachinelearning.github.io/webmcp/).
+The same tools are available through the server-side Streamable HTTP MCP endpoint at `/mcp`, for ChatGPT and other remote MCP clients. Production queries continue through the private Railway API. See [MCP connection, contracts, and limits](docs/MCP.md) for ChatGPT developer-mode setup and plugin distribution steps.
+
+All tools are read-only. Game-server responses are marked as untrusted content because names, MOTDs, rules, and player data come from external servers. Unsupported browsers keep the complete human interface without a polyfill. See the [WebMCP tools documentation](https://docs.query.host/webmcp/), [hackathon submission guide](docs/WebMCPSubmission.md), and current [WebMCP draft](https://webmachinelearning.github.io/webmcp/).
 
 This WebMCP integration was added after August 25, 2026 for the WebMCP hackathon in signed commit [`ceaa6d2`](https://github.com/xIGBClutchIx/queryhost-web/commit/ceaa6d213855d5780ad0fe7826c3dc599402b5e8). Its implementation is isolated to the web application and does not add browser APIs to the portable library or private API.
 

@@ -6,7 +6,7 @@ import DocsLayout from "../../layouts/DocsLayout.astro";
 <DocsLayout
   activeHref="/webmcp/"
   eyebrow="Agent collaboration"
-  title="WebMCP tools"
+  title="MCP and WebMCP tools"
   description="Use QueryHost's public playground with a compatible browser agent while keeping the result visible and controllable in the page."
 >
   <h2 id="available-tools">Available tools</h2>
@@ -24,19 +24,40 @@ import DocsLayout from "../../layouts/DocsLayout.astro";
         <td><code>query_game_server</code></td>
         <td>
           Queries a public game server through the same bounded route as the
-          human playground and renders the returned result in the page.
+          human playground, renders it in the page, and returns a summary,
+          playground link, and complete structured result to the agent.
         </td>
+      </tr>
+      <tr>
+        <td><code>compare_game_servers</code></td>
+        <td
+          >Queries two to four servers sequentially and returns ordered results,
+          including individual failures, warnings, and source details.</td
+        >
       </tr>
     </tbody>
   </table>
 
   <h2 id="shared-workflow">People and agents share one result</h2>
   <p>
+    For remote clients such as ChatGPT, connect to <code
+      >https://query.host/mcp</code
+    >
+    using Streamable HTTP. This server endpoint exposes the same tools and returns
+    structured data directly, without requiring an open playground. The existing private
+    Railway API still performs production queries. No client account or API token
+    is required. Availability starts after the endpoint is deployed.
+  </p>
+  <p>
     An agent can discover a supported profile and start a query without guessing
     at the page controls. QueryHost then fills the existing form, updates the
     share URL, and displays the same overview, game data, source provenance,
     warnings, and JSON available to a person. The person can inspect that
-    result, change any input, and continue with the normal playground.
+    result, change any input, and continue with the normal playground. For
+    comparisons, each result is displayed in turn and the last remains visible;
+    the agent receives the complete ordered set. Query failures do not prove a
+    server is offline, and query RTT is measured from QueryHost, not the user's
+    machine.
   </p>
 
   <h2 id="boundary">Same security boundary</h2>

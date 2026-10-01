@@ -7,6 +7,7 @@ import type {
 import {
   LIST_SUPPORTED_GAMES_TOOL_NAME,
   QUERY_GAME_SERVER_TOOL_NAME,
+  COMPARE_GAME_SERVERS_TOOL_NAME,
   queryHostWebMcpTools,
   registerQueryHostWebMcp,
   type WebMcpModelContext,
@@ -74,6 +75,7 @@ describe("QueryHost WebMCP tools", () => {
     expect(tools.map((tool) => tool.name)).toEqual([
       LIST_SUPPORTED_GAMES_TOOL_NAME,
       QUERY_GAME_SERVER_TOOL_NAME,
+      COMPARE_GAME_SERVERS_TOOL_NAME,
     ]);
     expect(tools[0]).toMatchObject({
       annotations: { readOnlyHint: true, untrustedContentHint: false },
@@ -147,8 +149,7 @@ describe("QueryHost WebMCP tools", () => {
       },
     ]);
     expect(result).toMatchObject({
-      error: { code: "TARGET_BLOCKED" },
-      ok: false,
+      result: { error: { code: "TARGET_BLOCKED" }, ok: false },
     });
   });
 
@@ -172,7 +173,9 @@ describe("QueryHost WebMCP tools", () => {
         game: "minecraft-java",
         host: "test-minecraft.nodecraft.gg",
       }),
-    ).resolves.toMatchObject({ error: { code: "UPSTREAM_UNAVAILABLE" } });
+    ).resolves.toMatchObject({
+      result: { error: { code: "UPSTREAM_UNAVAILABLE" } },
+    });
     expect(executionSignal).toBeInstanceOf(AbortSignal);
     expect(executionSignal?.aborted).toBe(false);
   });
@@ -220,7 +223,7 @@ describe("QueryHost WebMCP tools", () => {
     ).toBeUndefined();
   });
 
-  it("registers both tools with one cleanup signal", async () => {
+  it("registers all tools with one cleanup signal", async () => {
     const modelContext = new RecordingModelContext();
     const registration = registerQueryHostWebMcp(
       documentWith(modelContext),
@@ -237,7 +240,7 @@ describe("QueryHost WebMCP tools", () => {
     }
 
     await registration.ready;
-    expect(modelContext.registrations).toHaveLength(2);
+    expect(modelContext.registrations).toHaveLength(3);
     expect(
       modelContext.registrations.every(
         (record) => record.options?.signal === registration.signal,

@@ -1,17 +1,7 @@
 import type { APIRoute } from "astro";
 
-import {
-  createDefaultPublicQueryDependencies,
-  handlePublicQuery,
-  type PublicQueryDependencies,
-} from "../../server/public-query.js";
-
-let dependencies: PublicQueryDependencies | undefined;
-
-function publicQueryDependencies(): PublicQueryDependencies {
-  dependencies ??= createDefaultPublicQueryDependencies();
-  return dependencies;
-}
+import { handlePublicQuery } from "../../server/public-query.js";
+import { publicQueryDependencies } from "../../server/query-dependencies.js";
 
 export const POST: APIRoute = ({ request }) =>
   handlePublicQuery(request, publicQueryDependencies());

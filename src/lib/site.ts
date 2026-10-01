@@ -59,7 +59,11 @@ export function siteHref(hostname: string): string {
 }
 
 export function cacheControlForPath(pathname: string): string {
-  if (pathname === "/health" || pathname.startsWith("/api/")) {
+  if (
+    pathname === "/health" ||
+    pathname === "/mcp" ||
+    pathname.startsWith("/api/")
+  ) {
     return "no-store";
   }
 

@@ -30,10 +30,15 @@ After a deployment or infrastructure change:
 7. Check CPU and memory metrics before raising either replica ceiling.
 
 For WebMCP releases, also open `query.host` in a compatible browser and require
-exactly `list_supported_games` and `query_game_server` to be discoverable. Invoke
+exactly `list_supported_games`, `query_game_server`, and `compare_game_servers` to be discoverable. Invoke
 the registry tool, run one approved query, cancel one in-flight query, and confirm
 that each agent query updates the visible playground. Chrome's Lighthouse
 registered-WebMCP-tools audit provides an independent discovery check.
+
+For remote MCP releases, connect an MCP client to `/mcp`, verify initialization,
+list all three tools, and exercise structured query and comparison results. Confirm
+`Cache-Control: no-store`, cancellation, invalid-input rejection, and shared caller
+limits. See [MCP connection and limits](MCP.md) before creating a ChatGPT connection.
 
 Do not use arbitrary public game servers for deployment tests. Use a server owned by the project operator or explicitly approved for testing.
 
