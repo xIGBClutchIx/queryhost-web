@@ -251,6 +251,8 @@ a {
 }
 
 .brand {
+  display: inline-flex;
+  align-items: center;
   width: max-content;
   color: var(--text-strong);
   font-size: 1.25rem;
@@ -258,6 +260,11 @@ a {
   letter-spacing: -0.045em;
   line-height: 1;
   text-decoration: none;
+}
+
+.brand__icon {
+  flex-shrink: 0;
+  margin-inline-end: 0.5rem;
 }
 
 .brand__query {

@@ -1,5 +1,6 @@
 ---
 import {
+  BRAND_ICON_URL,
   documentationHref,
   GITHUB_REPOSITORY_URL,
   requestHostname,
@@ -30,8 +31,17 @@ const hostname = requestHostname(Astro.request);
       aria-label="QueryHost home"
       aria-current={active === "site" ? "page" : undefined}
     >
-      <span class="brand__query">Query</span><span class="brand__host"
-        >Host</span
+      <img
+        class="brand__icon"
+        src={BRAND_ICON_URL}
+        width="28"
+        height="28"
+        alt=""
+      />
+      <span
+        ><span class="brand__query">Query</span><span class="brand__host"
+          >Host</span
+        ></span
       >
     </a>
 

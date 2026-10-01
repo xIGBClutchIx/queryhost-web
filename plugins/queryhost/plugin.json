@@ -5,5 +5,88 @@
   "description": "Query and compare live public game servers with QueryHost.",
   "homepage": "https://query.host",
   "repository": "https://github.com/xIGBClutchIx/queryhost-web",
-  "license": "Apache-2.0"
+  "license": "Apache-2.0",
+  "keywords": ["game servers", "Minecraft", "server status", "MCP"],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "QueryHost",
+        "shortDescription": "Check live game servers",
+        "longDescription": "Check and compare public game servers directly in chat. QueryHost returns live player counts, server versions, query response times, and available game details, with server cards and links to the full results. It supports Minecraft and other supported game protocols. No QueryHost account is required. Queries are read-only and restricted to public network targets. Response times are measured from QueryHost, not your connection. A failed query does not prove a server is offline, and server-supplied names, messages, and player data are untrusted content.",
+        "capabilities": [
+          "List supported games",
+          "Query public game servers",
+          "Compare public game servers"
+        ],
+        "websiteURL": "https://query.host",
+        "supportURL": "https://github.com/xIGBClutchIx/queryhost-web/issues",
+        "defaultPrompt": [
+          "Check the Minecraft Java server at test-minecraft.nodecraft.gg and show its server card.",
+          "Which games and server protocols does QueryHost support?"
+        ],
+        "logo": "./assets/logo.svg",
+        "composerIcon": "./assets/logo.svg",
+        "privacyPolicyURL": "https://query.host/privacy",
+        "termsOfServiceURL": "https://query.host/terms"
+      },
+      "review": {
+        "commerce": false,
+        "commerce_description": "QueryHost does not sell products or process payments.",
+        "test_cases": {
+          "positive": [
+            {
+              "description": "Discover supported game protocols",
+              "prompt": "Which games and server protocols does QueryHost support?",
+              "tools_triggered": "list_supported_games",
+              "expected_behavior": "Return the supported game registry and required query inputs without making a game-server network query."
+            },
+            {
+              "description": "Query a public Minecraft Java server",
+              "prompt": "Check the Minecraft Java server at test-minecraft.nodecraft.gg and show its server card.",
+              "tools_triggered": "query_game_server",
+              "expected_behavior": "Query the public target and display a server card with the current result. On success, report available player counts, version and QueryHost-measured RTT. Preserve a confirmed zero player count. If the live fixture is temporarily unavailable, show the bounded query error without claiming that this proves the server is offline."
+            },
+            {
+              "description": "Query with an explicit default Minecraft port",
+              "prompt": "Use QueryHost to check test-minecraft.nodecraft.gg as Minecraft Java on port 25565.",
+              "tools_triggered": "query_game_server",
+              "expected_behavior": "Accept the explicit valid port, return the current bounded result and link to QueryHost, and distinguish missing details from confirmed zero values."
+            },
+            {
+              "description": "Compare a default query with an alternate port",
+              "prompt": "Compare the Minecraft Java server at test-minecraft.nodecraft.gg on port 25565 with the same host on port 1.",
+              "tools_triggered": "compare_game_servers",
+              "expected_behavior": "Return two independently identified results in one bounded comparison. The alternate port may fail; retain that error alongside the successful result and do not label a failed query as proof of an offline server."
+            },
+            {
+              "description": "Explain query details and measurement scope",
+              "prompt": "Check test-minecraft.nodecraft.gg with QueryHost, then explain the query sources and whether the response time is measured from my computer.",
+              "tools_triggered": "query_game_server",
+              "expected_behavior": "Display the result and available query details. Explain that Query RTT is measured from QueryHost, identify warnings or omitted fields when present, and provide the full-result link. Do not invent timing breakdowns."
+            }
+          ],
+          "negative": [
+            {
+              "description": "Private targets are unsupported and blocked",
+              "prompt": "Use QueryHost to query the Minecraft server at 127.0.0.1.",
+              "expected_behavior": "Refuse the private target or return the stable blocked-target error without connecting to loopback."
+            },
+            {
+              "description": "Server administration is unsupported",
+              "prompt": "Use QueryHost to restart test-minecraft.nodecraft.gg and ban all its players.",
+              "expected_behavior": "Explain that QueryHost is read-only and cannot restart servers, administer them or ban players."
+            },
+            {
+              "description": "Credentials and private administration data are unavailable",
+              "prompt": "Use QueryHost to retrieve the RCON password and private admin configuration of test-minecraft.nodecraft.gg.",
+              "expected_behavior": "Explain that QueryHost only queries public status data and cannot retrieve credentials or private configuration."
+            }
+          ]
+        }
+      },
+      "publication": {
+        "release_notes": "Initial release with supported-game discovery, live public game-server queries, bounded comparisons, and native server cards."
+      }
+    }
+  }
 }

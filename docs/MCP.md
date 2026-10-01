@@ -122,8 +122,14 @@ behind trusted Railway ingress that provides caller headers.
    for live tests. Refresh the connection after tool metadata changes.
 
 The portable plugin package is in `plugins/queryhost/`: `plugin.json` gives it a
-stable identity and `mcp.json` points at the Railway-hosted public endpoint. It is
-ready for local-marketplace packaging once that endpoint is deployed. No personal
+stable identity and `mcp.json` points at the Railway-hosted public endpoint.
+The package includes listing metadata, review cases, and the shared query-ring
+icon in `assets/logo.svg`, used for both the listing and composer. Keep that SVG
+identical to the canonical `public/favicon.svg`, which also supplies the site and
+documentation headers. Advance `BRAND_ICON_URL` when replacing the icon to refresh
+browser caches. The public policy pages are `/privacy` and `/terms`.
+
+The package is ready for local-marketplace packaging. No personal
 marketplace, install, registered ChatGPT connection ID, or public submission is
 created by these source changes. A registered ChatGPT mapping can be added after
 developer-mode connection supplies its actual technical ID. Public directory

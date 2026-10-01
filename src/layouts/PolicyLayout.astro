@@ -1,0 +1,48 @@
+---
+import Header from "../components/Header.astro";
+import BaseLayout from "./BaseLayout.astro";
+
+interface Props {
+  readonly title: string;
+  readonly description: string;
+}
+
+const { title, description } = Astro.props;
+---
+
+<BaseLayout title={title} description={description}>
+  <Header active="site" />
+  <main id="main-content" class="policy">
+    <h1>{title}</h1>
+    <p class="policy-date">Effective October 1, 2026</p>
+    <slot />
+    <nav aria-label="Service policies">
+      <a href="/privacy">Privacy policy</a>
+      <a href="/terms">Terms of service</a>
+      <a href="mailto:lockerzmodding@gmail.com">Contact</a>
+    </nav>
+  </main>
+</BaseLayout>
+
+<style>
+  .policy {
+    max-width: 48rem;
+    margin: 0 auto;
+    padding: 3rem 1.5rem;
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+  }
+  .policy :global(h2) {
+    margin-top: 2rem;
+    font-size: 1.25rem;
+  }
+  .policy-date {
+    opacity: 0.7;
+  }
+  nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: 3rem;
+  }
+</style>

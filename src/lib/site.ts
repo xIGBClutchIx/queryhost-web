@@ -1,6 +1,7 @@
 export type SiteExperience = "docs" | "site";
 
 export const DOCS_HOSTNAME = "docs.query.host";
+export const BRAND_ICON_URL = "/favicon.svg?v=2";
 export const GITHUB_REPOSITORY_URL =
   "https://github.com/xIGBClutchIx/queryhost";
 export const SITE_HOSTNAME = "query.host";
