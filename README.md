@@ -49,7 +49,7 @@ npm run verify
 
 ## Library dependency
 
-The web service pins exact `queryhost@1.0.0` from the public npm registry for the game registry, public types, and generated API Markdown. Do not copy or maintain a second game list in this repository.
+The web service pins exact `queryhost@1.3.0` from the public npm registry for the game registry, public types, and generated API Markdown. Do not copy or maintain a second game list in this repository.
 
 ## Source repositories
 
