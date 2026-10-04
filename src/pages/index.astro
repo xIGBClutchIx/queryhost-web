@@ -1,7 +1,9 @@
 ---
-import Header from "../components/Header.astro";
-import QueryPlayground from "../components/QueryPlayground.astro";
+import { Header } from "../components/Header.tsx";
+import { QueryPlayground } from "../components/playground/QueryPlayground.tsx";
 import BaseLayout from "../layouts/BaseLayout.astro";
+import { PLAYGROUND_GAMES } from "../lib/playground-games.js";
+import { requestHostname } from "../lib/site.js";
 ---
 
 <BaseLayout
@@ -9,8 +11,12 @@ import BaseLayout from "../layouts/BaseLayout.astro";
   title="QueryHost"
   description="Fast, typed game server queries for TypeScript and Node.js."
 >
-  <Header active="site" />
+  <Header active="site" hostname={requestHostname(Astro.request)} />
   <main class="site-main" id="main-content">
-    <QueryPlayground />
+    <QueryPlayground
+      client:load
+      games={PLAYGROUND_GAMES}
+      search={Astro.url.search}
+    />
   </main>
 </BaseLayout>

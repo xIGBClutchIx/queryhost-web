@@ -54,7 +54,7 @@ describe("package-owned registry", () => {
 describe("browser query boundary", () => {
   it("addresses only the same-origin proxy and contains no private credentials", () => {
     const source = [
-      "../src/components/QueryPlayground.astro",
+      "../src/components/playground/QueryPlayground.tsx",
       "../src/lib/playground-query.ts",
       "../src/lib/webmcp.ts",
     ]

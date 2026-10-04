@@ -1,0 +1,110 @@
+import type { ReactNode } from "react";
+
+import { Callout } from "../../components/Callout.js";
+import { DocsLayout } from "../../components/DocsLayout.js";
+import type { DocsPageMetadata } from "../../components/DocsLayout.js";
+import type { PageProps } from "../page-props.js";
+
+export const metadata = {
+  activeHref: "/hosted-service/",
+  eyebrow: "Hosted architecture",
+  title: "Hosted service",
+  description:
+    "The public web service and private API add caching and abuse controls without changing the live-by-default library.",
+} as const satisfies DocsPageMetadata;
+
+export function HostedServicePage({ hostname }: PageProps): ReactNode {
+  return (
+    <DocsLayout {...metadata} hostname={hostname}>
+      <h2 id="boundary">Service boundary</h2>
+      <p>
+        The browser sends non-secret inputs to <code>POST /api/query</code> on
+        the public web service. This same-origin route validates and limits
+        callers before forwarding requests over Railway private networking. The
+        private API independently repeats target and resource checks and never
+        exposes its origin token to browser code.
+      </p>
+      <h2 id="public-route">Public playground route</h2>
+      <p>
+        The web boundary accepts only the game, host, optional ports, query
+        mode, and deadline. It canonicalizes game aliases, bounds the request
+        body, and applies per-caller, global-start, active-query, and
+        tracked-caller limits before any private API work begins. Successful
+        forwarding returns the hosted response JSON unchanged and adds no
+        private proxy metadata.
+      </p>
+      <ul>
+        <li>At most 8 query starts per caller each minute.</li>
+        <li>At most 60 query starts globally each minute per web instance.</li>
+        <li>At most 8 forwarded queries active at once per web instance.</li>
+        <li>At most 2,048 caller counters retained in memory.</li>
+        <li>Request bodies are capped at 2 KiB.</li>
+        <li>The private API response deadline is capped at 7 seconds.</li>
+      </ul>
+      <p>
+        These are deliberately small in-memory controls, not a distributed quota
+        system. The private API still owns destination, concurrency, and
+        protocol safety.
+      </p>
+      <h2 id="routes">Private API routes</h2>
+      <ul>
+        <li>
+          <code>POST /query</code> performs a hosted query.
+        </li>
+        <li>
+          <code>GET /games</code> returns the package-exported registry.
+        </li>
+        <li>
+          <code>GET /health</code> returns liveness and bounded operational
+          counters.
+        </li>
+      </ul>
+      <p>
+        There is no <code>/v1</code> prefix. The current API is private and has
+        no public domain.
+      </p>
+      <h2 id="cache">Caching</h2>
+      <ul>
+        <li>The direct library does not cache.</li>
+        <li>
+          The private API uses a bounded in-memory LRU and in-flight coalescing.
+        </li>
+        <li>
+          Successful results live for 10 seconds, partial results for 5 seconds,
+          and timeout or offline failures for 2 seconds.
+        </li>
+        <li>
+          Invalid, blocked, malformed, aborted, and internal failures are not
+          cached.
+        </li>
+        <li>
+          Static documentation and hashed assets use public cache headers from
+          this web service.
+        </li>
+      </ul>
+      <h2 id="security">Security and abuse constraints</h2>
+      <p>
+        User-directed network access can become an SSRF tool, port scanner,
+        internal-network probe, or UDP abuse source. QueryHost restricts inputs
+        to known game profiles, validates and pins public destinations, refuses
+        redirects, caps concurrency and admission, bounds every parser and
+        transport, and fails closed when capacity is exhausted.
+      </p>
+      <Callout title="Credentials stay at the server boundary">
+        <p>
+          Browser code addresses only the current origin. The Railway private
+          hostname and <code>QUERYHOST_API_ORIGIN_TOKEN</code> are read by the
+          Node.js server and are never serialized into the page, shared URL, or
+          hosted response.
+        </p>
+      </Callout>
+      <h2 id="cost">Initial cost boundary</h2>
+      <p>
+        The initial deployment uses one small web service and one private API
+        service with Railway resource limits, usage alerts, and a hard spending
+        limit. It does not add Redis, D1, KV, databases, accounts, billing,
+        persistent monitoring, replicas, or multi-region infrastructure.
+      </p>
+    </DocsLayout>
+  );
+}
