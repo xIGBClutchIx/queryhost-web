@@ -49,6 +49,15 @@ function isCodeMessage(value: JsonValue | undefined): boolean {
   );
 }
 
+/** A query failure; `source` names the source the game profile required. */
+function isQueryError(value: JsonValue | undefined): boolean {
+  return (
+    isCodeMessage(value) &&
+    isObject(value) &&
+    isOptional(value.source, "string")
+  );
+}
+
 function isSource(value: JsonValue): boolean {
   return (
     isObject(value) &&
@@ -93,7 +102,7 @@ export function isPlaygroundQueryResponse(
     typeof cache.ageMs === "number" &&
     typeof cache.ttlMs === "number";
   if (!shared) return false;
-  if (value.ok === false) return isCodeMessage(value.error);
+  if (value.ok === false) return isQueryError(value.error);
   return (
     value.ok === true &&
     typeof value.partial === "boolean" &&

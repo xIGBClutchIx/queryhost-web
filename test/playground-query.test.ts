@@ -92,6 +92,18 @@ describe("playground query client", () => {
       [200, { ok: true, game: "rust" }],
       [200, { error: { code: "TIMEOUT" } }],
       [200, []],
+      [
+        200,
+        {
+          cache: { ageMs: 0, status: "miss", ttlMs: 5000 },
+          durationMs: 12,
+          error: { code: "TIMEOUT", message: "Timed out", source: {} },
+          game: "rust",
+          ok: false,
+          sources: [],
+          warnings: [],
+        },
+      ],
       [429, { message: "Too many requests" }],
     ] as const) {
       await expect(
