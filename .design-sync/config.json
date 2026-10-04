@@ -1,0 +1,62 @@
+{
+  "shape": "package",
+  "pkg": "@queryhost/web",
+  "globalName": "QueryHostWeb",
+  "srcDir": "src/components",
+  "tsconfig": "tsconfig.json",
+  "cssEntry": "src/styles/global.css",
+  "extraFonts": [
+    "node_modules/@fontsource-variable/geist/index.css",
+    "node_modules/@fontsource-variable/geist-mono/index.css"
+  ],
+  "componentSrcMap": {
+    "Callout": "src/components/Callout.tsx",
+    "DocsLayout": "src/components/DocsLayout.tsx",
+    "DocsSidebar": "src/components/DocsNavigation.tsx",
+    "DocsMobileNavigation": "src/components/DocsNavigation.tsx",
+    "Header": "src/components/Header.tsx",
+    "PolicyLayout": "src/components/PolicyLayout.tsx",
+    "CustomSelect": "src/components/playground/CustomSelect.tsx",
+    "QueryPlayground": "src/components/playground/QueryPlayground.tsx",
+    "QueryResult": "src/components/playground/QueryResult.tsx"
+  },
+  "entry": ".design-sync/entry.ts",
+  "buildCmd": "rm -rf dist/types && npx tsc6 --ignoreConfig --declaration --emitDeclarationOnly --jsx react-jsx --module esnext --moduleResolution bundler --target es2022 --skipLibCheck --strict --types node --outDir dist/types --rootDir . .design-sync/entry.ts",
+  "guidelinesGlob": [],
+  "dtsPropsFor": {
+    "DocsSidebar": "/** Docs href of the current page, e.g. \"/docs/querying\"; that link renders active. */ activeHref: string; /** Site hostname used to build absolute docs links, e.g. \"query.host\". */ hostname: string; /** Extra links shown under the Reference section on API reference pages. */ reference?: { label: string; items: readonly { href: string; label: string }[] };",
+    "DocsMobileNavigation": "/** Docs href of the current page, e.g. \"/docs/querying\"; that link renders active. */ activeHref: string; /** Site hostname used to build absolute docs links, e.g. \"query.host\". */ hostname: string; /** Extra links shown under the Reference section on API reference pages. */ reference?: { label: string; items: readonly { href: string; label: string }[] };",
+    "QueryResult": "/** Browser-safe game registry entries; used to show the game name. */ games: readonly { id: string; name: string; defaultMode: \"summary\" | \"full\"; defaultPort?: number; defaultQueryPort?: number; queryPortStrategy?: \"offset\" | \"fixed\"; capabilities: Record<string, \"supported\" | \"conditional\" | \"unsupported\"> }[]; /** The hosted response body exactly as received; shown on the JSON tab. */ raw: string; /** Parsed hosted query response: success (ok: true) or failure (ok: false). */ result: ({ ok: true; game: string; durationMs: number; sources: readonly { source: string; status: \"ok\" | \"timeout\" | \"blocked\" | \"malformed\" | \"unsupported\" | \"not-requested\" | \"failed\"; rttMs?: number }[]; warnings: readonly { code: string; message: string; source?: string }[]; cache: { status: \"coalesced\" | \"hit\" | \"miss\"; ageMs: number; ttlMs: number }; partial: boolean; server: { name?: string; map?: string; version?: string; password?: boolean; players?: { online?: number; max?: number }; queryRttMs?: number }; data: Record<string, unknown>; rawData?: Record<string, unknown> }) | ({ ok: false; game: string; durationMs: number; sources: readonly { source: string; status: \"ok\" | \"timeout\" | \"blocked\" | \"malformed\" | \"unsupported\" | \"not-requested\" | \"failed\"; rttMs?: number }[]; warnings: readonly { code: string; message: string; source?: string }[]; cache: { status: \"coalesced\" | \"hit\" | \"miss\"; ageMs: number; ttlMs: number }; error: { code: \"ABORTED\" | \"CONNECTION_FAILED\" | \"DNS_FAILED\" | \"INTERNAL_ERROR\" | \"INVALID_INPUT\" | \"MALFORMED_RESPONSE\" | \"RESPONSE_TOO_LARGE\" | \"TARGET_BLOCKED\" | \"TIMEOUT\"; message: string; source?: string } });",
+    "QueryPlayground": "/** Browser-safe game registry entries offered in the game picker. */ games: readonly { id: string; name: string; defaultMode: \"summary\" | \"full\"; defaultPort?: number; defaultQueryPort?: number; queryPortStrategy?: \"offset\" | \"fixed\"; capabilities: Record<string, \"supported\" | \"conditional\" | \"unsupported\"> }[]; /** Request query string (e.g. \"?game=minecraft&host=play.example.com\") so shared links render prefilled. */ search: string;",
+    "CustomSelect": "/** Optional help text under the control. */ help?: string; id: string; label: string; /** Name of the hidden native select submitted with the form. */ name: string; onChange: (value: string) => void; options: readonly { label: string; value: string }[]; required?: boolean; value: string;"
+  },
+  "overrides": {
+    "QueryResult": {
+      "cardMode": "column"
+    },
+    "CustomSelect": {
+      "cardMode": "column"
+    },
+    "Header": {
+      "cardMode": "column",
+      "viewport": "1140x320"
+    },
+    "DocsLayout": {
+      "cardMode": "column",
+      "viewport": "1300x900"
+    },
+    "PolicyLayout": {
+      "cardMode": "column",
+      "viewport": "1140x800"
+    },
+    "QueryPlayground": {
+      "cardMode": "column",
+      "viewport": "1200x800"
+    },
+    "DocsMobileNavigation": {
+      "cardMode": "column",
+      "viewport": "420x640"
+    }
+  },
+  "readmeHeader": ".design-sync/conventions.md"
+}
