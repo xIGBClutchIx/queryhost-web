@@ -1,0 +1,121 @@
+import type { ReactNode } from "react";
+
+import { Callout } from "../../components/Callout.js";
+import { DocsLayout } from "../../components/DocsLayout.js";
+import type { DocsPageMetadata } from "../../components/DocsLayout.js";
+import type { PageProps } from "../page-props.js";
+
+export const metadata = {
+  activeHref: "/webmcp/",
+  eyebrow: "Agent collaboration",
+  title: "MCP and WebMCP tools",
+  description:
+    "Use QueryHost's public playground with a compatible browser agent while keeping the result visible and controllable in the page.",
+} as const satisfies DocsPageMetadata;
+
+export function WebMcpPage({ hostname }: PageProps): ReactNode {
+  return (
+    <DocsLayout {...metadata} hostname={hostname}>
+      <h2 id="available-tools">Available tools</h2>
+      <table className="data-table">
+        <thead>
+          <tr>
+            <th>Tool</th>
+            <th>Purpose</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <code>list_supported_games</code>
+            </td>
+            <td>
+              Lists canonical game IDs, ports, recommended modes, and capability
+              support from the installed QueryHost registry.
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <code>query_game_server</code>
+            </td>
+            <td>
+              Queries a public game server through the same bounded route as the
+              human playground, renders it in the page, and returns a summary,
+              playground link, and complete structured result to the agent.
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <code>compare_game_servers</code>
+            </td>
+            <td>
+              Queries two to four servers sequentially and returns ordered
+              results, including individual failures, warnings, and source
+              details.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <h2 id="shared-workflow">People and agents share one result</h2>
+      <p>
+        For remote clients such as ChatGPT, connect to{" "}
+        <code>https://query.host/mcp</code> using Streamable HTTP. This server
+        endpoint exposes the same tools and returns structured data directly,
+        without requiring an open playground. The existing private Railway API
+        still performs production queries. No client account or API token is
+        required. Remote responses omit binary assets and raw data and bound
+        large detail lists. Omitted details are reported explicitly; the
+        playground retains the full result.
+      </p>
+      <p>
+        An agent can discover a supported profile and start a query without
+        guessing at the page controls. QueryHost then fills the existing form,
+        updates the share URL, and displays the same overview, game data, source
+        provenance, warnings, and JSON available to a person. The person can
+        inspect that result, change any input, and continue with the normal
+        playground. For comparisons, each result is displayed in turn and the
+        last remains visible; the agent receives the complete ordered set. Query
+        failures do not prove a server is offline, and query RTT is measured
+        from QueryHost, not the user's machine.
+      </p>
+      <h2 id="server-cards">Server cards in ChatGPT</h2>
+      <p>
+        Compatible MCP Apps hosts can show query results as inline server cards
+        and comparisons side by side. Cards show population, version, map, query
+        RTT, warnings, and expandable source details, with links to the full
+        playground. Missing values stay missing, and a failed query is shown as
+        a query failure. Text and structured results remain available in clients
+        without card support. Refresh your MCP connection after a deployment
+        that changes tool metadata.
+      </p>
+      <h2 id="boundary">Same security boundary</h2>
+      <p>
+        WebMCP does not create another API or grant new network access. Tool
+        execution calls the same-origin <code>POST /api/query</code> route,
+        which preserves the web caller gate, private API authentication, target
+        validation, resource limits, cache semantics, and stable result
+        contract. The private Railway hostname and origin token never enter
+        browser code.
+      </p>
+      <Callout title="Server responses are untrusted data">
+        <p>
+          Names, MOTDs, rules, player details, and other server-provided values
+          are returned as data, not instructions. The query tool declares this
+          explicitly to compatible agents.
+        </p>
+      </Callout>
+      <h2 id="browser-support">Browser support</h2>
+      <p>
+        QueryHost uses the current imperative <code>document.modelContext</code>{" "}
+        API and registers tools only when the browser exposes it. Browsers
+        without WebMCP keep the complete human playground with no polyfill or
+        compatibility layer.
+      </p>
+      <p>
+        Open <a href="https://query.host/">query.host</a> in ChatGPT's in-app
+        browser or a WebMCP-enabled version of Chrome to let a compatible agent
+        discover the tools.
+      </p>
+    </DocsLayout>
+  );
+}

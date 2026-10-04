@@ -2,6 +2,8 @@
   "extends": "astro/tsconfigs/strict",
   "compilerOptions": {
     "allowJs": false,
+    "jsx": "react-jsx",
+    "jsxImportSource": "react",
     "exactOptionalPropertyTypes": true,
     "noFallthroughCasesInSwitch": true,
     "noImplicitOverride": true,
@@ -12,7 +14,9 @@
     ".astro/types.d.ts",
     "src/**/*.astro",
     "src/**/*.ts",
-    "test/**/*.ts"
+    "src/**/*.tsx",
+    "test/**/*.ts",
+    "test/**/*.tsx"
   ],
   "exclude": ["dist", "node_modules"]
 }

@@ -1,6 +1,6 @@
 # QueryHost Web
 
-The public QueryHost website, query playground, and documentation service. One portable Astro/Node.js application serves `query.host` and `docs.query.host` with a shared design system and hostname-aware entry routing.
+The public QueryHost website, query playground, and documentation service. One portable Astro/Node.js application with a React interface serves `query.host` and `docs.query.host` with a shared design system and hostname-aware entry routing.
 
 The browser sends non-secret query inputs to the same-origin `POST /api/query` route. That server route validates and throttles callers before forwarding production requests to the private QueryHost API over Railway networking. During local development, the same route calls the installed `queryhost` package directly, without duplicating any game protocol implementation.
 
@@ -42,7 +42,7 @@ Local and preview hosts use `/` for the site and `/docs/` for documentation so e
 
 Astro ClientRouter handles same-origin HTML navigation, with its built-in link prefetching. Moving between `query.host` and `docs.query.host` requires a full document load because they are different origins. External links, downloads, modified clicks, and intentional full-page navigation retain their browser behavior.
 
-The vanilla playground browser module initializes on page load and Astro navigation. Its lifecycle disposes listeners, observers, feedback timers, WebMCP registrations, and requests before a page swap or full-page exit, and initializes again on history restoration. Share URLs retain Astro's history state. A Vue island could simplify result templates and reactive form state if the playground grows substantially; it would not make Astro navigation or cross-origin navigation faster, so this implementation keeps vanilla browser modules.
+Every page is a React view rendered on the server; the `.astro` routes only read the request and pass it to a view. Documentation, policy, and error pages ship no React runtime. The playground is the single hydrated React island (`client:load`), and shared links (`/?game=…&host=…`) render prefilled on the server. Agent tooling and its schema library load as a separate chunk only in browsers that expose WebMCP. The island releases its requests and WebMCP registrations when Astro swaps the page or the browser hides it, and starts again on history restoration. Share URLs retain Astro's history state.
 
 Run the complete gate before committing:
 

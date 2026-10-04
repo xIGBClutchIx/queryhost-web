@@ -1,12 +1,13 @@
 ---
-import DocsLayout from "../../layouts/DocsLayout.astro";
-import { CHANGELOG_HTML } from "../../lib/changelog.js";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { requestHostname } from "../../lib/site.js";
+import { ChangelogPage, metadata } from "../../views/docs/ChangelogPage.tsx";
 ---
 
-<DocsLayout
-  activeHref="/changelog/"
-  title="Changelog"
-  description="Release history for the QueryHost query library."
+<BaseLayout
+  bodyClass="docs-page"
+  title={metadata.title}
+  description={metadata.description}
 >
-  <Fragment set:html={CHANGELOG_HTML} />
-</DocsLayout>
+  <ChangelogPage hostname={requestHostname(Astro.request)} />
+</BaseLayout>
