@@ -87,6 +87,23 @@ describe("playground query client", () => {
     });
   });
 
+  it("rejects JSON bodies that do not match the response contracts", async () => {
+    for (const [status, body] of [
+      [200, { ok: true, game: "rust" }],
+      [200, { error: { code: "TIMEOUT" } }],
+      [200, []],
+      [429, { message: "Too many requests" }],
+    ] as const) {
+      await expect(
+        requestPlaygroundQuery(INPUT, new AbortController().signal, () =>
+          Promise.resolve(new Response(JSON.stringify(body), { status })),
+        ),
+      ).rejects.toThrow(
+        "The QueryHost web service returned an unexpected response.",
+      );
+    }
+  });
+
   it("propagates cancellation to the active fetch", async () => {
     const controller = new AbortController();
     const fetcher: PlaygroundFetcher = (_input, init) =>
