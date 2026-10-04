@@ -119,6 +119,35 @@ describe("query playground island", () => {
     expect(element<HTMLButtonElement>("#query-submit").disabled).toBe(false);
   });
 
+  it("reports a malformed successful response instead of failing to render", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<typeof fetch>(() =>
+        Promise.resolve(
+          new Response(JSON.stringify({ ok: true, game: "minecraft-java" })),
+        ),
+      ),
+    );
+    act(() => {
+      root.render(<QueryPlayground games={PLAYGROUND_GAMES} search="" />);
+    });
+    act(() => {
+      setInput(element("#query-host"), "play.example.com");
+    });
+    act(() => {
+      element<HTMLFormElement>("#query-form").requestSubmit();
+    });
+    await flush();
+
+    expect(container.querySelector("#query-result")).toBeNull();
+    expect(element("#query-request-error").textContent).toContain(
+      "NETWORK_ERROR",
+    );
+    expect(element("#query-request-error").textContent).toContain(
+      "unexpected response",
+    );
+  });
+
   it("switches result tabs with the arrow keys", async () => {
     vi.stubGlobal(
       "fetch",
