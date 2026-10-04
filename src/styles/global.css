@@ -2154,7 +2154,7 @@ a {
 
   .topbar__inner--docs .brand,
   .topbar__inner--site .brand {
-    display: block;
+    display: flex;
     align-self: center;
     width: max-content;
     padding: 0;
