@@ -29,3 +29,10 @@ pnpm-debug.log*
 
 # jetbrains setting folder
 .idea/
+
+# design-sync local state
+.ds-sync/
+ds-bundle/
+.design-sync/.cache/
+.design-sync/learnings/
+.design-sync/node_modules
