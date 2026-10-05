@@ -12,16 +12,19 @@ QueryHost (query.host, docs.query.host) is a **dark-only**, keyboard-first site 
 
 ## Tokens (use these, never raw hex)
 
-| Role     | Tokens                                                                                   |
-| -------- | ---------------------------------------------------------------------------------------- |
-| Surfaces | `--background`, `--surface`, `--surface-raised`, `--surface-subtle`, `--code-background` |
-| Text     | `--text-strong`, `--text`, `--muted`, `--faint`, `--code-text`                           |
-| Lines    | `--line`, `--line-strong`                                                                |
-| Accent   | `--accent` (teal), `--accent-strong`, `--accent-soft`, `--on-accent`                     |
-| Status   | `--supported`, `--warning`, `--warning-soft`                                             |
-| Layout   | `--header-height`, `--content-width`, `--docs-sidebar-width`, `--shadow`                 |
+| Role     | Tokens                                                                                                   |
+| -------- | -------------------------------------------------------------------------------------------------------- |
+| Surfaces | `--background`, `--surface`, `--surface-raised`, `--surface-subtle`, `--code-background`                 |
+| Text     | `--text-strong`, `--text`, `--muted`, `--faint`, `--code-text`                                           |
+| Lines    | `--line`, `--line-strong`                                                                                |
+| Accent   | `--accent` (teal), `--accent-strong`, `--accent-soft`, `--on-accent`                                     |
+| Status   | `--supported`, `--warning`, `--warning-soft`                                                             |
+| Layout   | `--header-height`, `--content-width`, `--docs-sidebar-width`, `--shadow`                                 |
+| Type     | `--text-3xs` … `--text-3xl`, `--weight-regular`, `--weight-medium`, `--weight-semibold`, `--weight-bold` |
+| Shape    | `--radius-xs`, `--radius-sm`, `--radius-md`, `--radius-lg`, `--radius-full`                              |
+| Motion   | `--duration-fast`, `--duration-base`, `--duration-slow`                                                  |
 
-The body font is `"Geist Variable"`. Use `"Geist Mono Variable"` for code, ports, and timings.
+Breakpoints are 50rem (tablet) and 34rem (phone). The body font is `"Geist Variable"`. Use `"Geist Mono Variable"` for code, ports, and timings.
 
 ## Class vocabulary
 
