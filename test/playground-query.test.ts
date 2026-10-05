@@ -56,7 +56,6 @@ describe("playground query client", () => {
     expect(result).toEqual({
       body,
       kind: "query",
-      raw: JSON.stringify(body),
     });
   });
 
@@ -83,7 +82,6 @@ describe("playground query client", () => {
     expect(result).toEqual({
       body,
       kind: "proxy-error",
-      raw: JSON.stringify(body),
     });
   });
 

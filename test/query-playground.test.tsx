@@ -113,6 +113,9 @@ describe("query playground island", () => {
     expect(element("#query-result-name").textContent).toBe("Example");
     expect(element(".query-game-summary").textContent).toContain("Welcome");
     expect(element(".query-overview").textContent).toContain("5 / 20");
+    expect(element("#query-panel-json code").textContent).toBe(
+      JSON.stringify(SUCCESS, null, 2),
+    );
     expect(window.location.search).toBe(
       "?game=minecraft-java&host=play.example.com&port=25565&mode=summary",
     );

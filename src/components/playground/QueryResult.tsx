@@ -3,7 +3,6 @@ import type { CSSProperties, KeyboardEvent, ReactNode } from "react";
 
 import type {
   JsonObject,
-  JsonValue,
   PlaygroundGameDefinition,
   PlaygroundQueryResponse,
 } from "../../lib/playground-contracts.js";
@@ -28,8 +27,6 @@ type ResultTab = (typeof RESULT_TABS)[number]["id"];
 
 interface QueryResultProps {
   readonly games: readonly PlaygroundGameDefinition[];
-  /** The hosted response body exactly as received. */
-  readonly raw: string;
   readonly result: PlaygroundQueryResponse;
 }
 
@@ -194,13 +191,9 @@ function CopyJsonButton({ text }: { readonly text: string }): ReactNode {
  */
 export const QueryResult = memo(function QueryResult({
   games,
-  raw,
   result,
 }: QueryResultProps): ReactNode {
-  const json = useMemo(
-    () => JSON.stringify(JSON.parse(raw) as JsonValue, null, 2),
-    [raw],
-  );
+  const json = useMemo(() => JSON.stringify(result, null, 2), [result]);
   const [activeTab, setActiveTab] = useState<ResultTab>("overview");
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const pathItems = queryPathItems(result.sources);
@@ -408,7 +401,7 @@ export const QueryResult = memo(function QueryResult({
       >
         <div className="query-json-toolbar">
           <span>Hosted response</span>
-          <CopyJsonButton text={raw} />
+          <CopyJsonButton text={json} />
         </div>
         <pre>
           <code>{json}</code>

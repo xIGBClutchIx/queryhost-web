@@ -15,7 +15,7 @@ export function Callout({
   return (
     <aside className={`callout callout--${tone}`}>
       <div className="callout__mark" aria-hidden="true">
-        i
+        {tone === "warning" ? "!" : "i"}
       </div>
       <div>
         <h2>{title}</h2>

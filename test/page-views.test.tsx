@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
+import { Callout } from "../src/components/Callout.js";
 import { apiReferencePage } from "../src/lib/api-reference.js";
 import { QUERYHOST_VERSION } from "../src/lib/package-version.js";
 import { ApiReferencePage } from "../src/views/docs/ApiReferencePage.js";
@@ -70,6 +71,23 @@ describe("server-rendered documentation views", () => {
     expect(html).toContain('class="api-reference"');
     expect(html).toContain('class="docs-nav__reference-context"');
     expect(html).toContain('aria-current="page">query()</a>');
+  });
+});
+
+describe("callouts", () => {
+  it("marks warnings with a distinct glyph", () => {
+    const info = render(<Callout title="Note">Body</Callout>);
+    const warning = render(
+      <Callout title="Careful" tone="warning">
+        Body
+      </Callout>,
+    );
+    expect(info).toContain(
+      '<div class="callout__mark" aria-hidden="true">i</div>',
+    );
+    expect(warning).toContain(
+      '<div class="callout__mark" aria-hidden="true">!</div>',
+    );
   });
 });
 

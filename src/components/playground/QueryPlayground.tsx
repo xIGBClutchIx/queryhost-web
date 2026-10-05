@@ -47,7 +47,6 @@ type OutputState =
   | {
       readonly id: number;
       readonly kind: "result";
-      readonly raw: string;
       readonly result: PlaygroundQueryResponse;
     };
 
@@ -136,7 +135,6 @@ export function QueryPlayground({
         setOutput({
           id: resultSequence.current,
           kind: "result",
-          raw: response.raw,
           result: response.body,
         });
         return response.body;
@@ -461,12 +459,7 @@ export function QueryPlayground({
         )}
 
         {output.kind === "result" && (
-          <QueryResult
-            key={output.id}
-            games={games}
-            raw={output.raw}
-            result={output.result}
-          />
+          <QueryResult key={output.id} games={games} result={output.result} />
         )}
       </section>
     </section>
