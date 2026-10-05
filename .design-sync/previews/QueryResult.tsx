@@ -125,11 +125,7 @@ const RUST_OFFLINE = {
 export function Online(): ReactNode {
   return (
     <Page>
-      <QueryResult
-        games={GAMES}
-        raw={JSON.stringify(MINECRAFT)}
-        result={MINECRAFT}
-      />
+      <QueryResult games={GAMES} result={MINECRAFT} />
     </Page>
   );
 }
@@ -137,11 +133,7 @@ export function Online(): ReactNode {
 export function PartialWithWarning(): ReactNode {
   return (
     <Page>
-      <QueryResult
-        games={GAMES}
-        raw={JSON.stringify(RUST_PARTIAL)}
-        result={RUST_PARTIAL}
-      />
+      <QueryResult games={GAMES} result={RUST_PARTIAL} />
     </Page>
   );
 }
@@ -149,11 +141,7 @@ export function PartialWithWarning(): ReactNode {
 export function Offline(): ReactNode {
   return (
     <Page>
-      <QueryResult
-        games={GAMES}
-        raw={JSON.stringify(RUST_OFFLINE)}
-        result={RUST_OFFLINE}
-      />
+      <QueryResult games={GAMES} result={RUST_OFFLINE} />
     </Page>
   );
 }

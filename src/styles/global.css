@@ -1617,7 +1617,7 @@ a {
   min-width: 0;
 }
 
-.query-game-summary span {
+.query-game-summary > div > span {
   color: var(--faint);
   font-size: 0.67rem;
   letter-spacing: 0.04em;
@@ -1866,7 +1866,7 @@ a {
 .button--primary {
   border-color: var(--accent);
   background: var(--accent);
-  color: #07110f;
+  color: var(--on-accent);
 }
 
 .button--primary:hover {

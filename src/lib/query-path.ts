@@ -4,6 +4,8 @@ import type {
   QuerySourceStatus,
 } from "queryhost";
 
+import { milliseconds } from "./playground-form.js";
+
 const SOURCE_LABELS = {
   "a2s-info": "Info",
   "a2s-player": "Players",
@@ -38,10 +40,6 @@ export interface QueryPathItem {
   readonly label: string;
   readonly source: QuerySourceName;
   readonly status: QuerySourceStatus;
-}
-
-function milliseconds(value: number): string {
-  return `${Math.round(value * 10) / 10} ms`;
 }
 
 /** Creates the compact, user-facing view of one query's protocol sources. */

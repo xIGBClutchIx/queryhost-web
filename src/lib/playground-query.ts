@@ -10,12 +10,10 @@ export type PlaygroundRequestResult =
   | {
       readonly body: PlaygroundProxyErrorResponse;
       readonly kind: "proxy-error";
-      readonly raw: string;
     }
   | {
       readonly body: PlaygroundQueryResponse;
       readonly kind: "query";
-      readonly raw: string;
     };
 
 export type PlaygroundFetcher = (
@@ -133,16 +131,15 @@ export async function requestPlaygroundQuery(
     method: "POST",
     signal,
   });
-  const raw = await response.text();
-  const body = JSON.parse(raw) as JsonValue;
+  const body = JSON.parse(await response.text()) as JsonValue;
   if (!response.ok) {
     if (!isPlaygroundProxyErrorResponse(body)) {
       throw new Error(UNEXPECTED_RESPONSE);
     }
-    return { body, kind: "proxy-error", raw };
+    return { body, kind: "proxy-error" };
   }
   if (!isPlaygroundQueryResponse(body)) {
     throw new Error(UNEXPECTED_RESPONSE);
   }
-  return { body, kind: "query", raw };
+  return { body, kind: "query" };
 }
