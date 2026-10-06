@@ -1,3 +1,5 @@
+import { fileURLToPath } from "node:url";
+
 import { build } from "esbuild";
 import { describe, expect, it } from "vitest";
 
@@ -6,7 +8,9 @@ describe("browser bundle", () => {
     const result = await build({
       bundle: true,
       entryPoints: [
-        new URL("../src/lib/playground-games.ts", import.meta.url).pathname,
+        fileURLToPath(
+          new URL("../src/lib/playground-games.ts", import.meta.url),
+        ),
       ],
       format: "esm",
       logLevel: "silent",
