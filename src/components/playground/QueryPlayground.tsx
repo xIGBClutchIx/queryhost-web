@@ -17,6 +17,7 @@ import { PlaygroundExamples } from "./PlaygroundExamples.js";
 import { QueryForm } from "./QueryForm.js";
 import { QueryResult } from "./QueryResult.js";
 import { useDockHeight } from "./use-dock-height.js";
+import { useFocusShortcut } from "./use-focus-shortcut.js";
 import { usePlaygroundSession } from "./use-playground-session.js";
 import "../../styles/playground.css";
 
@@ -39,6 +40,7 @@ export function QueryPlayground({
   const formRef = useRef<HTMLFormElement>(null);
   const hostRef = useRef<HTMLInputElement>(null);
   const { dockRef, playgroundRef } = useDockHeight();
+  useFocusShortcut(hostRef);
 
   const onAgentQuery = useCallback((input: PlaygroundQueryInput) => {
     setFormError(undefined);

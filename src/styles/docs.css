@@ -1,15 +1,20 @@
 .docs-page {
-  background:
-    radial-gradient(
-      circle at 58% -8rem,
-      color-mix(in srgb, var(--accent-soft) 28%, transparent),
-      transparent 34rem
-    ),
-    var(--background);
+  --docs-backdrop: radial-gradient(
+    circle at 58% -8rem,
+    color-mix(in srgb, var(--accent-soft) 28%, transparent),
+    transparent 34rem
+  );
+
+  background: var(--docs-backdrop), var(--background);
+  background-attachment: fixed;
 }
 
+/* The header paints the same fixed backdrop opaquely, so it reads as one surface
+   with the page and covers scrolled content without a backdrop blur. */
 .docs-page .topbar {
-  background: color-mix(in srgb, var(--background) 82%, transparent);
+  background: var(--docs-backdrop), var(--background);
+  background-attachment: fixed;
+  backdrop-filter: none;
 }
 
 .docs-shell {

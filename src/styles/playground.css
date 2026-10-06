@@ -4,6 +4,18 @@
     color-mix(in srgb, var(--accent-soft) 52%, transparent) 0,
     transparent 42rem
   );
+  /* Glass surfaces: translucent tints over the page backdrop. Only that smooth
+     gradient (or an opaque copy of it) ever sits behind them, so none of them
+     needs a backdrop blur. */
+  --glass-fill: color-mix(in srgb, var(--surface-raised) 52%, transparent);
+  --glass-sheen: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--text-strong) 5%, transparent),
+    transparent 70%
+  );
+  --glass-edge: color-mix(in srgb, var(--text-strong) 11%, transparent);
+  --glass-inset: color-mix(in srgb, var(--background) 30%, transparent);
+  --glass-inset-edge: color-mix(in srgb, var(--text-strong) 6%, transparent);
 
   position: relative;
   isolation: isolate;
@@ -30,6 +42,30 @@
   padding: clamp(3rem, calc(32dvh - 8rem), 16rem) 0 clamp(6rem, 16vh, 10rem);
 }
 
+@keyframes playground-enter {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+}
+
+/* "backwards" drops the transform once finished, so no lasting containing block
+   interferes with the dock's fixed backdrop or the select popover. */
+.playground__heading,
+.query-form,
+.playground-examples {
+  animation: playground-enter var(--duration-slow) cubic-bezier(0.16, 1, 0.3, 1)
+    backwards;
+}
+
+.query-form {
+  animation-delay: calc(var(--duration-fast) / 2);
+}
+
+.playground-examples {
+  animation-delay: var(--duration-fast);
+}
+
 .playground__heading {
   margin-bottom: 1.75rem;
   text-align: center;
@@ -54,15 +90,9 @@
    gradient ever sits behind the form, so it needs no costly backdrop blur. */
 .query-form {
   overflow: visible;
-  border: 1px solid color-mix(in srgb, var(--text-strong) 11%, transparent);
+  border: 1px solid var(--glass-edge);
   border-radius: var(--radius-lg);
-  background:
-    linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--text-strong) 5%, transparent),
-      transparent 70%
-    ),
-    color-mix(in srgb, var(--surface-raised) 52%, transparent);
+  background: var(--glass-sheen), var(--glass-fill);
   box-shadow:
     inset 0 1px 0 color-mix(in srgb, var(--text-strong) 7%, transparent),
     0 32px 80px -44px color-mix(in srgb, var(--accent) 32%, transparent);
@@ -97,9 +127,9 @@
   align-items: baseline;
   gap: 0.45rem;
   padding: 0.35rem 0.8rem;
-  border: 1px solid color-mix(in srgb, var(--text-strong) 11%, transparent);
+  border: 1px solid var(--glass-edge);
   border-radius: var(--radius-full);
-  background: color-mix(in srgb, var(--surface-raised) 52%, transparent);
+  background: var(--glass-fill);
   color: var(--text-strong);
   font-size: var(--text-sm);
   font-weight: var(--weight-medium);
@@ -179,14 +209,14 @@
 
   .playground .query-result__toolbar::after {
     z-index: -1;
-    border: 1px solid color-mix(in srgb, var(--line-strong) 48%, transparent);
-    border-bottom-color: var(--line);
+    border: 1px solid var(--glass-edge);
+    border-bottom-color: var(--glass-inset-edge);
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-    background: var(--surface);
+    background: var(--glass-sheen), var(--glass-fill);
   }
 
   .playground .query-panel {
-    border: 1px solid color-mix(in srgb, var(--line-strong) 48%, transparent);
+    border: 1px solid var(--glass-edge);
     border-top: 0;
     border-radius: 0 0 var(--radius-lg) var(--radius-lg);
   }
@@ -290,6 +320,39 @@
   font-weight: var(--weight-semibold);
   letter-spacing: 0.045em;
   text-transform: uppercase;
+}
+
+.field--host {
+  position: relative;
+}
+
+/* Hint for the "/" shortcut; it gets out of the way once the field is in use. */
+.field__shortcut {
+  position: absolute;
+  right: 0.6rem;
+  bottom: 0.7rem;
+  min-width: 1.4rem;
+  padding: 0.05rem 0.35rem;
+  border: 1px solid var(--glass-edge);
+  border-radius: var(--radius-xs);
+  color: var(--muted);
+  font-family: "Geist Mono Variable", monospace;
+  font-size: var(--text-2xs);
+  line-height: 1.5;
+  text-align: center;
+  pointer-events: none;
+  transition: opacity var(--duration-fast) ease;
+}
+
+.field--host input:focus ~ .field__shortcut,
+.field--host input:not(:placeholder-shown) ~ .field__shortcut {
+  opacity: 0;
+}
+
+@media (max-width: 50rem), (hover: none) {
+  .field__shortcut {
+    display: none;
+  }
 }
 
 .field input,
@@ -510,7 +573,7 @@
 .query-request-error {
   display: block;
   border-radius: var(--radius-lg);
-  background: var(--surface);
+  background: var(--glass-fill);
   box-shadow:
     var(--shadow),
     inset 3px 0 var(--warning);
@@ -523,8 +586,9 @@
 .query-loading {
   min-height: 13rem;
   padding: 2rem;
+  border: 1px solid var(--glass-edge);
   border-radius: var(--radius-lg);
-  background: var(--surface);
+  background: var(--glass-fill);
   box-shadow: var(--shadow);
 }
 
@@ -576,14 +640,14 @@
   gap: 1.5rem;
   min-height: 4.5rem;
   padding: 1rem 1.25rem 0;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--glass-inset-edge);
 }
 
 .query-result {
   overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--line-strong) 48%, transparent);
+  border: 1px solid var(--glass-edge);
   border-radius: var(--radius-lg);
-  background: var(--surface);
+  background: var(--glass-fill);
   box-shadow: var(--shadow);
 }
 
@@ -711,9 +775,9 @@
   min-height: 3rem;
   padding: 0.6rem 0.85rem;
   margin-bottom: 1rem;
-  border: 1px solid var(--line);
+  border: 1px solid var(--glass-inset-edge);
   border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--surface-raised) 54%, transparent);
+  background: var(--glass-inset);
 }
 
 .query-path__label {
@@ -813,9 +877,9 @@
   align-items: center;
   padding: 0.8rem 0.9rem;
   margin-bottom: 1rem;
-  border: 1px solid var(--line);
+  border: 1px solid var(--glass-inset-edge);
   border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--surface-raised) 52%, transparent);
+  background: var(--glass-inset);
 }
 
 .query-game-summary[hidden] {
@@ -860,9 +924,9 @@
 .query-overview > div {
   min-width: 0;
   padding: 0.8rem 0.9rem;
-  border: 1px solid var(--line);
+  border: 1px solid var(--glass-inset-edge);
   border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--surface-raised) 54%, transparent);
+  background: var(--glass-inset);
 }
 
 .query-overview dt {
@@ -1146,7 +1210,10 @@
 
 @media (prefers-reduced-motion: reduce) {
   .query-loading__line,
-  .query-loading__grid span {
+  .query-loading__grid span,
+  .playground__heading,
+  .query-form,
+  .playground-examples {
     animation: none;
   }
 }

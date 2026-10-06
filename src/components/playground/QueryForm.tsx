@@ -100,11 +100,15 @@ export function QueryForm({
             autoCapitalize="none"
             spellCheck={false}
             placeholder="play.example.com"
+            aria-keyshortcuts="/"
             value={form.host}
             onChange={(event) => {
               update({ host: event.currentTarget.value });
             }}
           />
+          <kbd className="field__shortcut" aria-hidden="true">
+            /
+          </kbd>
         </label>
 
         <label className="field">

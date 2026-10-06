@@ -146,6 +146,34 @@ describe("query playground island", () => {
     expect(container.querySelector(".playground-examples")).toBeNull();
   });
 
+  it("focuses the host field on / unless another field is being edited", () => {
+    act(() => {
+      root.render(<QueryPlayground games={PLAYGROUND_GAMES} search="" />);
+    });
+    const host = element<HTMLInputElement>("#query-host");
+    expect(host.getAttribute("aria-keyshortcuts")).toBe("/");
+
+    const fromPage = new KeyboardEvent("keydown", {
+      bubbles: true,
+      cancelable: true,
+      key: "/",
+    });
+    document.body.dispatchEvent(fromPage);
+    expect(document.activeElement).toBe(host);
+    expect(fromPage.defaultPrevented).toBe(true);
+
+    const port = element<HTMLInputElement>("#query-port");
+    port.focus();
+    const fromField = new KeyboardEvent("keydown", {
+      bubbles: true,
+      cancelable: true,
+      key: "/",
+    });
+    port.dispatchEvent(fromField);
+    expect(document.activeElement).toBe(port);
+    expect(fromField.defaultPrevented).toBe(false);
+  });
+
   it("reports a malformed successful response instead of failing to render", async () => {
     vi.stubGlobal(
       "fetch",
