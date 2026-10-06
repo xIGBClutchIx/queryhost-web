@@ -32,3 +32,24 @@ export const DOCUMENTATION_NAVIGATION: readonly NavigationSection[] = [
     items: [{ href: "/reference/", label: "API reference" }],
   },
 ] as const;
+
+export interface AdjacentPages {
+  readonly next?: NavigationItem;
+  readonly previous?: NavigationItem;
+}
+
+/** Neighbors of `href` in reading order; pages outside the main sequence have none. */
+export function adjacentDocumentationPages(
+  href: string,
+  sections: readonly NavigationSection[] = DOCUMENTATION_NAVIGATION,
+): AdjacentPages {
+  const items = sections.flatMap((section) => section.items);
+  const index = items.findIndex((item) => item.href === href);
+  if (index === -1) return {};
+  const previous = items[index - 1];
+  const next = items[index + 1];
+  return {
+    ...(previous === undefined ? {} : { previous }),
+    ...(next === undefined ? {} : { next }),
+  };
+}

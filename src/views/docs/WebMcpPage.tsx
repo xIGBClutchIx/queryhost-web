@@ -7,6 +7,7 @@ import type { PageProps } from "../page-props.js";
 
 export const metadata = {
   activeHref: "/webmcp/",
+  contents: true,
   eyebrow: "Agent collaboration",
   title: "MCP and WebMCP tools",
   description:

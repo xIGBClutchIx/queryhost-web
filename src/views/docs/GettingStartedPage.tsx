@@ -10,6 +10,7 @@ import { documentationHref, GITHUB_REPOSITORY_URL } from "../../lib/site.js";
 
 export const metadata = {
   activeHref: "/",
+  contents: true,
   eyebrow: "Introduction",
   title: "Getting started",
   description:

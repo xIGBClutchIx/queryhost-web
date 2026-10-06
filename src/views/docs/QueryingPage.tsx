@@ -9,6 +9,7 @@ import { aliasesForGame, GAMES } from "../../lib/queryhost.js";
 
 export const metadata = {
   activeHref: "/querying/",
+  contents: true,
   eyebrow: "Core library",
   title: "Query a server",
   description:

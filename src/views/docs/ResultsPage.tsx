@@ -8,6 +8,7 @@ import type { PageProps } from "../page-props.js";
 
 export const metadata = {
   activeHref: "/results/",
+  contents: true,
   eyebrow: "Response contract",
   title: "Result semantics",
   description:

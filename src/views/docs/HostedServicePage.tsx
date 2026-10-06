@@ -7,6 +7,7 @@ import type { PageProps } from "../page-props.js";
 
 export const metadata = {
   activeHref: "/hosted-service/",
+  contents: true,
   eyebrow: "Hosted architecture",
   title: "Hosted service",
   description:

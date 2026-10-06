@@ -114,6 +114,66 @@ describe("query playground island", () => {
     expect(element<HTMLButtonElement>("#query-submit").disabled).toBe(false);
   });
 
+  it("runs an example server from its chip and fills in the form", async () => {
+    const fetcher = vi.fn<typeof fetch>(() =>
+      Promise.resolve(new Response(JSON.stringify(MINECRAFT_ONLINE))),
+    );
+    vi.stubGlobal("fetch", fetcher);
+    act(() => {
+      root.render(<QueryPlayground games={PLAYGROUND_GAMES} search="" />);
+    });
+
+    const chip = element<HTMLAnchorElement>(".playground-examples__chip");
+    expect(chip.getAttribute("href")).toBe(
+      "/?game=minecraft-java&host=mc.hypixel.net",
+    );
+    act(() => {
+      chip.click();
+    });
+    await flush();
+
+    const body = fetcher.mock.calls[0]?.[1]?.body;
+    expect(typeof body === "string" ? JSON.parse(body) : body).toEqual({
+      game: "minecraft-java",
+      host: "mc.hypixel.net",
+      mode: "summary",
+      port: 25_565,
+      timeoutMs: 5_000,
+    });
+    expect(element<HTMLInputElement>("#query-host").value).toBe(
+      "mc.hypixel.net",
+    );
+    expect(container.querySelector(".playground-examples")).toBeNull();
+  });
+
+  it("focuses the host field on / unless another field is being edited", () => {
+    act(() => {
+      root.render(<QueryPlayground games={PLAYGROUND_GAMES} search="" />);
+    });
+    const host = element<HTMLInputElement>("#query-host");
+    expect(host.getAttribute("aria-keyshortcuts")).toBe("/");
+
+    const fromPage = new KeyboardEvent("keydown", {
+      bubbles: true,
+      cancelable: true,
+      key: "/",
+    });
+    document.body.dispatchEvent(fromPage);
+    expect(document.activeElement).toBe(host);
+    expect(fromPage.defaultPrevented).toBe(true);
+
+    const port = element<HTMLInputElement>("#query-port");
+    port.focus();
+    const fromField = new KeyboardEvent("keydown", {
+      bubbles: true,
+      cancelable: true,
+      key: "/",
+    });
+    port.dispatchEvent(fromField);
+    expect(document.activeElement).toBe(port);
+    expect(fromField.defaultPrevented).toBe(false);
+  });
+
   it("reports a malformed successful response instead of failing to render", async () => {
     vi.stubGlobal(
       "fetch",

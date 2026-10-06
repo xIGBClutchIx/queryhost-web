@@ -1,9 +1,21 @@
 .home-page {
   --home-backdrop: radial-gradient(
-    circle at 50% 47%,
+    circle at 50% 36%,
     color-mix(in srgb, var(--accent-soft) 52%, transparent) 0,
     transparent 42rem
   );
+  /* Glass surfaces: translucent tints over the page backdrop. Only that smooth
+     gradient (or an opaque copy of it) ever sits behind them, so none of them
+     needs a backdrop blur. */
+  --glass-fill: color-mix(in srgb, var(--surface-raised) 52%, transparent);
+  --glass-sheen: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--text-strong) 5%, transparent),
+    transparent 70%
+  );
+  --glass-edge: color-mix(in srgb, var(--text-strong) 11%, transparent);
+  --glass-inset: color-mix(in srgb, var(--background) 30%, transparent);
+  --glass-inset-edge: color-mix(in srgb, var(--text-strong) 6%, transparent);
 
   position: relative;
   isolation: isolate;
@@ -12,8 +24,10 @@
   background-attachment: fixed;
 }
 
+/* The header paints the same fixed backdrop, so it reads as one surface with the page. */
 .home-page .topbar {
-  background: var(--background);
+  background: var(--home-backdrop), var(--background);
+  background-attachment: fixed;
   backdrop-filter: none;
 }
 
@@ -24,7 +38,32 @@
   min-height: calc(100dvh - var(--header-height));
   flex-direction: column;
   justify-content: flex-start;
-  padding: clamp(3rem, calc(50dvh - 10rem), 24rem) 0 clamp(6rem, 16vh, 10rem);
+  /* Places the form about a third of the way down instead of below centre. */
+  padding: clamp(3rem, calc(32dvh - 8rem), 16rem) 0 clamp(6rem, 16vh, 10rem);
+}
+
+@keyframes playground-enter {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+}
+
+/* "backwards" drops the transform once finished, so no lasting containing block
+   interferes with the dock's fixed backdrop or the select popover. */
+.playground__heading,
+.query-form,
+.playground-examples {
+  animation: playground-enter var(--duration-slow) cubic-bezier(0.16, 1, 0.3, 1)
+    backwards;
+}
+
+.query-form {
+  animation-delay: calc(var(--duration-fast) / 2);
+}
+
+.playground-examples {
+  animation-delay: var(--duration-fast);
 }
 
 .playground__heading {
@@ -47,13 +86,68 @@
   font-size: var(--text-md);
 }
 
+/* Glass card: a translucent tint over the page backdrop. Nothing but that smooth
+   gradient ever sits behind the form, so it needs no costly backdrop blur. */
 .query-form {
   overflow: visible;
-  border: 1px solid color-mix(in srgb, var(--line-strong) 48%, transparent);
+  border: 1px solid var(--glass-edge);
   border-radius: var(--radius-lg);
+  background: var(--glass-sheen), var(--glass-fill);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--text-strong) 7%, transparent),
+    0 32px 80px -44px color-mix(in srgb, var(--accent) 32%, transparent);
+}
+
+.playground-examples {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem 0.75rem;
+  margin-top: 1.25rem;
+}
+
+.playground-examples__label {
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+.playground-examples ul {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.playground-examples__chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  padding: 0.35rem 0.8rem;
+  border: 1px solid var(--glass-edge);
+  border-radius: var(--radius-full);
+  background: var(--glass-fill);
+  color: var(--text-strong);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  text-decoration: none;
+  transition:
+    border-color var(--duration-base) ease,
+    background var(--duration-base) ease;
+}
+
+.playground-examples__chip:hover {
+  border-color: var(--accent);
   background: var(--surface-raised);
-  box-shadow: 0 28px 70px -48px
-    color-mix(in srgb, var(--text-strong) 42%, transparent);
+}
+
+.playground-examples__chip code {
+  color: var(--muted);
+  font-family: "Geist Mono Variable", monospace;
+  font-size: var(--text-xs);
 }
 
 /* Breakpoint: above tablet. */
@@ -80,13 +174,6 @@
   .query-form-dock .query-form {
     position: relative;
     z-index: 1;
-    background: color-mix(
-      in srgb,
-      var(--surface-raised) 94%,
-      var(--background)
-    );
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
   }
 
   .playground .query-result {
@@ -122,14 +209,14 @@
 
   .playground .query-result__toolbar::after {
     z-index: -1;
-    border: 1px solid color-mix(in srgb, var(--line-strong) 48%, transparent);
-    border-bottom-color: var(--line);
+    border: 1px solid var(--glass-edge);
+    border-bottom-color: var(--glass-inset-edge);
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-    background: var(--surface);
+    background: var(--glass-sheen), var(--glass-fill);
   }
 
   .playground .query-panel {
-    border: 1px solid color-mix(in srgb, var(--line-strong) 48%, transparent);
+    border: 1px solid var(--glass-edge);
     border-top: 0;
     border-radius: 0 0 var(--radius-lg) var(--radius-lg);
   }
@@ -141,16 +228,6 @@
     padding: 0;
     margin: 0 1.25rem;
     border: 0;
-  }
-}
-
-@supports (
-  (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))
-) {
-  .query-form {
-    background: color-mix(in srgb, var(--surface-raised) 72%, transparent);
-    -webkit-backdrop-filter: blur(12px) saturate(108%);
-    backdrop-filter: blur(12px) saturate(108%);
   }
 }
 
@@ -172,9 +249,9 @@
 
 .query-form__advanced {
   border-radius: 0 0 var(--radius-lg) var(--radius-lg);
-  background: color-mix(in srgb, var(--surface-raised) 46%, transparent);
+  background: color-mix(in srgb, var(--background) 18%, transparent);
   box-shadow: inset 0 1px 0
-    color-mix(in srgb, var(--line-strong) 48%, transparent);
+    color-mix(in srgb, var(--text-strong) 8%, transparent);
 }
 
 .query-form__advanced-trigger {
@@ -245,6 +322,39 @@
   text-transform: uppercase;
 }
 
+.field--host {
+  position: relative;
+}
+
+/* Hint for the "/" shortcut; it gets out of the way once the field is in use. */
+.field__shortcut {
+  position: absolute;
+  right: 0.6rem;
+  bottom: 0.7rem;
+  min-width: 1.4rem;
+  padding: 0.05rem 0.35rem;
+  border: 1px solid var(--glass-edge);
+  border-radius: var(--radius-xs);
+  color: var(--muted);
+  font-family: "Geist Mono Variable", monospace;
+  font-size: var(--text-2xs);
+  line-height: 1.5;
+  text-align: center;
+  pointer-events: none;
+  transition: opacity var(--duration-fast) ease;
+}
+
+.field--host input:focus ~ .field__shortcut,
+.field--host input:not(:placeholder-shown) ~ .field__shortcut {
+  opacity: 0;
+}
+
+@media (max-width: 50rem), (hover: none) {
+  .field__shortcut {
+    display: none;
+  }
+}
+
 .field input,
 .custom-select__trigger {
   width: 100%;
@@ -253,10 +363,10 @@
   border: 0;
   border-radius: var(--radius-md);
   outline: 0;
-  background: color-mix(in srgb, var(--background) 82%, var(--surface));
+  background: color-mix(in srgb, var(--background) 58%, transparent);
   color: var(--text-strong);
   box-shadow: inset 0 0 0 1px
-    color-mix(in srgb, var(--line-strong) 42%, transparent);
+    color-mix(in srgb, var(--text-strong) 8%, transparent);
   transition:
     background var(--duration-base) ease,
     box-shadow var(--duration-base) ease;
@@ -264,9 +374,9 @@
 
 .field input:hover,
 .custom-select__trigger:hover {
-  background: color-mix(in srgb, var(--surface-subtle) 76%, var(--surface));
+  background: color-mix(in srgb, var(--background) 72%, transparent);
   box-shadow: inset 0 0 0 1px
-    color-mix(in srgb, var(--line-strong) 68%, transparent);
+    color-mix(in srgb, var(--text-strong) 16%, transparent);
 }
 
 .field input:focus,
@@ -463,7 +573,7 @@
 .query-request-error {
   display: block;
   border-radius: var(--radius-lg);
-  background: var(--surface);
+  background: var(--glass-fill);
   box-shadow:
     var(--shadow),
     inset 3px 0 var(--warning);
@@ -476,8 +586,9 @@
 .query-loading {
   min-height: 13rem;
   padding: 2rem;
+  border: 1px solid var(--glass-edge);
   border-radius: var(--radius-lg);
-  background: var(--surface);
+  background: var(--glass-fill);
   box-shadow: var(--shadow);
 }
 
@@ -529,14 +640,14 @@
   gap: 1.5rem;
   min-height: 4.5rem;
   padding: 1rem 1.25rem 0;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--glass-inset-edge);
 }
 
 .query-result {
   overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--line-strong) 48%, transparent);
+  border: 1px solid var(--glass-edge);
   border-radius: var(--radius-lg);
-  background: var(--surface);
+  background: var(--glass-fill);
   box-shadow: var(--shadow);
 }
 
@@ -664,9 +775,9 @@
   min-height: 3rem;
   padding: 0.6rem 0.85rem;
   margin-bottom: 1rem;
-  border: 1px solid var(--line);
+  border: 1px solid var(--glass-inset-edge);
   border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--surface-raised) 54%, transparent);
+  background: var(--glass-inset);
 }
 
 .query-path__label {
@@ -766,9 +877,9 @@
   align-items: center;
   padding: 0.8rem 0.9rem;
   margin-bottom: 1rem;
-  border: 1px solid var(--line);
+  border: 1px solid var(--glass-inset-edge);
   border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--surface-raised) 52%, transparent);
+  background: var(--glass-inset);
 }
 
 .query-game-summary[hidden] {
@@ -813,9 +924,9 @@
 .query-overview > div {
   min-width: 0;
   padding: 0.8rem 0.9rem;
-  border: 1px solid var(--line);
+  border: 1px solid var(--glass-inset-edge);
   border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--surface-raised) 54%, transparent);
+  background: var(--glass-inset);
 }
 
 .query-overview dt {
@@ -1099,7 +1210,10 @@
 
 @media (prefers-reduced-motion: reduce) {
   .query-loading__line,
-  .query-loading__grid span {
+  .query-loading__grid span,
+  .playground__heading,
+  .query-form,
+  .playground-examples {
     animation: none;
   }
 }

@@ -8,6 +8,7 @@ import type { PageProps } from "../page-props.js";
 
 export const metadata = {
   activeHref: "/errors/",
+  contents: true,
   eyebrow: "Failure handling",
   title: "Errors and warnings",
   description:

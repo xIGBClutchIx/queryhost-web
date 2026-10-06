@@ -58,6 +58,39 @@ describe("stylesheet tokens", () => {
   });
 });
 
+function token(name: string): string {
+  const value = new RegExp(`--${name}: (#[0-9a-f]{6});`).exec(base)?.[1];
+  if (value === undefined) throw new Error(`Missing --${name}`);
+  return value;
+}
+
+function luminance(hex: string): number {
+  const channels = [1, 3, 5].map((index) => {
+    const value = Number.parseInt(hex.slice(index, index + 2), 16) / 255;
+    return value <= 0.039_28 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+  });
+  const [red = 0, green = 0, blue = 0] = channels;
+  return 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+}
+
+function contrast(foreground: string, background: string): number {
+  const [light, dark] = [luminance(foreground), luminance(background)].toSorted(
+    (left, right) => right - left,
+  );
+  return ((light ?? 0) + 0.05) / ((dark ?? 0) + 0.05);
+}
+
+describe("stylesheet contrast", () => {
+  it.each(["background", "surface", "surface-raised", "surface-subtle"])(
+    "keeps --faint text at WCAG AA on --%s",
+    (surface) => {
+      expect(contrast(token("faint"), token(surface))).toBeGreaterThanOrEqual(
+        4.5,
+      );
+    },
+  );
+});
+
 describe("stylesheet layout", () => {
   it("keeps the capability table's hidden labels inside its scroll container", () => {
     const rule = /\.capability-table-scroll \{([^}]*)\}/.exec(docs)?.[1];
