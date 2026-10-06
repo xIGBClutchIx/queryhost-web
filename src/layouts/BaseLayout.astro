@@ -1,6 +1,6 @@
 ---
 import { ClientRouter } from "astro:transitions";
-import { BRAND_ICON_URL } from "../lib/site.js";
+import { BRAND_ICON_URL, canonicalUrl } from "../lib/site.js";
 
 import "@fontsource-variable/geist";
 import "@fontsource-variable/geist-mono";
@@ -15,6 +15,9 @@ interface Props {
 
 const { bodyClass, clientRouter = true, description, title } = Astro.props;
 const pageTitle = title === "QueryHost" ? title : `${title} · QueryHost`;
+// Error pages render under the requested path, which is not a page to index.
+const canonical =
+  Astro.response.status === 200 ? canonicalUrl(Astro.url.pathname) : undefined;
 ---
 
 <!doctype html>
@@ -25,6 +28,13 @@ const pageTitle = title === "QueryHost" ? title : `${title} · QueryHost`;
     <meta name="description" content={description} />
     <meta name="theme-color" content="#0c1215" />
     <link rel="icon" type="image/svg+xml" href={BRAND_ICON_URL} />
+    {canonical && <link rel="canonical" href={canonical} />}
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="QueryHost" />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={description} />
+    {canonical && <meta property="og:url" content={canonical} />}
+    <meta name="twitter:card" content="summary" />
     <title>{pageTitle}</title>
     {clientRouter && <ClientRouter fallback="swap" />}
   </head>
