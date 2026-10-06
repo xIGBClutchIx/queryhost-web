@@ -21,8 +21,7 @@
   --query-dock-height: 0px;
 
   display: flex;
-  /* Leaves the overview's top edge in view as a cue to scroll. */
-  min-height: calc(88dvh - var(--header-height));
+  min-height: calc(100dvh - var(--header-height));
   flex-direction: column;
   justify-content: flex-start;
   padding: clamp(3rem, calc(50dvh - 10rem), 24rem) 0 clamp(6rem, 16vh, 10rem);
@@ -107,79 +106,6 @@
   color: var(--muted);
   font-family: "Geist Mono Variable", monospace;
   font-size: var(--text-xs);
-}
-
-.home-overview {
-  display: grid;
-  gap: 4.5rem;
-  padding: 0 0 7rem;
-}
-
-.home-section {
-  display: grid;
-  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
-  gap: 2rem 3rem;
-  align-items: start;
-  padding-top: 2.5rem;
-  border-top: 1px solid var(--line);
-}
-
-.home-section__intro h2 {
-  margin: 0;
-  color: var(--text-strong);
-  font-size: var(--text-2xl);
-  font-weight: var(--weight-bold);
-  letter-spacing: -0.035em;
-  line-height: 1.15;
-}
-
-.home-section__intro > p:not(.eyebrow) {
-  margin: 0.65rem 0 0;
-  color: var(--muted);
-  font-size: var(--text-md);
-}
-
-.home-section__link {
-  display: inline-block;
-  margin-top: 0.9rem;
-  font-size: var(--text-sm);
-  font-weight: var(--weight-semibold);
-}
-
-.home-games {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.45rem;
-  padding: 0;
-  margin: 0;
-  list-style: none;
-}
-
-.home-games a {
-  display: inline-block;
-  padding: 0.3rem 0.7rem;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  color: var(--text);
-  font-size: var(--text-sm);
-  text-decoration: none;
-  transition:
-    border-color var(--duration-base) ease,
-    color var(--duration-base) ease;
-}
-
-.home-games a:hover {
-  border-color: var(--accent);
-  color: var(--text-strong);
-}
-
-.home-code .code-block:first-child {
-  margin-top: 0;
-}
-
-.home-code .code-block:last-child {
-  margin-bottom: 0;
 }
 
 /* Breakpoint: above tablet. */
@@ -1132,10 +1058,6 @@
 
 /* Breakpoint: tablet. */
 @media (max-width: 50rem) {
-  .home-section {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
   .home-page .topbar {
     border-bottom: 0;
   }

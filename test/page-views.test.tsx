@@ -3,11 +3,9 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import { Callout } from "../src/components/Callout.js";
-import { HomeOverview } from "../src/components/HomeOverview.js";
 import { apiReferencePage } from "../src/lib/api-reference.js";
 import { adjacentDocumentationPages } from "../src/lib/navigation.js";
 import { QUERYHOST_VERSION } from "../src/lib/package-version.js";
-import { GAMES } from "../src/lib/queryhost.js";
 import { ApiReferencePage } from "../src/views/docs/ApiReferencePage.js";
 import * as changelog from "../src/views/docs/ChangelogPage.js";
 import * as errors from "../src/views/docs/ErrorsPage.js";
@@ -147,18 +145,6 @@ describe("callouts", () => {
 });
 
 describe("server-rendered site views", () => {
-  it("renders the homepage overview with the games strip and install snippet", () => {
-    const html = render(<HomeOverview hostname="query.host" />);
-    const text = html.replaceAll(/<[^>]+>/g, "");
-    const named = GAMES.filter((game) => game.id !== "a2s").length;
-    expect(text).toContain(`${named} games plus generic A2S`);
-    expect(html).toContain('href="/?game=rust">Rust</a>');
-    expect(html).not.toContain('href="/?game=a2s"');
-    expect(html).toContain('href="https://docs.query.host/games/"');
-    expect(text).toContain("npm install queryhost");
-    expect(text).toContain('import { query } from "queryhost";');
-  });
-
   it("renders policies and the not-found page with the site header", () => {
     for (const html of [
       render(<PrivacyPage hostname="query.host" />),
