@@ -7,7 +7,8 @@ QueryHost (query.host, docs.query.host) is a **dark-only**, keyboard-first site 
 - `styles.css` loads the Geist / Geist Mono fonts and the whole site stylesheet. It styles `html` and `body` with `var(--background)` and `var(--text)`, so pages are dark by default. Never place components on a white surface.
 - The components need no wrapper. Some styles depend on a page class on an ancestor: `docs-page` (docs gradient), `home-page` (playground backdrop), and `doc-prose` (the typography for docs content, including `Callout`).
 - `Header` takes `hostname`: use `"query.host"` for the site and `"docs.query.host"` for docs. `active` is `"site"` or `"docs"`.
-- `QueryPlayground` and `QueryResult` take `games: PlaygroundGameDefinition[]` (`id`, `name`, `defaultMode`, `defaultPort`, `capabilities`). Pass a small inline array; the game registry itself is server-only.
+- `QueryPlayground` and `QueryResult` take `games`: pass `window.QueryHost.PLAYGROUND_GAMES`, the real registry list (`id`, `name`, `defaultMode`, `defaultPort`, `capabilities`).
+- For tabbed views, use `Tabs` with one `TabPanel` per tab. Give both the same `idPrefix`, keep `active` in state, and set `className="query-tabs"` on `Tabs` for the site's underlined tab style.
 - There is no `CodeBlock` component in the bundle. For code, use `<figure className="code-block"><figcaption><span>Label</span><span className="code-block__language">ts</span></figcaption><pre><code>…</code></pre></figure>`.
 
 ## Tokens (use these, never raw hex)
