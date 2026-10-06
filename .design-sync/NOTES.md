@@ -12,7 +12,7 @@
 - Windows: a shell whose working directory is inside `ds-bundle/` locks it, and the build's `rmSync` then fails with `EPERM`. Run every sync command from the repo root.
 - Preview cards have a white body; QueryHost is dark-only, so every preview wraps its stories in a `var(--background)` surface.
 - `QueryPlayground` previews cover idle form states only. Loading and result states need a live `fetch` to `/api/query`; `QueryResult` previews cover the result views.
-- `.query-game-summary span` uppercases every span inside the MOTD, including the colored spans in `motdHtml` (visible in `QueryResult/Online`). This is site behavior, not a preview bug.
+- Style-only changes (like the 2026-10-05 token pass) keep grades. After a broad CSS change, spot-check every component: `package-capture.mjs --components <all> --spot-check-components <all>`.
 
 ## Known render warns
 
