@@ -16,6 +16,7 @@ import { QueryForm } from "./QueryForm.js";
 import { QueryResult } from "./QueryResult.js";
 import { useDockHeight } from "./use-dock-height.js";
 import { usePlaygroundSession } from "./use-playground-session.js";
+import "../../styles/playground.css";
 
 interface QueryPlaygroundProps {
   /** Browser-safe registry projection serialized by the server. */

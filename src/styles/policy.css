@@ -1,0 +1,23 @@
+.policy {
+  max-width: 48rem;
+  margin: 0 auto;
+  padding: 3rem 1.5rem;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+.policy h2 {
+  margin-top: 2rem;
+  font-size: var(--text-xl);
+}
+
+.policy-date {
+  opacity: 0.7;
+}
+
+.policy-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 3rem;
+}

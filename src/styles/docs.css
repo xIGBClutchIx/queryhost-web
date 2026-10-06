@@ -1,0 +1,920 @@
+.docs-page {
+  background:
+    radial-gradient(
+      circle at 58% -8rem,
+      color-mix(in srgb, var(--accent-soft) 28%, transparent),
+      transparent 34rem
+    ),
+    var(--background);
+}
+
+.docs-page .topbar {
+  background: color-mix(in srgb, var(--background) 82%, transparent);
+}
+
+.docs-shell {
+  display: grid;
+  grid-template-columns: var(--docs-sidebar-width) minmax(0, 1fr);
+  width: min(100%, var(--content-width));
+  min-height: calc(100dvh - var(--header-height));
+  margin-inline: auto;
+}
+
+.docs-nav {
+  position: sticky;
+  top: var(--header-height);
+  max-height: calc(100dvh - var(--header-height));
+  padding: 1.2rem 1.5rem 3rem 1rem;
+  overflow-y: auto;
+}
+
+.docs-nav__section {
+  margin-top: 1.7rem;
+}
+
+.docs-nav__section h2 {
+  margin: 0 0 0.35rem;
+  color: var(--faint);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-bold);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.docs-nav__section ul {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.docs-nav__section a {
+  display: block;
+  padding: 0.38rem 0 0.38rem 0.35rem;
+  color: var(--muted);
+  font-size: var(--text-sm);
+  text-decoration: none;
+  transition:
+    color var(--duration-base) ease,
+    font-weight var(--duration-base) ease;
+}
+
+.docs-nav__section a:hover {
+  color: var(--text-strong);
+}
+
+.docs-nav__section a.is-active {
+  color: var(--text-strong);
+  font-weight: var(--weight-semibold);
+}
+
+.docs-nav__reference-context {
+  margin: 0.65rem 0 0 0.4rem;
+}
+
+.docs-nav__reference-context h3 {
+  margin: 0 0 0.28rem;
+  color: var(--text);
+  font-size: var(--text-3xs);
+  font-weight: var(--weight-bold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.docs-nav__reference-context a {
+  padding-block: 0.3rem;
+  padding-left: 0;
+  font-family: "Geist Mono Variable", monospace;
+  font-size: var(--text-xs);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.docs-mobile-nav {
+  display: none;
+}
+
+.doc-content {
+  width: min(100%, 58rem);
+  padding: 3.75rem clamp(2rem, 6vw, 5.5rem) 7rem;
+}
+
+@keyframes docs-content-enter {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.docs-page .doc-content {
+  opacity: 0;
+  animation: docs-content-enter var(--duration-base)
+    cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.doc-content--wide {
+  width: 100%;
+  padding-right: clamp(1.5rem, 3vw, 3rem);
+  padding-left: clamp(2rem, 6vw, 5.5rem);
+}
+
+.doc-content--wide .doc-prose {
+  max-width: none;
+}
+
+.doc-heading {
+  padding-bottom: 1.25rem;
+}
+
+.doc-heading h1 {
+  max-width: 18ch;
+  margin: 0;
+  color: var(--text-strong);
+  font-size: clamp(1.9rem, 4vw, 2.65rem);
+  font-weight: var(--weight-bold);
+  letter-spacing: -0.055em;
+  line-height: 1.05;
+}
+
+.doc-heading > p:not(.eyebrow) {
+  max-width: 62ch;
+  margin: 0.9rem 0 0;
+  color: var(--muted);
+  font-size: var(--text-base);
+}
+
+.doc-prose {
+  max-width: 72ch;
+  padding-top: 1.5rem;
+}
+
+.doc-prose h2,
+.doc-prose h3 {
+  color: var(--text-strong);
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+  scroll-margin-top: 1.5rem;
+}
+
+.doc-prose h2 {
+  margin: 2.75rem 0 0.75rem;
+  font-size: var(--text-2xl);
+}
+
+.doc-prose h3 {
+  margin: 2rem 0 0.65rem;
+  font-size: var(--text-lg);
+}
+
+.doc-prose > :first-child {
+  margin-top: 0;
+}
+
+.doc-prose p,
+.doc-prose li {
+  color: var(--text);
+}
+
+.doc-prose li + li {
+  margin-top: 0.35rem;
+}
+
+.doc-prose code:not(pre code) {
+  padding: 0.12em 0.34em;
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: var(--surface-subtle);
+  color: var(--text-strong);
+  font-family: "Geist Mono Variable", monospace;
+  font-size: 0.86em;
+}
+
+.docs-start-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(15rem, 0.8fr);
+  margin-bottom: 3rem;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--line-strong) 72%, transparent);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--surface-raised) 42%, transparent);
+  box-shadow: inset 0 1px 0
+    color-mix(in srgb, var(--text-strong) 4%, transparent);
+}
+
+.docs-start-panel__summary,
+.docs-start-panel__requirements {
+  padding: 1.25rem 1.35rem;
+}
+
+.docs-start-panel__requirements {
+  border-left: 1px solid var(--line);
+  background: color-mix(in srgb, var(--surface-subtle) 34%, transparent);
+}
+
+.doc-prose .docs-start-panel h2 {
+  margin: 0;
+  font-size: var(--text-lg);
+  letter-spacing: -0.02em;
+}
+
+.docs-start-panel__label {
+  margin: 0 0 0.55rem;
+  color: var(--accent-strong);
+  font-size: var(--text-3xs);
+  font-weight: var(--weight-bold);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.docs-start-panel__summary > p:not(.docs-start-panel__label) {
+  margin: 0.65rem 0 0;
+  color: var(--muted);
+  font-size: var(--text-sm);
+  line-height: 1.55;
+}
+
+.docs-source-link {
+  display: inline-block;
+  margin-top: 0.9rem;
+  color: var(--accent-strong);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.28em;
+}
+
+.docs-start-panel dl {
+  margin: 0.65rem 0 0;
+}
+
+.docs-start-panel dl > div {
+  display: grid;
+  grid-template-columns: 4.5rem minmax(0, 1fr);
+  gap: 0.7rem;
+  padding: 0.45rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.docs-start-panel dl > div:last-child {
+  border-bottom: 0;
+}
+
+.docs-start-panel dt,
+.docs-start-panel dd {
+  margin: 0;
+  font-size: var(--text-xs);
+}
+
+.docs-start-panel dt {
+  color: var(--faint);
+}
+
+.docs-start-panel dd {
+  color: var(--text-strong);
+  font-weight: var(--weight-medium);
+}
+
+.docs-next-links {
+  display: grid;
+  border-top: 1px solid var(--line-strong);
+}
+
+.docs-next-links a {
+  display: grid;
+  grid-template-columns: minmax(10.5rem, 0.42fr) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: baseline;
+  padding: 0.85rem 0;
+  border-bottom: 1px solid var(--line);
+  color: inherit;
+  text-decoration: none;
+  transition: color var(--duration-base) ease;
+}
+
+.docs-next-links a:hover strong {
+  color: var(--accent-strong);
+}
+
+.docs-next-links strong {
+  color: var(--text-strong);
+  font-size: var(--text-sm);
+  transition: color var(--duration-base) ease;
+}
+
+.docs-next-links span {
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
+
+.code-block {
+  margin: 1.35rem 0;
+  border: 1px solid color-mix(in srgb, var(--line-strong) 72%, transparent);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--code-background);
+  box-shadow: inset 0 1px 0
+    color-mix(in srgb, var(--text-strong) 4%, transparent);
+}
+
+.code-block figcaption {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.55rem 0.8rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--line) 68%, transparent);
+  background: color-mix(
+    in srgb,
+    var(--surface-raised) 38%,
+    var(--code-background)
+  );
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
+
+.code-block__language {
+  font-family: "Geist Mono Variable", monospace;
+}
+
+.code-block pre,
+.api-reference pre {
+  padding: 1rem;
+  margin: 0;
+  overflow-x: auto;
+  color: var(--code-text);
+  font-family: "Geist Mono Variable", monospace;
+  font-size: var(--text-sm);
+  line-height: 1.65;
+  tab-size: 2;
+}
+
+.code-block .shiki,
+.api-reference .shiki {
+  background: transparent !important;
+}
+
+.callout {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.85rem;
+  padding: 1rem;
+  margin: 1.5rem 0;
+  border: 0;
+  border-left: 2px solid var(--accent);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--surface-raised) 78%, transparent);
+}
+
+.callout--warning {
+  border-left-color: var(--warning);
+  background: var(--warning-soft);
+}
+
+.callout__mark {
+  display: grid;
+  place-items: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  margin-top: 0.1rem;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  color: var(--accent-strong);
+  font-family: "Geist Mono Variable", monospace;
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-bold);
+}
+
+.callout--warning .callout__mark {
+  color: var(--warning);
+}
+
+.callout h2 {
+  margin: 0 0 0.25rem;
+  font-size: var(--text-md);
+}
+
+.callout__body > :first-child,
+.callout__body > :last-child {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.data-table {
+  width: 100%;
+  margin: 1.25rem 0;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.data-table th,
+.data-table td {
+  padding: 0.72rem 0.65rem;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+
+.data-table th {
+  color: var(--muted);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-bold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.data-table td code {
+  white-space: nowrap;
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
+
+.status::before {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: var(--faint);
+  content: "";
+}
+
+.status--supported {
+  color: var(--supported);
+}
+
+.status--supported::before {
+  background: var(--supported);
+}
+
+.status--conditional {
+  color: var(--warning);
+}
+
+.status--conditional::before {
+  background: var(--warning);
+}
+
+.api-reference {
+  max-width: none;
+}
+
+.api-reference > h1:first-child {
+  display: none;
+}
+
+.api-reference table {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.api-reference th,
+.api-reference td {
+  padding: 0.6rem;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+}
+
+.api-reference pre {
+  margin-block: 1rem;
+  border: 1px solid color-mix(in srgb, var(--line-strong) 72%, transparent);
+  border-radius: var(--radius-md);
+  background: var(--code-background);
+  box-shadow: inset 0 1px 0
+    color-mix(in srgb, var(--text-strong) 4%, transparent);
+}
+
+.api-reference hr {
+  height: 0;
+  margin-block: 1.5rem;
+  border: 0;
+  border-top: 1px solid var(--line);
+}
+
+.reference-index {
+  margin-top: 1.5rem;
+}
+
+.reference-group {
+  display: grid;
+  grid-template-columns: 8rem minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+  padding: 0.85rem 0;
+  border-top: 1px solid var(--line);
+}
+
+.reference-group h2 {
+  margin: 0.12rem 0 0;
+  color: var(--muted);
+  font-size: var(--text-2xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.reference-group ul {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.32rem 1rem;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.reference-group li + li {
+  margin-top: 0;
+}
+
+.reference-group a {
+  color: var(--text);
+  font-family: "Geist Mono Variable", monospace;
+  font-size: var(--text-xs);
+  line-height: 1.45;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.reference-group a:hover {
+  color: var(--accent-strong);
+  text-decoration: underline;
+}
+
+.capability-overview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem 2rem;
+  margin-bottom: 1rem;
+}
+
+.capability-overview p {
+  max-width: 58ch;
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+.capability-legend {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.9rem;
+}
+
+.capability-table-scroll {
+  /* Contain the cells' absolutely positioned .sr-only labels so they scroll
+     with the table instead of widening the page. */
+  position: relative;
+  margin-top: 1rem;
+  overflow-x: auto;
+}
+
+.capability-table {
+  min-width: 54rem;
+  margin: 0;
+  border-top: 0;
+}
+
+.capability-table tbody tr:last-child > * {
+  border-bottom: 0;
+}
+
+.capability-table th,
+.capability-table td {
+  padding: 0.72rem 0.55rem;
+}
+
+.capability-table th:first-child,
+.capability-table td:first-child {
+  padding-left: 0.35rem;
+}
+
+.capability-table__groups th {
+  padding-top: 0.45rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 0;
+  color: var(--faint);
+  font-size: var(--text-3xs);
+  text-align: center;
+}
+
+.capability-table thead tr:last-child th {
+  padding-top: 0.3rem;
+  text-align: center;
+}
+
+.capability-table__groups th:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  border-bottom: 1px solid var(--line);
+  background: var(--background);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.capability-table__game-group,
+.capability-table__game-label {
+  display: block;
+}
+
+.capability-table__game-group {
+  margin-bottom: 0.18rem;
+  color: var(--text-strong);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  letter-spacing: -0.01em;
+  text-transform: none;
+}
+
+.capability-table__game-label {
+  color: var(--muted);
+  font-family: "Geist Mono Variable", monospace;
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-regular);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.capability-table thead tr:last-child th:nth-child(1),
+.capability-table thead tr:last-child th:nth-child(3),
+.capability-table thead tr:last-child th:nth-child(6),
+.capability-table thead tr:last-child th:nth-child(9),
+.capability-table tbody > tr > :nth-child(2),
+.capability-table tbody > tr > :nth-child(4),
+.capability-table tbody > tr > :nth-child(7),
+.capability-table tbody > tr > :nth-child(10) {
+  padding-left: 1rem;
+}
+
+.capability-table .capability-table__game {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  width: 12.5rem;
+  background: var(--background);
+  text-transform: none;
+}
+
+.capability-table__groups th:not(:last-child),
+.capability-table thead tr:last-child th:nth-child(2),
+.capability-table thead tr:last-child th:nth-child(5),
+.capability-table thead tr:last-child th:nth-child(8),
+.capability-table tbody > tr > :nth-child(1),
+.capability-table tbody > tr > :nth-child(3),
+.capability-table tbody > tr > :nth-child(6),
+.capability-table tbody > tr > :nth-child(9) {
+  background-position: right center;
+  background-repeat: no-repeat;
+  background-size: 1px 100%;
+}
+
+.capability-table__groups th:not(:last-child) {
+  background-image: linear-gradient(
+    to bottom,
+    transparent 0.45rem,
+    color-mix(in srgb, var(--line-strong) 38%, transparent) 0.45rem
+  );
+}
+
+.capability-table thead tr:last-child th:nth-child(2),
+.capability-table thead tr:last-child th:nth-child(5),
+.capability-table thead tr:last-child th:nth-child(8),
+.capability-table tbody > tr > :nth-child(1),
+.capability-table tbody > tr > :nth-child(3),
+.capability-table tbody > tr > :nth-child(6),
+.capability-table tbody > tr > :nth-child(9) {
+  background-image: linear-gradient(
+    color-mix(in srgb, var(--line-strong) 38%, transparent),
+    color-mix(in srgb, var(--line-strong) 38%, transparent)
+  );
+}
+
+.capability-table tbody > tr:last-child > :nth-child(1),
+.capability-table tbody > tr:last-child > :nth-child(3),
+.capability-table tbody > tr:last-child > :nth-child(6),
+.capability-table tbody > tr:last-child > :nth-child(9) {
+  background-image: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--line-strong) 38%, transparent) calc(100% - 0.45rem),
+    transparent calc(100% - 0.45rem)
+  );
+}
+
+.capability-table__game strong,
+.capability-table__game code {
+  display: block;
+}
+
+.capability-table__game strong {
+  color: var(--text-strong);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  letter-spacing: -0.01em;
+}
+
+.doc-prose .capability-table__game code {
+  width: max-content;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-family: "Geist Mono Variable", monospace;
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-regular);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.capability-table .capability-table__port {
+  width: 4.7rem;
+  color: var(--muted);
+  font-family: "Geist Mono Variable", monospace;
+  font-size: var(--text-2xs);
+  text-align: center;
+  vertical-align: middle;
+}
+
+.capability-table__port span {
+  color: var(--faint);
+}
+
+.capability-table .capability-table__support {
+  width: 4rem;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.capability-symbol {
+  display: inline-grid;
+  width: 1.2rem;
+  height: 1.2rem;
+  place-items: center;
+  color: var(--faint);
+}
+
+.capability-symbol svg {
+  width: 1rem;
+  height: 1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.capability-symbol--supported {
+  color: var(--supported);
+}
+
+.capability-symbol--conditional {
+  color: var(--warning);
+}
+
+.capability-symbol--unsupported {
+  color: var(--faint);
+  font-size: var(--text-md);
+}
+
+/* Breakpoint: tablet. */
+@media (max-width: 50rem) {
+  .docs-page .topbar {
+    border-bottom: 0;
+  }
+
+  .docs-shell {
+    display: block;
+  }
+
+  .docs-sidebar {
+    display: none;
+  }
+
+  .docs-mobile-nav {
+    display: block;
+    border-bottom: 1px solid var(--line);
+    background: var(--surface);
+  }
+
+  .docs-mobile-nav details {
+    width: min(calc(100% - 2rem), 58rem);
+    margin-inline: auto;
+  }
+
+  .docs-mobile-nav summary {
+    padding: 0.75rem 0;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+  }
+
+  .docs-mobile-nav nav {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.25rem;
+    padding-bottom: 0.8rem;
+  }
+
+  .docs-mobile-nav a {
+    padding: 0.45rem 0.55rem;
+    border-radius: var(--radius-xs);
+    color: var(--muted);
+    font-size: var(--text-sm);
+    text-decoration: none;
+  }
+
+  .docs-mobile-nav a.is-active {
+    color: var(--text-strong);
+    font-weight: var(--weight-semibold);
+  }
+
+  .docs-mobile-nav__context {
+    grid-column: 1 / -1;
+    padding: 0.65rem 0.55rem 0.15rem;
+    border-top: 1px solid var(--line);
+    color: var(--faint);
+    font-size: var(--text-3xs);
+    font-weight: var(--weight-bold);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .doc-content {
+    padding: 2.4rem 1.25rem 5rem;
+    margin-inline: auto;
+  }
+
+  .docs-start-panel {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .docs-start-panel__requirements {
+    border-top: 1px solid var(--line);
+    border-left: 0;
+  }
+
+  .reference-index {
+    grid-template-columns: 1fr;
+  }
+
+  .reference-group {
+    grid-template-columns: 1fr;
+    gap: 0.55rem;
+  }
+
+  .reference-group ul {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Breakpoint: phone. */
+@media (max-width: 34rem) {
+  .docs-mobile-nav nav {
+    grid-template-columns: 1fr;
+  }
+
+  .reference-group ul {
+    grid-template-columns: 1fr;
+  }
+
+  .doc-heading h1 {
+    font-size: var(--text-3xl);
+  }
+
+  .docs-next-links a {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.15rem;
+  }
+
+  .data-table {
+    display: block;
+    overflow-x: auto;
+  }
+
+  /* The capability table scrolls in its own wrapper; keeping it a table lets
+     its game column stay sticky while the wrapper scrolls. */
+  .capability-table {
+    display: table;
+    overflow-x: visible;
+  }
+
+  .capability-overview {
+    align-items: start;
+    flex-direction: column;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .docs-page .doc-content {
+    opacity: 1;
+    animation: none;
+  }
+}

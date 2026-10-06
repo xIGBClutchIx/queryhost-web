@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { highlightCode } from "../lib/highlight.js";
+import "../styles/docs.css";
 
 interface CodeBlockProps {
   readonly code: string;

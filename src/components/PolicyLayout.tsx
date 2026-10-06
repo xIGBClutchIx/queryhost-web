@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { Header } from "./Header.js";
+import "../styles/policy.css";
 
 interface PolicyLayoutProps {
   readonly children: ReactNode;
