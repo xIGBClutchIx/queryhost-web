@@ -88,13 +88,18 @@ describe("server-rendered documentation views", () => {
     );
   });
 
-  it("reserves a contents list on prose pages but not on wide tables", () => {
-    expect(render(<querying.QueryingPage hostname="localhost" />)).toContain(
-      'data-doc-toc=""',
-    );
-    expect(render(<games.GamesPage hostname="localhost" />)).not.toContain(
-      "data-doc-toc",
-    );
+  it("reserves a contents column only on pages with several sections", () => {
+    const querying_ = render(<querying.QueryingPage hostname="localhost" />);
+    expect(querying_).toContain('class="docs-shell docs-shell--contents"');
+    expect(querying_).toContain('data-doc-toc=""');
+    for (const html of [
+      render(<games.GamesPage hostname="localhost" />),
+      render(<referenceIndex.ReferenceIndexPage hostname="localhost" />),
+      render(<changelog.ChangelogPage hostname="localhost" />),
+    ]) {
+      expect(html).toContain('class="docs-shell"');
+      expect(html).not.toContain("data-doc-toc");
+    }
   });
 
   it("gives every game row filter text with its ID and aliases", () => {

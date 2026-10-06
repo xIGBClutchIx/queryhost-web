@@ -879,11 +879,11 @@
 
 /* Breakpoint: wide desktop, where the contents column fits beside the prose. */
 @media (min-width: 75rem) {
-  .docs-shell:not(.docs-shell--wide) {
+  .docs-shell--contents {
     grid-template-columns: var(--docs-sidebar-width) minmax(0, 1fr) 12rem;
   }
 
-  .docs-shell:not(.docs-shell--wide) .doc-content {
+  .docs-shell--contents .doc-content {
     padding-right: 2rem;
   }
 

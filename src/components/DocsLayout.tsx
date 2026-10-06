@@ -10,6 +10,8 @@ import "../styles/docs.css";
 /** Route-independent metadata each documentation view declares once. */
 export interface DocsPageMetadata {
   readonly activeHref: string;
+  /** Reserves the wide-screen "On this page" column for pages with several sections. */
+  readonly contents?: boolean;
   readonly description: string;
   readonly eyebrow?: string;
   readonly title: string;
@@ -28,6 +30,7 @@ type DocsLayoutProps = DocsPageMetadata &
 export function DocsLayout({
   activeHref,
   children,
+  contents = false,
   description,
   eyebrow,
   hostname,
@@ -44,7 +47,9 @@ export function DocsLayout({
         hostname={hostname}
         reference={reference}
       />
-      <div className={wide ? "docs-shell docs-shell--wide" : "docs-shell"}>
+      <div
+        className={contents ? "docs-shell docs-shell--contents" : "docs-shell"}
+      >
         <aside className="docs-sidebar">
           <DocsSidebar
             activeHref={activeHref}
@@ -71,7 +76,7 @@ export function DocsLayout({
           )}
           <DocsPager activeHref={activeHref} hostname={hostname} />
         </main>
-        {!wide && (
+        {contents && (
           <aside className="doc-toc-column">
             {/* Filled from the page's sections by the shared page script. */}
             <nav
