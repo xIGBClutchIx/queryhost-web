@@ -1,6 +1,6 @@
 .home-page {
   --home-backdrop: radial-gradient(
-    circle at 50% 47%,
+    circle at 50% 36%,
     color-mix(in srgb, var(--accent-soft) 52%, transparent) 0,
     transparent 42rem
   );
@@ -12,8 +12,10 @@
   background-attachment: fixed;
 }
 
+/* The header paints the same fixed backdrop, so it reads as one surface with the page. */
 .home-page .topbar {
-  background: var(--background);
+  background: var(--home-backdrop), var(--background);
+  background-attachment: fixed;
   backdrop-filter: none;
 }
 
@@ -24,7 +26,8 @@
   min-height: calc(100dvh - var(--header-height));
   flex-direction: column;
   justify-content: flex-start;
-  padding: clamp(3rem, calc(50dvh - 10rem), 24rem) 0 clamp(6rem, 16vh, 10rem);
+  /* Places the form about a third of the way down instead of below centre. */
+  padding: clamp(3rem, calc(32dvh - 8rem), 16rem) 0 clamp(6rem, 16vh, 10rem);
 }
 
 .playground__heading {
@@ -49,11 +52,12 @@
 
 .query-form {
   overflow: visible;
-  border: 1px solid color-mix(in srgb, var(--line-strong) 48%, transparent);
+  border: 1px solid color-mix(in srgb, var(--line-strong) 78%, transparent);
   border-radius: var(--radius-lg);
   background: var(--surface-raised);
-  box-shadow: 0 28px 70px -48px
-    color-mix(in srgb, var(--text-strong) 42%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--text-strong) 5%, transparent),
+    0 32px 80px -44px color-mix(in srgb, var(--accent) 38%, transparent);
 }
 
 .playground-examples {
@@ -85,9 +89,9 @@
   align-items: baseline;
   gap: 0.45rem;
   padding: 0.35rem 0.8rem;
-  border: 1px solid var(--line-strong);
+  border: 1px solid color-mix(in srgb, var(--line-strong) 78%, transparent);
   border-radius: var(--radius-full);
-  background: color-mix(in srgb, var(--surface-raised) 80%, transparent);
+  background: var(--surface-raised);
   color: var(--text-strong);
   font-size: var(--text-sm);
   font-weight: var(--weight-medium);

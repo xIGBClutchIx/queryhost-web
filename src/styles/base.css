@@ -7,7 +7,8 @@
   --text: #dce7e4;
   --text-strong: #f3f8f6;
   --muted: #95a6a2;
-  --faint: #71827e;
+  /* Lightest text that still meets WCAG AA (4.5:1) on every neutral surface. */
+  --faint: #7f918c;
   --line: #26363b;
   --line-strong: #364a50;
   --accent: #55d7ba;
