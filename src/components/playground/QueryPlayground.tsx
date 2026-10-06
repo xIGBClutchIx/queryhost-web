@@ -5,6 +5,7 @@ import type {
   PlaygroundGameDefinition,
   PlaygroundQueryInput,
 } from "../../lib/playground-contracts.js";
+import { PLAYGROUND_EXAMPLES } from "../../lib/playground-examples.js";
 import {
   formQueryInput,
   formStateFromQueryInput,
@@ -12,6 +13,7 @@ import {
   initialFormState,
 } from "../../lib/playground-form.js";
 import type { PlaygroundFormState } from "../../lib/playground-form.js";
+import { PlaygroundExamples } from "./PlaygroundExamples.js";
 import { QueryForm } from "./QueryForm.js";
 import { QueryResult } from "./QueryResult.js";
 import { useDockHeight } from "./use-dock-height.js";
@@ -44,17 +46,32 @@ export function QueryPlayground({
   }, []);
   const { output, runQuery } = usePlaygroundSession(games, onAgentQuery);
 
-  function onSubmit(event: SubmitEvent<HTMLFormElement>): void {
-    event.preventDefault();
+  function submit(next: PlaygroundFormState): void {
     setFormError(undefined);
-    if (formRef.current?.reportValidity() === false) return;
-    const parsed = formQueryInput(form);
+    const parsed = formQueryInput(next);
     if (parsed.kind === "invalid") {
       setFormError(parsed.error);
       hostRef.current?.focus();
       return;
     }
     runQuery(parsed.input).catch(() => undefined);
+  }
+
+  function onSubmit(event: SubmitEvent<HTMLFormElement>): void {
+    event.preventDefault();
+    setFormError(undefined);
+    if (formRef.current?.reportValidity() === false) return;
+    submit(form);
+  }
+
+  function onExample(exampleSearch: string): void {
+    const next = formStateFromSearch(
+      exampleSearch,
+      games,
+      initialFormState(games),
+    );
+    setForm(next);
+    submit(next);
   }
 
   const loading = output.kind === "loading";
@@ -82,6 +99,13 @@ export function QueryPlayground({
           onSubmit={onSubmit}
         />
       </div>
+
+      {output.kind === "idle" && (
+        <PlaygroundExamples
+          examples={PLAYGROUND_EXAMPLES}
+          onSelect={onExample}
+        />
+      )}
 
       <section
         className="query-output"

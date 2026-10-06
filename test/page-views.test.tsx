@@ -3,8 +3,11 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import { Callout } from "../src/components/Callout.js";
+import { HomeOverview } from "../src/components/HomeOverview.js";
 import { apiReferencePage } from "../src/lib/api-reference.js";
+import { adjacentDocumentationPages } from "../src/lib/navigation.js";
 import { QUERYHOST_VERSION } from "../src/lib/package-version.js";
+import { GAMES } from "../src/lib/queryhost.js";
 import { ApiReferencePage } from "../src/views/docs/ApiReferencePage.js";
 import * as changelog from "../src/views/docs/ChangelogPage.js";
 import * as errors from "../src/views/docs/ErrorsPage.js";
@@ -64,6 +67,53 @@ describe("server-rendered documentation views", () => {
     expect(text).toContain("to the RustData type");
   });
 
+  it("links each page to its neighbors in sidebar order", () => {
+    expect(adjacentDocumentationPages("/")).toEqual({
+      next: { href: "/querying/", label: "Query a server" },
+    });
+    expect(adjacentDocumentationPages("/changelog/")).toEqual({
+      next: { href: "/games/", label: "Supported games" },
+      previous: { href: "/results/", label: "Result semantics" },
+    });
+    expect(adjacentDocumentationPages("/reference/functions/query/")).toEqual(
+      {},
+    );
+
+    const html = render(<querying.QueryingPage hostname="docs.query.host" />);
+    expect(html).toContain(
+      'href="https://docs.query.host/" rel="prev"><span>Previous</span> <strong>Getting started</strong>',
+    );
+    expect(html).toContain(
+      'href="https://docs.query.host/results/" rel="next"><span>Next</span> <strong>Result semantics</strong>',
+    );
+  });
+
+  it("reserves a contents list on prose pages but not on wide tables", () => {
+    expect(render(<querying.QueryingPage hostname="localhost" />)).toContain(
+      'data-doc-toc=""',
+    );
+    expect(render(<games.GamesPage hostname="localhost" />)).not.toContain(
+      "data-doc-toc",
+    );
+  });
+
+  it("gives every game row filter text with its ID and aliases", () => {
+    const html = render(<games.GamesPage hostname="localhost" />);
+    expect(html).toContain('data-game-filter-control=""');
+    expect(html).toMatch(
+      /data-game-filter="counter-strike 2 counter-strike-2[^"]*cs2/,
+    );
+  });
+
+  it("hides code copy buttons until the page script enables them", () => {
+    const html = render(
+      <gettingStarted.GettingStartedPage hostname="localhost" />,
+    );
+    expect(html).toContain(
+      '<button class="code-block__copy" type="button" data-code-copy="" aria-label="Copy Terminal code" hidden="">Copy</button>',
+    );
+  });
+
   it("renders package API reference pages with their category context", () => {
     const page = apiReferencePage("functions/query");
     if (page === undefined) throw new Error("Missing query reference page.");
@@ -92,6 +142,18 @@ describe("callouts", () => {
 });
 
 describe("server-rendered site views", () => {
+  it("renders the homepage overview with the games strip and install snippet", () => {
+    const html = render(<HomeOverview hostname="query.host" />);
+    const text = html.replaceAll(/<[^>]+>/g, "");
+    const named = GAMES.filter((game) => game.id !== "a2s").length;
+    expect(text).toContain(`${named} games plus generic A2S`);
+    expect(html).toContain('href="/?game=rust">Rust</a>');
+    expect(html).not.toContain('href="/?game=a2s"');
+    expect(html).toContain('href="https://docs.query.host/games/"');
+    expect(text).toContain("npm install queryhost");
+    expect(text).toContain('import { query } from "queryhost";');
+  });
+
   it("renders policies and the not-found page with the site header", () => {
     for (const html of [
       render(<PrivacyPage hostname="query.host" />),

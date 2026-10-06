@@ -4,6 +4,7 @@ import { DocsLayout } from "../../components/DocsLayout.js";
 import type { DocsPageMetadata } from "../../components/DocsLayout.js";
 import type { PageProps } from "../page-props.js";
 import {
+  aliasesForGame,
   CAPABILITY_LABELS,
   GAMES,
   SUPPORT_LABELS,
@@ -24,6 +25,13 @@ const CAPABILITIES = Object.entries(CAPABILITY_LABELS) as readonly (readonly [
 ])[];
 const SUPPORT_LEVELS = ["supported", "conditional", "unsupported"] as const;
 
+/** Lowercase text the client-side filter matches: name, canonical ID, and aliases. */
+function filterText(game: (typeof GAMES)[number]): string {
+  return [game.name, game.id, ...aliasesForGame(game.id)]
+    .join(" ")
+    .toLowerCase();
+}
+
 export function GamesPage({ hostname }: PageProps): ReactNode {
   return (
     <DocsLayout {...metadata} hostname={hostname}>
@@ -43,6 +51,27 @@ export function GamesPage({ hostname }: PageProps): ReactNode {
           ))}
         </div>
       </div>
+      {/* Revealed by the shared page script; without it the full table stays visible. */}
+      <div className="capability-filter" data-game-filter-control="" hidden>
+        <label htmlFor="capability-filter-input">Filter games</label>
+        <input
+          id="capability-filter-input"
+          type="search"
+          placeholder="Name, ID, or alias"
+          autoComplete="off"
+          spellCheck={false}
+          aria-describedby="capability-filter-status"
+        />
+        <span
+          id="capability-filter-status"
+          className="capability-filter__status"
+          data-game-filter-status=""
+          aria-live="polite"
+        />
+      </div>
+      <p className="capability-filter__empty" data-game-filter-empty="" hidden>
+        No games match that filter.
+      </p>
       <div className="capability-table-scroll">
         <table className="data-table capability-table">
           <caption className="sr-only">
@@ -81,7 +110,7 @@ export function GamesPage({ hostname }: PageProps): ReactNode {
           </thead>
           <tbody>
             {GAMES.map((game) => (
-              <tr key={game.id}>
+              <tr key={game.id} data-game-filter={filterText(game)}>
                 <th scope="row" className="capability-table__game">
                   <strong>{game.name}</strong> <code>{game.id}</code>
                 </th>

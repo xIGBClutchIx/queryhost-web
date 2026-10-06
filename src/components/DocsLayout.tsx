@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { DocsMobileNavigation, DocsSidebar } from "./DocsNavigation.js";
 import type { ReferenceContext } from "./DocsNavigation.js";
 import type { PageProps } from "../views/page-props.js";
+import { DocsPager } from "./DocsPager.js";
 import { Header } from "./Header.js";
 import "../styles/docs.css";
 
@@ -43,7 +44,7 @@ export function DocsLayout({
         hostname={hostname}
         reference={reference}
       />
-      <div className="docs-shell">
+      <div className={wide ? "docs-shell docs-shell--wide" : "docs-shell"}>
         <aside className="docs-sidebar">
           <DocsSidebar
             activeHref={activeHref}
@@ -68,7 +69,22 @@ export function DocsLayout({
               dangerouslySetInnerHTML={{ __html: html }}
             />
           )}
+          <DocsPager activeHref={activeHref} hostname={hostname} />
         </main>
+        {!wide && (
+          <aside className="doc-toc-column">
+            {/* Filled from the page's sections by the shared page script. */}
+            <nav
+              className="doc-toc"
+              aria-label="On this page"
+              data-doc-toc=""
+              hidden
+            >
+              <p className="doc-toc__label">On this page</p>
+              <ol />
+            </nav>
+          </aside>
+        )}
       </div>
     </>
   );

@@ -114,6 +114,38 @@ describe("query playground island", () => {
     expect(element<HTMLButtonElement>("#query-submit").disabled).toBe(false);
   });
 
+  it("runs an example server from its chip and fills in the form", async () => {
+    const fetcher = vi.fn<typeof fetch>(() =>
+      Promise.resolve(new Response(JSON.stringify(MINECRAFT_ONLINE))),
+    );
+    vi.stubGlobal("fetch", fetcher);
+    act(() => {
+      root.render(<QueryPlayground games={PLAYGROUND_GAMES} search="" />);
+    });
+
+    const chip = element<HTMLAnchorElement>(".playground-examples__chip");
+    expect(chip.getAttribute("href")).toBe(
+      "/?game=minecraft-java&host=mc.hypixel.net",
+    );
+    act(() => {
+      chip.click();
+    });
+    await flush();
+
+    const body = fetcher.mock.calls[0]?.[1]?.body;
+    expect(typeof body === "string" ? JSON.parse(body) : body).toEqual({
+      game: "minecraft-java",
+      host: "mc.hypixel.net",
+      mode: "summary",
+      port: 25_565,
+      timeoutMs: 5_000,
+    });
+    expect(element<HTMLInputElement>("#query-host").value).toBe(
+      "mc.hypixel.net",
+    );
+    expect(container.querySelector(".playground-examples")).toBeNull();
+  });
+
   it("reports a malformed successful response instead of failing to render", async () => {
     vi.stubGlobal(
       "fetch",
