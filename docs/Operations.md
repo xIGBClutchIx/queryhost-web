@@ -6,7 +6,7 @@ The public QueryHost application is one Railway Node.js service that hosts the p
 
 - one web replica in Railway US East, co-located with the API
 - 0.5 vCPU and 0.5 GB maximum per replica
-- `npm start` with `GET /health` as the Railway health check
+- `npm start` with `GET /health` as the Railway health check; it runs `dist/server/main.mjs`, which wraps Astro's handler to compress responses (Brotli or gzip) and apply the site cache policy to static files
 - Serverless disabled so the first request does not wait for a sleeping container
 - restart on failure with at most three retries
 - one Railway-generated service domain retained for validation and rollback
