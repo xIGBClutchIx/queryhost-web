@@ -50,14 +50,22 @@
   font-size: var(--text-md);
 }
 
+/* Glass card: a translucent tint over the page backdrop. Nothing but that smooth
+   gradient ever sits behind the form, so it needs no costly backdrop blur. */
 .query-form {
   overflow: visible;
-  border: 1px solid color-mix(in srgb, var(--line-strong) 78%, transparent);
+  border: 1px solid color-mix(in srgb, var(--text-strong) 11%, transparent);
   border-radius: var(--radius-lg);
-  background: var(--surface-raised);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--text-strong) 5%, transparent),
+      transparent 70%
+    ),
+    color-mix(in srgb, var(--surface-raised) 52%, transparent);
   box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--text-strong) 5%, transparent),
-    0 32px 80px -44px color-mix(in srgb, var(--accent) 38%, transparent);
+    inset 0 1px 0 color-mix(in srgb, var(--text-strong) 7%, transparent),
+    0 32px 80px -44px color-mix(in srgb, var(--accent) 32%, transparent);
 }
 
 .playground-examples {
@@ -89,9 +97,9 @@
   align-items: baseline;
   gap: 0.45rem;
   padding: 0.35rem 0.8rem;
-  border: 1px solid color-mix(in srgb, var(--line-strong) 78%, transparent);
+  border: 1px solid color-mix(in srgb, var(--text-strong) 11%, transparent);
   border-radius: var(--radius-full);
-  background: var(--surface-raised);
+  background: color-mix(in srgb, var(--surface-raised) 52%, transparent);
   color: var(--text-strong);
   font-size: var(--text-sm);
   font-weight: var(--weight-medium);
@@ -136,13 +144,6 @@
   .query-form-dock .query-form {
     position: relative;
     z-index: 1;
-    background: color-mix(
-      in srgb,
-      var(--surface-raised) 94%,
-      var(--background)
-    );
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
   }
 
   .playground .query-result {
@@ -200,16 +201,6 @@
   }
 }
 
-@supports (
-  (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))
-) {
-  .query-form {
-    background: color-mix(in srgb, var(--surface-raised) 72%, transparent);
-    -webkit-backdrop-filter: blur(12px) saturate(108%);
-    backdrop-filter: blur(12px) saturate(108%);
-  }
-}
-
 .query-form__primary {
   display: grid;
   grid-template-columns: minmax(12rem, 0.9fr) minmax(16rem, 1.55fr) 9rem auto;
@@ -228,9 +219,9 @@
 
 .query-form__advanced {
   border-radius: 0 0 var(--radius-lg) var(--radius-lg);
-  background: color-mix(in srgb, var(--surface-raised) 46%, transparent);
+  background: color-mix(in srgb, var(--background) 18%, transparent);
   box-shadow: inset 0 1px 0
-    color-mix(in srgb, var(--line-strong) 48%, transparent);
+    color-mix(in srgb, var(--text-strong) 8%, transparent);
 }
 
 .query-form__advanced-trigger {
@@ -309,10 +300,10 @@
   border: 0;
   border-radius: var(--radius-md);
   outline: 0;
-  background: color-mix(in srgb, var(--background) 82%, var(--surface));
+  background: color-mix(in srgb, var(--background) 58%, transparent);
   color: var(--text-strong);
   box-shadow: inset 0 0 0 1px
-    color-mix(in srgb, var(--line-strong) 42%, transparent);
+    color-mix(in srgb, var(--text-strong) 8%, transparent);
   transition:
     background var(--duration-base) ease,
     box-shadow var(--duration-base) ease;
@@ -320,9 +311,9 @@
 
 .field input:hover,
 .custom-select__trigger:hover {
-  background: color-mix(in srgb, var(--surface-subtle) 76%, var(--surface));
+  background: color-mix(in srgb, var(--background) 72%, transparent);
   box-shadow: inset 0 0 0 1px
-    color-mix(in srgb, var(--line-strong) 68%, transparent);
+    color-mix(in srgb, var(--text-strong) 16%, transparent);
 }
 
 .field input:focus,
