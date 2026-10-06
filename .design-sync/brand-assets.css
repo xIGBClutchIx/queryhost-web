@@ -1,7 +1,8 @@
 /*
- * Claude Design has no site root, so Header's <img src="/favicon.svg?v=2"> cannot load there.
- * Paint the real public/favicon.svg into the brand icon instead. Keep this in sync with that file.
+ * Claude Design has no site root, so Header's default <img src="/favicon.svg?v=2"> cannot load there.
+ * Paint the real public/favicon.svg into the default brand icon only; a custom `iconSrc` renders as given.
+ * Keep this in sync with that file.
  */
-.brand__icon {
+.brand__icon[src^="/favicon.svg"] {
   content: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b1215'/%3E%3Cg fill='none' stroke='%2355d7ba' stroke-linecap='round' stroke-width='5'%3E%3Ccircle cx='30' cy='30' r='18.5'/%3E%3Cpath d='m43 43 10 10'/%3E%3Cpath d='M23 26h14M23 34h14'/%3E%3C/g%3E%3C/svg%3E");
 }

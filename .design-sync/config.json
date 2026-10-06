@@ -22,6 +22,8 @@
     "DocsMobileNavigation": { "cardMode": "column", "viewport": "390x700" }
   },
   "dtsPropsFor": {
+    "Tabs": "  /** Tab buttons in order; ids are also used to build element ids. */\n  tabs: ReadonlyArray<{ id: string; label: string }>;\n  /** Id of the selected tab (controlled). */\n  active: string;\n  /** Called with the newly selected tab id (click, ArrowLeft/ArrowRight, Home/End). */\n  onChange: (id: string) => void;\n  /** Accessible name for the tab list. */\n  label: string;\n  /** Prefix for `${idPrefix}-tab-${id}` and the `${idPrefix}-panel-${id}` it controls; pass the same value to each TabPanel. */\n  idPrefix: string;\n  /** Class for the tablist element; use \"query-tabs\" for the site's underlined tab style. */\n  className?: string;",
+    "TabPanel": "  /** This panel's tab id. */\n  id: string;\n  /** Id of the selected tab; the panel is hidden (but stays mounted) when it differs from id. */\n  active: string;\n  /** Same idPrefix as the paired Tabs. */\n  idPrefix: string;\n  /** Panel content. */\n  children: React.ReactNode;\n  className?: string;",
     "Callout": "  /** Bold heading line. */\n  title: string;\n  /** Body content, usually one or more <p> or a <ul>. */\n  children: React.ReactNode;\n  /** Accent (default) or amber warning styling. */\n  tone?: \"info\" | \"warning\";",
     "Header": "  /** Which section is current: \"site\" for query.host pages, \"docs\" for documentation. */\n  active: \"docs\" | \"site\";\n  /** Request hostname; \"query.host\" or \"docs.query.host\" produce canonical links, anything else uses same-origin paths. */\n  hostname: string;\n  /** Brand mark image URL; defaults to the QueryHost icon. */\n  iconSrc?: string;",
     "PolicyLayout": "  /** Page title rendered as the h1. */\n  title: string;\n  /** Policy body: h2 sections, paragraphs, and lists. */\n  children: React.ReactNode;\n  /** Request hostname passed to Header (e.g. \"query.host\"). */\n  hostname: string;",
@@ -39,6 +41,8 @@
     "DocsMobileNavigation": "src/components/DocsNavigation.tsx",
     "Header": "src/components/Header.tsx",
     "PolicyLayout": "src/components/PolicyLayout.tsx",
+    "Tabs": "src/components/Tabs.tsx",
+    "TabPanel": "src/components/Tabs.tsx",
     "CustomSelect": "src/components/playground/CustomSelect.tsx",
     "QueryPlayground": "src/components/playground/QueryPlayground.tsx",
     "QueryResult": "src/components/playground/QueryResult.tsx",

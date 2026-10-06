@@ -8,7 +8,9 @@
 - npm 12 blocks install scripts; esbuild still works through its platform package without its postinstall.
 - Playwright: `.ds-sync/` pins `playwright@1.62.0`, which matches the cached `chromium-1234` in `%LOCALAPPDATA%/ms-playwright`.
 - `docs/*.md` are operations notes, not design guidelines; `guidelinesGlob: []` keeps them out of the design agent's context.
-- Header's brand icon is `<img src="/favicon.svg?v=2">`, which has no site root in Claude Design. `.design-sync/brand-assets.css` (imported from `entry.ts`, so it lands in `_ds_bundle.css`) paints the real `public/favicon.svg` into `.brand__icon` with CSS `content:`.
+- Header's brand icon is `<img src="/favicon.svg?v=2">`, which has no site root in Claude Design. `.design-sync/brand-assets.css` (imported from `entry.ts`, so it lands in `_ds_bundle.css`) paints the real `public/favicon.svg` into `.brand__icon` with CSS `content:`. The rule targets only `[src^="/favicon.svg"]`, so a custom `iconSrc` (added 2026-10-06) renders as given.
+- `cssEntry` (`base.css`) is appended after the CSS that `entry.ts` already imports, so `_ds_bundle.css` carries `base.css` twice. The rules are identical, so this only costs about 8 KB.
+- `Tabs` and `TabPanel` sync as two components. A `TabPanel` only makes sense inside a `Tabs` composition, so both previews compose the pair. `QueryForm` and the `playground/result/*` panels are internal pieces of the playground and are not exported.
 - With no `.d.ts` tree, the extractor emits empty `[key: string]: unknown` props. Every component's API is hand-written in `cfg.dtsPropsFor`; keep it in sync with the component's props interface in `src/components/`.
 - Windows: a shell whose working directory is inside `ds-bundle/` locks it, and the build's `rmSync` then fails with `EPERM`. Run every sync command from the repo root.
 - Preview cards have a white body; QueryHost is dark-only, so every preview wraps its stories in a `var(--background)` surface.
