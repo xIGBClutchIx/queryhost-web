@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 import { DOCUMENTATION_NAVIGATION } from "../lib/navigation.js";
-import type { NavigationItem } from "../lib/navigation.js";
+import type { NavigationItem, NavigationSection } from "../lib/navigation.js";
 import { documentationHref } from "../lib/site.js";
 
 export interface ReferenceContext {
@@ -13,6 +13,8 @@ interface DocsNavigationProps {
   readonly activeHref: string;
   readonly hostname: string;
   readonly reference?: ReferenceContext | undefined;
+  /** Navigation tree; defaults to the site's documentation sections. */
+  readonly sections?: readonly NavigationSection[] | undefined;
 }
 
 interface DocsLinkProps {
@@ -39,10 +41,11 @@ export function DocsSidebar({
   activeHref,
   hostname,
   reference,
+  sections = DOCUMENTATION_NAVIGATION,
 }: DocsNavigationProps): ReactNode {
   return (
     <nav className="docs-nav" aria-label="Documentation navigation">
-      {DOCUMENTATION_NAVIGATION.map((section) => (
+      {sections.map((section) => (
         <section className="docs-nav__section" key={section.label}>
           <h2>{section.label}</h2>
           <ul>
@@ -83,22 +86,23 @@ export function DocsMobileNavigation({
   activeHref,
   hostname,
   reference,
+  sections = DOCUMENTATION_NAVIGATION,
 }: DocsNavigationProps): ReactNode {
   return (
     <div className="docs-mobile-nav">
       <details>
         <summary>Documentation menu</summary>
         <nav aria-label="Mobile documentation navigation">
-          {DOCUMENTATION_NAVIGATION.flatMap((section) => section.items).map(
-            (item) => (
+          {sections
+            .flatMap((section) => section.items)
+            .map((item) => (
               <DocsLink
                 key={item.href}
                 activeHref={activeHref}
                 hostname={hostname}
                 item={item}
               />
-            ),
-          )}
+            ))}
           {reference !== undefined && (
             <>
               <span className="docs-mobile-nav__context">

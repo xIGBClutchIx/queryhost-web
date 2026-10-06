@@ -6,24 +6,12 @@ import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { QueryPlayground } from "../src/components/playground/QueryPlayground.js";
-import type { PlaygroundQueryResponse } from "../src/lib/playground-contracts.js";
 import { PLAYGROUND_GAMES } from "../src/lib/playground-games.js";
+import { MINECRAFT_ONLINE } from "./fixtures/playground.js";
 
 declare global {
   var IS_REACT_ACT_ENVIRONMENT: boolean;
 }
-
-const SUCCESS: PlaygroundQueryResponse = {
-  cache: { ageMs: 0, status: "miss", ttlMs: 10_000 },
-  data: { motd: { plain: "Welcome" }, onlineMode: true },
-  durationMs: 42,
-  game: "minecraft-java",
-  ok: true,
-  partial: false,
-  server: { name: "Example", players: { max: 20, online: 5 } },
-  sources: [{ rttMs: 12, source: "minecraft-slp", status: "ok" }],
-  warnings: [],
-};
 
 let container: HTMLDivElement;
 let root: Root;
@@ -84,7 +72,7 @@ describe("query playground island", () => {
 
   it("queries through the same-origin route and renders the result", async () => {
     const fetcher = vi.fn<typeof fetch>(() =>
-      Promise.resolve(new Response(JSON.stringify(SUCCESS))),
+      Promise.resolve(new Response(JSON.stringify(MINECRAFT_ONLINE))),
     );
     vi.stubGlobal("fetch", fetcher);
     act(() => {
@@ -110,11 +98,15 @@ describe("query playground island", () => {
       port: 25_565,
       timeoutMs: 5_000,
     });
-    expect(element("#query-result-name").textContent).toBe("Example");
-    expect(element(".query-game-summary").textContent).toContain("Welcome");
-    expect(element(".query-overview").textContent).toContain("5 / 20");
+    expect(element("#query-result-name").textContent).toBe(
+      "Blockhaven Survival",
+    );
+    expect(element(".query-game-summary").textContent).toContain(
+      "new season live!",
+    );
+    expect(element(".query-overview").textContent).toContain("37 / 120");
     expect(element("#query-panel-json code").textContent).toBe(
-      JSON.stringify(SUCCESS, null, 2),
+      JSON.stringify(MINECRAFT_ONLINE, null, 2),
     );
     expect(window.location.search).toBe(
       "?game=minecraft-java&host=play.example.com&port=25565&mode=summary",
@@ -155,7 +147,7 @@ describe("query playground island", () => {
     vi.stubGlobal(
       "fetch",
       vi.fn<typeof fetch>(() =>
-        Promise.resolve(new Response(JSON.stringify(SUCCESS))),
+        Promise.resolve(new Response(JSON.stringify(MINECRAFT_ONLINE))),
       ),
     );
     act(() => {

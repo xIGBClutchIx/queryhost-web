@@ -10,9 +10,15 @@ import {
 interface HeaderProps {
   readonly active: "docs" | "site";
   readonly hostname: string;
+  /** Brand mark URL; defaults to the site's icon. */
+  readonly iconSrc?: string | undefined;
 }
 
-export function Header({ active, hostname }: HeaderProps): ReactNode {
+export function Header({
+  active,
+  hostname,
+  iconSrc = BRAND_ICON_URL,
+}: HeaderProps): ReactNode {
   return (
     <header className="topbar">
       <div className={`topbar__inner topbar__inner--${active}`}>
@@ -24,7 +30,7 @@ export function Header({ active, hostname }: HeaderProps): ReactNode {
         >
           <img
             className="brand__icon"
-            src={BRAND_ICON_URL}
+            src={iconSrc}
             width="28"
             height="28"
             alt=""
