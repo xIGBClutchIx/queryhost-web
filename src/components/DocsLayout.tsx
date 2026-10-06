@@ -4,6 +4,7 @@ import { DocsMobileNavigation, DocsSidebar } from "./DocsNavigation.js";
 import type { ReferenceContext } from "./DocsNavigation.js";
 import type { PageProps } from "../views/page-props.js";
 import { Header } from "./Header.js";
+import "../styles/docs.css";
 
 /** Route-independent metadata each documentation view declares once. */
 export interface DocsPageMetadata {

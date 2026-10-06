@@ -1,7 +1,8 @@
 # design-sync notes (QueryHost Web)
 
 - This repo is an Astro site, not a published package: there is no `dist/`. The bundle is built from the repo-owned entry `.design-sync/entry.ts` (`cfg.entry`), which re-exports `src/components/**` directly.
-- `CodeBlock` is excluded (user decision, 2026-10-04): `src/lib/highlight.ts` creates the Shiki highlighter behind a top-level `await`, which esbuild cannot emit in an IIFE, and Shiki is server-only by design. Its `.code-block` CSS still ships.
+- `CodeBlock` is excluded (user decision, 2026-10-04): Shiki is server-only by design. Since 2026-10-06 `src/lib/highlight.ts` builds its highlighter lazily and synchronously (no top-level `await`), so it could be bundled, but that would ship Shiki and six grammars to the design bundle. Its `.code-block` CSS still ships.
+- The site stylesheet is split per page (`src/styles/base.css`, `docs.css`, `playground.css`, `policy.css`). `cssEntry` is `base.css`, and `entry.ts` imports all four so `_ds_bundle.css` stays the full stylesheet.
 - Nothing from `queryhost` (the protocol package) can be bundled for the browser: it imports `node:net`, `node:dgram`, `node:dns/promises`, and wasm. So `PLAYGROUND_GAMES` is not exported, and the playground previews use an inline slice of the registry projection (`PlaygroundGameDefinition[]`).
 - `node_modules` can predate the React switch; run `npm ci` first (React missing -> `react not found under --node-modules`).
 - npm 12 blocks install scripts; esbuild still works through its platform package without its postinstall.

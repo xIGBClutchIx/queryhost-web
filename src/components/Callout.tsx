@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import "../styles/docs.css";
 
 interface CalloutProps {
   readonly children: ReactNode;

@@ -1,5 +1,10 @@
 // Browser-safe component entry for the Claude Design sync.
-// CodeBlock is excluded: it highlights with Shiki behind a server-only top-level await.
+// CodeBlock is excluded: it would bundle Shiki and its grammars, which are server-only.
+// The site splits its CSS per page; the design bundle carries every page's rules.
+import "../src/styles/base.css";
+import "../src/styles/docs.css";
+import "../src/styles/playground.css";
+import "../src/styles/policy.css";
 import "./brand-assets.css";
 
 export { Callout } from "../src/components/Callout.js";

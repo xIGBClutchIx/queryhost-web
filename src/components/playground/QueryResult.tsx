@@ -11,6 +11,7 @@ import { DataPanel } from "./result/DataPanel.js";
 import { JsonPanel } from "./result/JsonPanel.js";
 import { OverviewPanel } from "./result/OverviewPanel.js";
 import { SourcesPanel } from "./result/SourcesPanel.js";
+import "../../styles/playground.css";
 
 const RESULT_TABS = [
   { id: "overview", label: "Overview" },

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { KeyboardEvent, ReactNode } from "react";
+import "../../styles/playground.css";
 
 export interface SelectOption<V extends string> {
   readonly label: string;
