@@ -37,3 +37,19 @@ describe("global stylesheet tokens", () => {
     expect(rules).not.toMatch(/(?<![\d.])[1-9]\d{2}ms/);
   });
 });
+
+describe("global stylesheet layout", () => {
+  it("keeps the capability table's hidden labels inside its scroll container", () => {
+    const rule = /\.capability-table-scroll \{([^}]*)\}/.exec(stylesheet)?.[1];
+    expect(rule).toContain("position: relative;");
+    expect(rule).toContain("overflow-x: auto;");
+  });
+
+  it("keeps the capability table a table on phones so its game column stays sticky", () => {
+    const phone = stylesheet.slice(
+      stylesheet.indexOf("@media (max-width: 34rem)"),
+    );
+    const rule = /\n  \.capability-table \{([^}]*)\}/.exec(phone)?.[1];
+    expect(rule).toContain("display: table;");
+  });
+});

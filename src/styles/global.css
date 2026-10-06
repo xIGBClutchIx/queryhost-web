@@ -1929,6 +1929,9 @@ a {
 }
 
 .capability-table-scroll {
+  /* Contain the cells' absolutely positioned .sr-only labels so they scroll
+     with the table instead of widening the page. */
+  position: relative;
   margin-top: 1rem;
   overflow-x: auto;
 }
@@ -2349,6 +2352,13 @@ a {
   .data-table {
     display: block;
     overflow-x: auto;
+  }
+
+  /* The capability table scrolls in its own wrapper; keeping it a table lets
+     its game column stay sticky while the wrapper scrolls. */
+  .capability-table {
+    display: table;
+    overflow-x: visible;
   }
 
   .site-main {
