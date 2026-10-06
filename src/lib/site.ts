@@ -59,6 +59,18 @@ export function siteHref(hostname: string): string {
   return isCanonicalHostname(hostname) ? `https://${SITE_HOSTNAME}/` : "/";
 }
 
+/**
+ * Returns the production URL search engines and link previews should use for a
+ * route. Documentation is canonical on the docs domain, not under `/docs/`.
+ */
+export function canonicalUrl(pathname: string): string {
+  if (pathname === "/docs" || pathname.startsWith("/docs/")) {
+    return documentationHref(DOCS_HOSTNAME, pathname.slice("/docs".length));
+  }
+
+  return new URL(pathname, `https://${SITE_HOSTNAME}`).href;
+}
+
 export function cacheControlForPath(pathname: string): string {
   if (
     pathname === "/health" ||

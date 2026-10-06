@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   cacheControlForPath,
+  canonicalUrl,
   DOCS_HOSTNAME,
   GITHUB_REPOSITORY_URL,
   documentationHref,
@@ -53,6 +54,18 @@ describe("hostname routing", () => {
       "https://docs.query.host/games/",
     );
     expect(siteHref("docs.query.host")).toBe("https://query.host/");
+  });
+});
+
+describe("canonical URLs", () => {
+  it("points documentation at the docs domain and site pages at query.host", () => {
+    expect(canonicalUrl("/")).toBe("https://query.host/");
+    expect(canonicalUrl("/privacy/")).toBe("https://query.host/privacy/");
+    expect(canonicalUrl("/docs/")).toBe("https://docs.query.host/");
+    expect(canonicalUrl("/docs/reference/query/")).toBe(
+      "https://docs.query.host/reference/query/",
+    );
+    expect(canonicalUrl("/docsearch/")).toBe("https://query.host/docsearch/");
   });
 });
 
