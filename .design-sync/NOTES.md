@@ -3,7 +3,7 @@
 - This repo is an Astro site, not a published package: there is no `dist/`. The bundle is built from the repo-owned entry `.design-sync/entry.ts` (`cfg.entry`), which re-exports `src/components/**` directly.
 - `CodeBlock` is excluded (user decision, 2026-10-04): Shiki is server-only by design. Since 2026-10-06 `src/lib/highlight.ts` builds its highlighter lazily and synchronously (no top-level `await`), so it could be bundled, but that would ship Shiki and six grammars to the design bundle. Its `.code-block` CSS still ships.
 - The site stylesheet is split per page (`src/styles/base.css`, `docs.css`, `playground.css`, `policy.css`). `cssEntry` is `base.css`, and `entry.ts` imports all four so `_ds_bundle.css` stays the full stylesheet.
-- Nothing from `queryhost` (the protocol package) can be bundled for the browser: it imports `node:net`, `node:dgram`, `node:dns/promises`, and wasm. So `PLAYGROUND_GAMES` is not exported, and the playground previews use an inline slice of the registry projection (`PlaygroundGameDefinition[]`).
+- The `queryhost` package root cannot be bundled for the browser: it imports `node:net`, `node:dgram`, `node:dns/promises`, and wasm. Since `queryhost@1.4.0` the site reads the game list from the browser-safe `queryhost/registry` subpath, so `entry.ts` exports the real `PLAYGROUND_GAMES` and the playground previews use it.
 - `node_modules` can predate the React switch; run `npm ci` first (React missing -> `react not found under --node-modules`).
 - npm 12 blocks install scripts; esbuild still works through its platform package without its postinstall.
 - Playwright: `.ds-sync/` pins `playwright@1.62.0`, which matches the cached `chromium-1234` in `%LOCALAPPDATA%/ms-playwright`.
@@ -22,7 +22,7 @@
 ## Re-sync risks
 
 - `brand-assets.css` inlines a copy of `public/favicon.svg`; update it when the icon changes.
-- Preview game fixtures (`QueryResult.tsx`, `QueryPlayground.tsx`) and the reference labels in `DocsSidebar.tsx` are hand-copied from `queryhost@1.3.0` and the site navigation; they go stale if the registry shape or `ServerInfo` changes.
+- Preview query results (`test/fixtures/playground.ts`) and the reference labels in `DocsSidebar.tsx` are hand-copied from `queryhost@1.3.0` and the site navigation; they go stale if the registry shape or `ServerInfo` changes.
 - `cfg.dtsPropsFor` is a hand copy of each component's props; prop changes in `src/components/` won't reach the design agent until it is updated.
 - `entry.ts` lists the exported components by hand; a new component in `src/components/` needs an export there plus a `componentSrcMap` entry.
 - The policy date and copy in `PolicyLayout.tsx` are sample content, not the real policy text.

@@ -1,7 +1,5 @@
 import type { ReactNode } from "react";
-import { QueryPlayground } from "@queryhost/web";
-
-import { PREVIEW_GAMES } from "../../test/fixtures/playground.js";
+import { PLAYGROUND_GAMES, QueryPlayground } from "@queryhost/web";
 
 // QueryHost is dark-only; the preview card body is white, so the page supplies its own background.
 function Page({ children }: { readonly children: ReactNode }): ReactNode {
@@ -19,7 +17,7 @@ function Page({ children }: { readonly children: ReactNode }): ReactNode {
 export function Empty(): ReactNode {
   return (
     <Page>
-      <QueryPlayground games={PREVIEW_GAMES} search="" />
+      <QueryPlayground games={PLAYGROUND_GAMES} search="" />
     </Page>
   );
 }
@@ -29,7 +27,7 @@ export function SharedLink(): ReactNode {
   return (
     <Page>
       <QueryPlayground
-        games={PREVIEW_GAMES}
+        games={PLAYGROUND_GAMES}
         search="?game=rust&host=us-main.rustymoose.com&port=28015"
       />
     </Page>
@@ -41,7 +39,7 @@ export function AdvancedOptions(): ReactNode {
   return (
     <Page>
       <QueryPlayground
-        games={PREVIEW_GAMES}
+        games={PLAYGROUND_GAMES}
         search="?game=palworld&host=pal.example.net&port=8211&queryPort=27015&timeoutMs=3000"
       />
     </Page>
