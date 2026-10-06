@@ -65,7 +65,10 @@ export function siteHref(hostname: string): string {
  */
 export function canonicalUrl(pathname: string): string {
   if (pathname === "/docs" || pathname.startsWith("/docs/")) {
-    return documentationHref(DOCS_HOSTNAME, pathname.slice("/docs".length));
+    return documentationHref(
+      DOCS_HOSTNAME,
+      pathname.slice("/docs".length) || "/",
+    );
   }
 
   return new URL(pathname, `https://${SITE_HOSTNAME}`).href;

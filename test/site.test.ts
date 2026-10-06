@@ -62,6 +62,7 @@ describe("canonical URLs", () => {
     expect(canonicalUrl("/")).toBe("https://query.host/");
     expect(canonicalUrl("/privacy/")).toBe("https://query.host/privacy/");
     expect(canonicalUrl("/docs/")).toBe("https://docs.query.host/");
+    expect(canonicalUrl("/docs")).toBe("https://docs.query.host/");
     expect(canonicalUrl("/docs/reference/query/")).toBe(
       "https://docs.query.host/reference/query/",
     );
