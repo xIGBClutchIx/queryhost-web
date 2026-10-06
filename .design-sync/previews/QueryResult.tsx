@@ -1,9 +1,8 @@
 import type { ReactNode } from "react";
-import { QueryResult } from "@queryhost/web";
+import { PLAYGROUND_GAMES, QueryResult } from "@queryhost/web";
 
 import {
   MINECRAFT_ONLINE,
-  PREVIEW_GAMES,
   RUST_OFFLINE,
   RUST_PARTIAL,
 } from "../../test/fixtures/playground.js";
@@ -27,7 +26,7 @@ function Page({ children }: { readonly children: ReactNode }): ReactNode {
 export function Online(): ReactNode {
   return (
     <Page>
-      <QueryResult games={PREVIEW_GAMES} result={MINECRAFT_ONLINE} />
+      <QueryResult games={PLAYGROUND_GAMES} result={MINECRAFT_ONLINE} />
     </Page>
   );
 }
@@ -35,7 +34,7 @@ export function Online(): ReactNode {
 export function PartialWithWarning(): ReactNode {
   return (
     <Page>
-      <QueryResult games={PREVIEW_GAMES} result={RUST_PARTIAL} />
+      <QueryResult games={PLAYGROUND_GAMES} result={RUST_PARTIAL} />
     </Page>
   );
 }
@@ -43,7 +42,7 @@ export function PartialWithWarning(): ReactNode {
 export function Offline(): ReactNode {
   return (
     <Page>
-      <QueryResult games={PREVIEW_GAMES} result={RUST_OFFLINE} />
+      <QueryResult games={PLAYGROUND_GAMES} result={RUST_OFFLINE} />
     </Page>
   );
 }

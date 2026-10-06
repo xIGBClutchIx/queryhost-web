@@ -5,7 +5,7 @@ import {
   type GameDefinition,
   type GameId,
   type SupportLevel,
-} from "queryhost";
+} from "queryhost/registry";
 
 export const GAMES: readonly GameDefinition[] = listGames();
 

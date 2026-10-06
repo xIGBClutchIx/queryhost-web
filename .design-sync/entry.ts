@@ -18,3 +18,4 @@ export { PolicyLayout } from "../src/components/PolicyLayout.js";
 export { CustomSelect } from "../src/components/playground/CustomSelect.js";
 export { QueryPlayground } from "../src/components/playground/QueryPlayground.js";
 export { QueryResult } from "../src/components/playground/QueryResult.js";
+export { PLAYGROUND_GAMES } from "../src/lib/playground-games.js";
