@@ -1,0 +1,13 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { requestHostname } from "../../lib/site.js";
+import { PublicApiPage, metadata } from "../../views/docs/PublicApiPage.tsx";
+---
+
+<BaseLayout
+  bodyClass="docs-page"
+  title={metadata.title}
+  description={metadata.description}
+>
+  <PublicApiPage hostname={requestHostname(Astro.request)} />
+</BaseLayout>

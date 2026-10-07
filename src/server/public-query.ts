@@ -160,32 +160,38 @@ export function loadPublicQueryConfig(
   };
 }
 
+/**
+ * Reads one caller-boundary policy. The playground uses `QUERYHOST_WEB_`;
+ * the public API reads the same names under its own prefix so the two
+ * surfaces never share a budget.
+ */
 export function loadProxyGatePolicy(
   environment: NodeJS.ProcessEnv = process.env,
+  prefix = "QUERYHOST_WEB_",
 ): ProxyGatePolicy {
   const maxStartsPerWindow = integerEnvironment(
     environment,
-    "QUERYHOST_WEB_MAX_STARTS_PER_WINDOW",
+    `${prefix}MAX_STARTS_PER_WINDOW`,
     60,
     1,
     10_000,
   );
   const maxStartsPerCaller = integerEnvironment(
     environment,
-    "QUERYHOST_WEB_MAX_STARTS_PER_CALLER",
+    `${prefix}MAX_STARTS_PER_CALLER`,
     8,
     1,
     1_000,
   );
   if (maxStartsPerCaller > maxStartsPerWindow) {
     throw new RangeError(
-      "QUERYHOST_WEB_MAX_STARTS_PER_CALLER cannot exceed QUERYHOST_WEB_MAX_STARTS_PER_WINDOW.",
+      `${prefix}MAX_STARTS_PER_CALLER cannot exceed ${prefix}MAX_STARTS_PER_WINDOW.`,
     );
   }
   return {
     maxActive: integerEnvironment(
       environment,
-      "QUERYHOST_WEB_MAX_ACTIVE",
+      `${prefix}MAX_ACTIVE`,
       8,
       1,
       128,
@@ -194,14 +200,14 @@ export function loadProxyGatePolicy(
     maxStartsPerWindow,
     maxTrackedCallers: integerEnvironment(
       environment,
-      "QUERYHOST_WEB_MAX_TRACKED_CALLERS",
+      `${prefix}MAX_TRACKED_CALLERS`,
       2_048,
       1,
       100_000,
     ),
     windowMs: integerEnvironment(
       environment,
-      "QUERYHOST_WEB_START_WINDOW_MS",
+      `${prefix}START_WINDOW_MS`,
       60_000,
       1_000,
       3_600_000,
@@ -444,23 +450,19 @@ function localQueryResponse(result: QueryResult): Response {
   );
 }
 
-/** Validates, admits, and forwards one same-origin playground query. */
+/** Validates, admits, and forwards one playground or public API query. */
 export async function handlePublicQuery(
   request: Request,
   dependencies: PublicQueryDependencies,
 ): Promise<Response> {
   if (request.method !== "POST") {
-    return jsonResponse(
-      405,
-      "METHOD_NOT_ALLOWED",
-      "Use POST for playground queries.",
-    );
+    return jsonResponse(405, "METHOD_NOT_ALLOWED", "Use POST for queries.");
   }
   if (!request.headers.get("content-type")?.startsWith("application/json")) {
     return jsonResponse(
       415,
       "BAD_REQUEST",
-      "Playground queries require application/json.",
+      "Queries require application/json.",
     );
   }
 
@@ -493,7 +495,7 @@ export async function handlePublicQuery(
     return jsonResponse(
       429,
       "RATE_LIMITED",
-      "Too many playground queries. Wait before trying again.",
+      "Too many queries. Wait before trying again.",
       admission.retryAfterSeconds,
     );
   }
@@ -547,11 +549,12 @@ export async function handlePublicQuery(
 
 export function createDefaultPublicQueryDependencies(
   environment: NodeJS.ProcessEnv = process.env,
+  gatePrefix?: string,
 ): PublicQueryDependencies {
   return {
     config: loadPublicQueryConfig(environment),
     fetcher: fetch,
-    gate: new ProxyGate(loadProxyGatePolicy(environment)),
+    gate: new ProxyGate(loadProxyGatePolicy(environment, gatePrefix)),
     queryRunner: (input) => query(input),
   };
 }
