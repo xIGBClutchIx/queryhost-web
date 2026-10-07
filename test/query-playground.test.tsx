@@ -466,7 +466,7 @@ describe("revealing finished output", () => {
   });
 
   it.each([
-    ["starts in the top half of the screen", 300, 900],
+    ["starts above the lower third of the screen", 480, 900],
     ["fits on screen", 500, 200],
   ])("leaves a result that %s where it is", async (_case, top, height) => {
     outputTop = top;
