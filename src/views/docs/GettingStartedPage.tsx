@@ -3,7 +3,6 @@ import type { ReactNode } from "react";
 import { CodeBlock } from "../../components/CodeBlock.js";
 import { DocsLayout } from "../../components/DocsLayout.js";
 import type { DocsPageMetadata } from "../../components/DocsLayout.js";
-import type { PageProps } from "../page-props.js";
 import { QUERYHOST_VERSION } from "../../lib/package-version.js";
 import { GAMES } from "../../lib/queryhost.js";
 import { documentationHref, GITHUB_REPOSITORY_URL } from "../../lib/site.js";
@@ -34,9 +33,9 @@ if (result.ok) {
   console.error(result.error.code);
 }`;
 
-export function GettingStartedPage({ hostname }: PageProps): ReactNode {
+export function GettingStartedPage(): ReactNode {
   return (
-    <DocsLayout {...metadata} hostname={hostname}>
+    <DocsLayout {...metadata}>
       <section className="docs-start-panel" aria-labelledby="package-status">
         <div className="docs-start-panel__summary">
           <p className="docs-start-panel__label">Package status</p>
@@ -88,23 +87,23 @@ export function GettingStartedPage({ hostname }: PageProps): ReactNode {
         className="docs-next-links"
         aria-label="Continue with the documentation"
       >
-        <a href={documentationHref(hostname, "/querying/")}>
+        <a href={documentationHref("/querying/")}>
           <strong>Query a server</strong>{" "}
           <span>Ports, modes, deadlines, and accepted aliases.</span>
         </a>{" "}
-        <a href={documentationHref(hostname, "/results/")}>
+        <a href={documentationHref("/results/")}>
           <strong>Read a result</strong>{" "}
           <span>
             Normalized, game-specific, raw, and partial result semantics.
           </span>
         </a>{" "}
-        <a href={documentationHref(hostname, "/games/")}>
+        <a href={documentationHref("/games/")}>
           <strong>Compare supported games</strong>{" "}
           <span>
             Capabilities and conditional fields for every game profile.
           </span>
         </a>{" "}
-        <a href={documentationHref(hostname, "/reference/")}>
+        <a href={documentationHref("/reference/")}>
           <strong>Open the API reference</strong>{" "}
           <span>Generated exports, signatures, and type contracts.</span>
         </a>

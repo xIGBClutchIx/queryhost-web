@@ -5,18 +5,16 @@ import "../styles/policy.css";
 
 interface PolicyLayoutProps {
   readonly children: ReactNode;
-  readonly hostname: string;
   readonly title: string;
 }
 
 export function PolicyLayout({
   children,
-  hostname,
   title,
 }: PolicyLayoutProps): ReactNode {
   return (
     <>
-      <Header active="site" hostname={hostname} />
+      <Header active="site" />
       <main id="main-content" className="policy">
         <h1>{title}</h1>
         <p className="policy-date">Effective October 1, 2026</p>

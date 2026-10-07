@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 
 import { DocsLayout } from "../../components/DocsLayout.js";
 import type { DocsPageMetadata } from "../../components/DocsLayout.js";
-import type { PageProps } from "../page-props.js";
 import {
   aliasesForGame,
   CAPABILITY_LABELS,
@@ -32,9 +31,9 @@ function filterText(game: (typeof GAMES)[number]): string {
     .toLowerCase();
 }
 
-export function GamesPage({ hostname }: PageProps): ReactNode {
+export function GamesPage(): ReactNode {
   return (
-    <DocsLayout {...metadata} hostname={hostname}>
+    <DocsLayout {...metadata}>
       <div className="capability-overview">
         <p>
           Required sources are supported. Conditional data depends on optional

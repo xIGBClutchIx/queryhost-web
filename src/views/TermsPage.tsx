@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 
-import type { PageProps } from "./page-props.js";
 import { PolicyLayout } from "../components/PolicyLayout.js";
 
 export const metadata = {
@@ -8,9 +7,9 @@ export const metadata = {
   description: "Terms for using QueryHost's public game-server query service.",
 } as const;
 
-export function TermsPage({ hostname }: PageProps): ReactNode {
+export function TermsPage(): ReactNode {
   return (
-    <PolicyLayout title={metadata.title} hostname={hostname}>
+    <PolicyLayout title={metadata.title}>
       <p>
         QueryHost provides read-only status queries and comparisons for
         supported public game servers. You are responsible for the targets and

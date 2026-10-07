@@ -18,10 +18,7 @@ function Page({ children }: { readonly children: ReactNode }): ReactNode {
 export function Collapsed(): ReactNode {
   return (
     <Page>
-      <DocsMobileNavigation
-        activeHref="/querying/"
-        hostname="docs.query.host"
-      />
+      <DocsMobileNavigation activeHref="/querying/" />
     </Page>
   );
 }
@@ -36,10 +33,7 @@ export function Open(): ReactNode {
           if (details) details.open = true;
         }}
       >
-        <DocsMobileNavigation
-          activeHref="/querying/"
-          hostname="docs.query.host"
-        />
+        <DocsMobileNavigation activeHref="/querying/" />
       </div>
     </Page>
   );

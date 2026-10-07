@@ -1,9 +1,8 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
-import { requestHostname } from "../lib/site.js";
 import { NotFoundPage, metadata } from "../views/NotFoundPage.tsx";
 ---
 
 <BaseLayout title={metadata.title} description={metadata.description}>
-  <NotFoundPage hostname={requestHostname(Astro.request)} />
+  <NotFoundPage />
 </BaseLayout>

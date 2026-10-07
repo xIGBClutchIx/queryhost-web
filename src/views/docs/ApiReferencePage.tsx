@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 
 import { DocsLayout } from "../../components/DocsLayout.js";
-import type { PageProps } from "../page-props.js";
 import {
   API_REFERENCE_PAGES,
   apiReferenceLabel,
@@ -13,18 +12,12 @@ import { documentationHref } from "../../lib/site.js";
 export const API_REFERENCE_DESCRIPTION =
   "Generated from the QueryHost package public TypeScript contract.";
 
-interface ApiReferencePageProps extends PageProps {
+interface ApiReferencePageProps {
   readonly page: ReferencePage;
 }
 
-export function ApiReferencePage({
-  hostname,
-  page,
-}: ApiReferencePageProps): ReactNode {
-  const referencePrefix = documentationHref(hostname, "/reference/").replace(
-    /\/$/,
-    "",
-  );
+export function ApiReferencePage({ page }: ApiReferencePageProps): ReactNode {
+  const referencePrefix = documentationHref("/reference/").replace(/\/$/, "");
   const reference = {
     items: API_REFERENCE_PAGES.filter(
       (candidate) => candidate.category === page.category,
@@ -41,7 +34,7 @@ export function ApiReferencePage({
       eyebrow={`API reference · ${page.category}`}
       title={page.title}
       description={API_REFERENCE_DESCRIPTION}
-      hostname={hostname}
+
       reference={reference}
     >
       <article

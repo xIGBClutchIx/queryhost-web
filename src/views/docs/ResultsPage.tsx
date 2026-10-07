@@ -4,7 +4,6 @@ import { Callout } from "../../components/Callout.js";
 import { CodeBlock } from "../../components/CodeBlock.js";
 import { DocsLayout } from "../../components/DocsLayout.js";
 import type { DocsPageMetadata } from "../../components/DocsLayout.js";
-import type { PageProps } from "../page-props.js";
 
 export const metadata = {
   activeHref: "/results/",
@@ -25,9 +24,9 @@ if (result.ok) {
   result.error;   // stable QueryError
 }`;
 
-export function ResultsPage({ hostname }: PageProps): ReactNode {
+export function ResultsPage(): ReactNode {
   return (
-    <DocsLayout {...metadata} hostname={hostname}>
+    <DocsLayout {...metadata}>
       <CodeBlock
         code={narrowingExample}
         label="Discriminated result"

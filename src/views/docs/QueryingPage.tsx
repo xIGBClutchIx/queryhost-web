@@ -4,7 +4,6 @@ import { Callout } from "../../components/Callout.js";
 import { CodeBlock } from "../../components/CodeBlock.js";
 import { DocsLayout } from "../../components/DocsLayout.js";
 import type { DocsPageMetadata } from "../../components/DocsLayout.js";
-import type { PageProps } from "../page-props.js";
 import { aliasesForGame, GAMES } from "../../lib/queryhost.js";
 
 export const metadata = {
@@ -23,9 +22,9 @@ const fullQuery = `const result = await query({
   timeoutMs: 5000,
 });`;
 
-export function QueryingPage({ hostname }: PageProps): ReactNode {
+export function QueryingPage(): ReactNode {
   return (
-    <DocsLayout {...metadata} hostname={hostname}>
+    <DocsLayout {...metadata}>
       <h2 id="input">Query input</h2>
       <table className="data-table">
         <thead>

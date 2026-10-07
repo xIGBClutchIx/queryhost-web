@@ -21,7 +21,7 @@ function Column({ children }: { readonly children: ReactNode }): ReactNode {
 export function GettingStarted(): ReactNode {
   return (
     <Column>
-      <DocsSidebar activeHref="/" hostname="docs.query.host" />
+      <DocsSidebar activeHref="/" />
     </Column>
   );
 }
@@ -32,7 +32,6 @@ export function ReferenceContext(): ReactNode {
     <Column>
       <DocsSidebar
         activeHref="/reference/query/"
-        hostname="docs.query.host"
         reference={{
           label: "queryhost",
           items: [

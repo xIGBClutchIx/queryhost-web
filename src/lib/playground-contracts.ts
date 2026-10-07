@@ -74,6 +74,7 @@ export type PlaygroundProxyErrorCode =
   | "BODY_TOO_LARGE"
   | "METHOD_NOT_ALLOWED"
   | "NETWORK_ERROR"
+  | "NOT_FOUND"
   | "RATE_LIMITED"
   | "UPSTREAM_INVALID"
   | "UPSTREAM_UNAVAILABLE";

@@ -1,6 +1,5 @@
 ---
 import BaseLayout from "../../../layouts/BaseLayout.astro";
-import { requestHostname } from "../../../lib/site.js";
 import {
   ReferenceIndexPage,
   metadata,
@@ -12,5 +11,5 @@ import {
   title={metadata.title}
   description={metadata.description}
 >
-  <ReferenceIndexPage hostname={requestHostname(Astro.request)} />
+  <ReferenceIndexPage />
 </BaseLayout>

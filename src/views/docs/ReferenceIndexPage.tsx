@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 
 import { DocsLayout } from "../../components/DocsLayout.js";
 import type { DocsPageMetadata } from "../../components/DocsLayout.js";
-import type { PageProps } from "../page-props.js";
 import {
   API_REFERENCE_PAGES,
   apiReferenceLabel,
@@ -30,9 +29,9 @@ function categoryLabel(category: string): string {
     .replace(/^./, (firstCharacter) => firstCharacter.toUpperCase());
 }
 
-export function ReferenceIndexPage({ hostname }: PageProps): ReactNode {
+export function ReferenceIndexPage(): ReactNode {
   return (
-    <DocsLayout {...metadata} hostname={hostname}>
+    <DocsLayout {...metadata}>
       <p>
         These pages are rendered from the generated Markdown inside the same
         verified package artifact used by the API. They are not rewritten or
@@ -45,12 +44,7 @@ export function ReferenceIndexPage({ hostname }: PageProps): ReactNode {
             <ul>
               {pages.map((page) => (
                 <li key={page.slug}>
-                  <a
-                    href={documentationHref(
-                      hostname,
-                      `/reference/${page.slug}/`,
-                    )}
-                  >
+                  <a href={documentationHref(`/reference/${page.slug}/`)}>
                     {apiReferenceLabel(page.title)}
                   </a>
                 </li>

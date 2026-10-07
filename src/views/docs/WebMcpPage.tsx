@@ -3,7 +3,6 @@ import type { ReactNode } from "react";
 import { Callout } from "../../components/Callout.js";
 import { DocsLayout } from "../../components/DocsLayout.js";
 import type { DocsPageMetadata } from "../../components/DocsLayout.js";
-import type { PageProps } from "../page-props.js";
 
 export const metadata = {
   activeHref: "/webmcp/",
@@ -14,9 +13,9 @@ export const metadata = {
     "Use QueryHost's public playground with a compatible browser agent while keeping the result visible and controllable in the page.",
 } as const satisfies DocsPageMetadata;
 
-export function WebMcpPage({ hostname }: PageProps): ReactNode {
+export function WebMcpPage(): ReactNode {
   return (
-    <DocsLayout {...metadata} hostname={hostname}>
+    <DocsLayout {...metadata}>
       <h2 id="available-tools">Available tools</h2>
       <table className="data-table">
         <thead>

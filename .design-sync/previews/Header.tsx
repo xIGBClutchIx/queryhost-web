@@ -14,16 +14,16 @@ function Page({ children }: { readonly children: ReactNode }): ReactNode {
 export function Site(): ReactNode {
   return (
     <Page>
-      <Header active="site" hostname="query.host" />
+      <Header active="site" />
     </Page>
   );
 }
 
-/** Documentation header on docs.query.host: the Docs link is the current page. */
+/** Documentation header: the Docs link is the current page. */
 export function Docs(): ReactNode {
   return (
     <Page>
-      <Header active="docs" hostname="docs.query.host" />
+      <Header active="docs" />
     </Page>
   );
 }

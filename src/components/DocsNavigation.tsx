@@ -11,7 +11,6 @@ export interface ReferenceContext {
 
 interface DocsNavigationProps {
   readonly activeHref: string;
-  readonly hostname: string;
   readonly reference?: ReferenceContext | undefined;
   /** Navigation tree; defaults to the site's documentation sections. */
   readonly sections?: readonly NavigationSection[] | undefined;
@@ -19,16 +18,15 @@ interface DocsNavigationProps {
 
 interface DocsLinkProps {
   readonly activeHref: string;
-  readonly hostname: string;
   readonly item: NavigationItem;
 }
 
-function DocsLink({ activeHref, hostname, item }: DocsLinkProps): ReactNode {
+function DocsLink({ activeHref, item }: DocsLinkProps): ReactNode {
   const active = activeHref === item.href;
   return (
     <a
       className={active ? "is-active" : undefined}
-      href={documentationHref(hostname, item.href)}
+      href={documentationHref(item.href)}
       aria-current={active ? "page" : undefined}
     >
       {item.label}
@@ -39,7 +37,6 @@ function DocsLink({ activeHref, hostname, item }: DocsLinkProps): ReactNode {
 /** Desktop sidebar navigation; its scroll and active state survive client routing. */
 export function DocsSidebar({
   activeHref,
-  hostname,
   reference,
   sections = DOCUMENTATION_NAVIGATION,
 }: DocsNavigationProps): ReactNode {
@@ -53,7 +50,7 @@ export function DocsSidebar({
               <li key={item.href}>
                 <DocsLink
                   activeHref={activeHref}
-                  hostname={hostname}
+
                   item={item}
                 />
               </li>
@@ -67,7 +64,7 @@ export function DocsSidebar({
                   <li key={item.href}>
                     <DocsLink
                       activeHref={activeHref}
-                      hostname={hostname}
+
                       item={item}
                     />
                   </li>
@@ -84,7 +81,6 @@ export function DocsSidebar({
 /** Mobile disclosure menu built on native details, so it works before any script. */
 export function DocsMobileNavigation({
   activeHref,
-  hostname,
   reference,
   sections = DOCUMENTATION_NAVIGATION,
 }: DocsNavigationProps): ReactNode {
@@ -99,7 +95,7 @@ export function DocsMobileNavigation({
               <DocsLink
                 key={item.href}
                 activeHref={activeHref}
-                hostname={hostname}
+
                 item={item}
               />
             ))}
@@ -112,7 +108,7 @@ export function DocsMobileNavigation({
                 <DocsLink
                   key={item.href}
                   activeHref={activeHref}
-                  hostname={hostname}
+
                   item={item}
                 />
               ))}

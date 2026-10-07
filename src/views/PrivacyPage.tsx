@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 
-import type { PageProps } from "./page-props.js";
 import { PolicyLayout } from "../components/PolicyLayout.js";
 
 export const metadata = {
@@ -9,9 +8,9 @@ export const metadata = {
     "How QueryHost processes game-server queries and operational information.",
 } as const;
 
-export function PrivacyPage({ hostname }: PageProps): ReactNode {
+export function PrivacyPage(): ReactNode {
   return (
-    <PolicyLayout title={metadata.title} hostname={hostname}>
+    <PolicyLayout title={metadata.title}>
       <p>
         QueryHost lets you query public game-server status through query.host
         and connected AI clients.

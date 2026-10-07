@@ -1,6 +1,5 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
-import { requestHostname } from "../../lib/site.js";
 import { ErrorsPage, metadata } from "../../views/docs/ErrorsPage.tsx";
 ---
 
@@ -9,5 +8,5 @@ import { ErrorsPage, metadata } from "../../views/docs/ErrorsPage.tsx";
   title={metadata.title}
   description={metadata.description}
 >
-  <ErrorsPage hostname={requestHostname(Astro.request)} />
+  <ErrorsPage />
 </BaseLayout>

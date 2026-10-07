@@ -1,6 +1,5 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
-import { requestHostname } from "../../lib/site.js";
 import { WebMcpPage, metadata } from "../../views/docs/WebMcpPage.tsx";
 ---
 
@@ -9,5 +8,5 @@ import { WebMcpPage, metadata } from "../../views/docs/WebMcpPage.tsx";
   title={metadata.title}
   description={metadata.description}
 >
-  <WebMcpPage hostname={requestHostname(Astro.request)} />
+  <WebMcpPage />
 </BaseLayout>

@@ -4,7 +4,6 @@ import { Callout } from "../../components/Callout.js";
 import { CodeBlock } from "../../components/CodeBlock.js";
 import { DocsLayout } from "../../components/DocsLayout.js";
 import type { DocsPageMetadata } from "../../components/DocsLayout.js";
-import type { PageProps } from "../page-props.js";
 
 export const metadata = {
   activeHref: "/errors/",
@@ -30,9 +29,9 @@ if (!result.ok) {
   }
 }`;
 
-export function ErrorsPage({ hostname }: PageProps): ReactNode {
+export function ErrorsPage(): ReactNode {
   return (
-    <DocsLayout {...metadata} hostname={hostname}>
+    <DocsLayout {...metadata}>
       <h2 id="failures">Query failures</h2>
       <p>
         A failure means the profile's required source could not produce a usable

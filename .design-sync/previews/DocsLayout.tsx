@@ -21,7 +21,6 @@ export function QueryingGuide(): ReactNode {
         eyebrow="Core library"
         title="Query a server"
         description="Choose a game profile and let QueryHost apply its protocol, discovery, port, and safety rules."
-        hostname="docs.query.host"
       >
         <h2 id="input">Query input</h2>
         <table className="data-table">

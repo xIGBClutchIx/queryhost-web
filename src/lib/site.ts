@@ -1,7 +1,3 @@
-export type SiteExperience = "docs" | "site";
-
-export const API_HOSTNAME = "api.query.host";
-export const DOCS_HOSTNAME = "docs.query.host";
 export const BRAND_ICON_URL = "/favicon.svg?v=2";
 export const GITHUB_REPOSITORY_URL =
   "https://github.com/xIGBClutchIx/queryhost";
@@ -12,93 +8,15 @@ export const HOME_HEADLINE = "Look up any game server";
 export const HOME_SUMMARY =
   "Check its live status right in your browser. Developers can run the same queries with the QueryHost library and API.";
 
-/** Normalizes a Host-style value without accepting a path, credentials, or scheme. */
-export function normalizeHostname(value: string): string {
-  const firstValue = value.split(",", 1)[0]?.trim().toLowerCase() ?? "";
-  if (firstValue.startsWith("[")) {
-    const closingBracket = firstValue.indexOf("]");
-    return closingBracket === -1 ? "" : firstValue.slice(1, closingBracket);
-  }
-
-  return firstValue.split(":", 1)[0]?.replace(/\.$/, "") ?? "";
-}
-
-/** Uses Railway's forwarded host when present and the request URL everywhere else. */
-export function requestHostname(request: Request): string {
-  const forwardedHost = request.headers.get("x-forwarded-host");
-  return forwardedHost === null
-    ? normalizeHostname(new URL(request.url).hostname)
-    : normalizeHostname(forwardedHost);
-}
-
-export function experienceForHostname(hostname: string): SiteExperience {
-  return normalizeHostname(hostname) === DOCS_HOSTNAME ? "docs" : "site";
-}
-
-/** Limits cross-origin navigation to QueryHost's two canonical public domains. */
-export function isCanonicalHostname(hostname: string): boolean {
-  const normalizedHostname = normalizeHostname(hostname);
-  return (
-    normalizedHostname === SITE_HOSTNAME || normalizedHostname === DOCS_HOSTNAME
-  );
-}
-
-/** Maps a public clean documentation path to its internal Astro route. */
-export function internalDocumentationPath(pathname: string): string {
+/** Returns the same-origin URL of a clean documentation path. */
+export function documentationHref(pathname = "/"): string {
   const cleanPath =
     pathname === "/" ? "/" : `/${pathname.replace(/^\/+|\/+$/g, "")}/`;
   return cleanPath === "/" ? "/docs/" : `/docs${cleanPath}`;
 }
 
-const PUBLIC_API_ROUTES: ReadonlySet<string> = new Set([
-  "/v1/games",
-  "/v1/query",
-]);
-
-/**
- * Maps a clean public API path on the API domain to its internal Astro route,
- * or returns `undefined` when the path is not part of the public API.
- */
-export function internalApiPath(pathname: string): string | undefined {
-  const cleanPath = pathname.replace(/\/+$/g, "");
-  return PUBLIC_API_ROUTES.has(cleanPath) ? `/api${cleanPath}` : undefined;
-}
-
-/** Reports whether a path is an internal public API route. */
-export function isInternalApiPath(pathname: string): boolean {
-  return (
-    pathname.startsWith("/api/") &&
-    PUBLIC_API_ROUTES.has(pathname.slice("/api".length))
-  );
-}
-
-/** Uses the docs domain in production and a same-origin route on every preview host. */
-export function documentationHref(hostname: string, pathname = "/"): string {
-  const normalizedPath =
-    pathname === "/" ? "/" : `/${pathname.replace(/^\/+|\/+$/g, "")}/`;
-  if (!isCanonicalHostname(hostname)) {
-    return internalDocumentationPath(normalizedPath);
-  }
-
-  return `https://${DOCS_HOSTNAME}${normalizedPath}`;
-}
-
-export function siteHref(hostname: string): string {
-  return isCanonicalHostname(hostname) ? `https://${SITE_HOSTNAME}/` : "/";
-}
-
-/**
- * Returns the production URL search engines and link previews should use for a
- * route. Documentation is canonical on the docs domain, not under `/docs/`.
- */
+/** Returns the production URL search engines and link previews should use. */
 export function canonicalUrl(pathname: string): string {
-  if (pathname === "/docs" || pathname.startsWith("/docs/")) {
-    return documentationHref(
-      DOCS_HOSTNAME,
-      pathname.slice("/docs".length) || "/",
-    );
-  }
-
   return new URL(pathname, `https://${SITE_HOSTNAME}`).href;
 }
 

@@ -10,7 +10,7 @@ The public QueryHost application is one Railway Node.js service that hosts the p
 - Serverless disabled so the first request does not wait for a sleeping container
 - restart on failure with at most three retries
 - one Railway-generated service domain retained for validation and rollback
-- `query.host` and `docs.query.host` attached to the public web service
+- `query.host` attached to the public web service; documentation is served under `/docs/` (the former `docs.query.host` domain was removed on October 7, 2026)
 - no public domain on the API service
 
 The web service receives `QUERYHOST_API_BASE_URL` and `QUERYHOST_API_ORIGIN_TOKEN` as server-only variables. The token should reference the API service variable inside Railway rather than being copied into browser-visible configuration. Caller-admission variables remain bounded and should be changed only alongside their tests.

@@ -66,6 +66,28 @@ function methodNotAllowed(allow: string): Response {
   );
 }
 
+/**
+ * Answers unknown `/api/v1/*` paths with a JSON 404 that browsers can read.
+ * Preflights succeed so cross-origin callers can see that 404.
+ */
+export function handlePublicApiNotFound(request: Request): Response {
+  if (request.method === "OPTIONS") {
+    return preflight("GET, HEAD, POST, OPTIONS");
+  }
+  const body: PlaygroundProxyErrorResponse = {
+    error: { code: "NOT_FOUND", message: "Unknown API route." },
+  };
+  return withCors(
+    new Response(JSON.stringify(body), {
+      headers: {
+        "Cache-Control": "no-store",
+        "Content-Type": "application/json; charset=utf-8",
+      },
+      status: 404,
+    }),
+  );
+}
+
 /** Handles `/api/v1/query` with its own caller budget and open CORS. */
 export async function handlePublicApiQuery(
   request: Request,

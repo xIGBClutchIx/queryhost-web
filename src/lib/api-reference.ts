@@ -121,6 +121,16 @@ function removeGeneratedPageHeader(markdown: string): string {
   return markdown.slice(heading.index + heading[0].length).trimStart();
 }
 
+/** Mirrors the generated Markdown's anchor slugs, such as `appId?` to `appid`. */
+function headingId(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/<[^>]*>/g, "")
+    .replace(/[^a-z0-9 _-]/g, "")
+    .trim()
+    .replace(/\s+/g, "-");
+}
+
 export function renderApiReference(
   page: ApiReferencePage,
   referencePrefix: string,
@@ -132,5 +142,14 @@ export function renderApiReference(
   );
   const renderer = new Renderer();
   renderer.code = ({ lang, text }) => highlightCode(text, lang ?? "text");
+  // Generated pages link to members as `#appid`, so headings need matching ids.
+  const usedIds = new Map<string, number>();
+  renderer.heading = function ({ depth, text, tokens }) {
+    const base = headingId(text);
+    const count = usedIds.get(base) ?? 0;
+    usedIds.set(base, count + 1);
+    const id = count === 0 ? base : `${base}-${count}`;
+    return `<h${depth} id="${id}">${this.parser.parseInline(tokens)}</h${depth}>\n`;
+  };
   return marked.parse(markdown, { async: false, renderer });
 }
