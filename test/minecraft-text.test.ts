@@ -53,6 +53,19 @@ describe("Minecraft formatting codes", () => {
     });
   });
 
+  it("keeps Bedrock styles across color codes until §r", () => {
+    const [bold, red, plain] = minecraftTextSegments(
+      "§lBold §cRed§r plain",
+      "bedrock",
+    );
+    expect(bold).toMatchObject({ text: "Bold ", bold: true });
+    expect(red).toMatchObject({ text: "Red", bold: true, color: "#ff5555" });
+    expect(plain).toMatchObject({ text: " plain", bold: false });
+    expect(minecraftTextSegments("§lBold §cRed", "java")[1]).toMatchObject({
+      bold: false,
+    });
+  });
+
   it("reads m and n per edition", () => {
     expect(minecraftTextSegments("§mstruck", "java")[0]).toMatchObject({
       strikethrough: true,
@@ -61,11 +74,11 @@ describe("Minecraft formatting codes", () => {
       underlined: true,
     });
     expect(minecraftTextSegments("§mredstone", "bedrock")[0]).toMatchObject({
-      color: readableMinecraftColor("#971607"),
+      color: readableMinecraftColor("#ee222c"),
       strikethrough: false,
     });
-    expect(stripMinecraftFormatting("§gcoin §vresin", "bedrock")).toBe(
-      "coin resin",
+    expect(stripMinecraftFormatting("§gcoin §vresin §wparty", "bedrock")).toBe(
+      "coin resin party",
     );
   });
 

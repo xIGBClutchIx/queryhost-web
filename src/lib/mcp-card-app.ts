@@ -122,7 +122,7 @@ export function startMcpCards(): void {
       const rawName = text(server["name"]);
       const name =
         (text(input["game"]).startsWith("minecraft-")
-          ? rawName.replace(/§[0-9a-vx]/giu, "")
+          ? rawName.replace(/§[0-9a-x]/giu, "")
           : rawName) || host;
       identity.append(element("h2", name));
       if (name !== host || typeof input["port"] === "number")

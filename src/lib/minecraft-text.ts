@@ -37,21 +37,23 @@ const SHARED_COLORS: Readonly<Record<string, string>> = {
   f: "#ffffff",
 };
 
-// Bedrock-only material colors; `m` and `n` are colors there, not strike/underline.
+// Bedrock-only colors (values as of Bedrock 26.50); `m` and `n` are colors there,
+// not strike/underline.
 const BEDROCK_COLORS: Readonly<Record<string, string>> = {
   ...SHARED_COLORS,
-  g: "#ddd605",
-  h: "#e3d4d1",
-  i: "#cecaca",
-  j: "#443a3b",
-  m: "#971607",
-  n: "#b4684d",
-  p: "#deb12d",
-  q: "#47a036",
-  s: "#2cbaa8",
-  t: "#21497b",
-  u: "#9a5cc6",
-  v: "#eb7114",
+  g: "#efce16",
+  h: "#d9ccb8",
+  i: "#a9b4b7",
+  j: "#8f727d",
+  m: "#ee222c",
+  n: "#c87363",
+  p: "#ffbf1e",
+  q: "#13a045",
+  s: "#5fecff",
+  t: "#577bff",
+  u: "#b66cdd",
+  v: "#ff6a00",
+  w: "#8bb3ff",
 };
 
 type FormatState = Omit<MinecraftTextSegment, "text">;
@@ -188,8 +190,11 @@ export function minecraftTextSegments(
     const color = hex?.color ?? colors[code];
     if (color !== undefined) {
       flush();
-      // A color code resets styles, as it does in game.
-      state = { ...PLAIN_STATE, color: readableMinecraftColor(color) };
+      // Java resets styles on a color code; Bedrock keeps them until `§r`.
+      state = {
+        ...(edition === "java" ? PLAIN_STATE : state),
+        color: readableMinecraftColor(color),
+      };
       index = hex === undefined ? index + 1 : hex.end - 1;
     } else if (code === "r") {
       flush();

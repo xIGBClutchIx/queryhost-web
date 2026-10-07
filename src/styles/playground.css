@@ -964,6 +964,11 @@
   text-decoration-line: line-through;
 }
 
+/* The game scrambles `§k` text; a light blur keeps it decorative but still in the DOM. */
+.mc-obfuscated {
+  filter: blur(0.18em);
+}
+
 .mc-underlined.mc-strikethrough {
   text-decoration-line: underline line-through;
 }
