@@ -3,28 +3,11 @@ import { describe, expect, it } from "vitest";
 import {
   cacheControlForPath,
   canonicalUrl,
-  DOCS_HOSTNAME,
   GITHUB_REPOSITORY_URL,
   documentationHref,
-  normalizeHostname,
-  requestHostname,
 } from "../src/lib/site.js";
 
-describe("hostname routing", () => {
-  it("normalizes forwarded host values without accepting ports or extra entries", () => {
-    expect(normalizeHostname(" Docs.Query.Host.:443, proxy.internal")).toBe(
-      DOCS_HOSTNAME,
-    );
-    expect(normalizeHostname("[::1]:4321")).toBe("::1");
-  });
-
-  it("prefers Railway's forwarded host over the internal request URL", () => {
-    const request = new Request("http://web.railway.internal/", {
-      headers: { "x-forwarded-host": "docs.query.host" },
-    });
-    expect(requestHostname(request)).toBe(DOCS_HOSTNAME);
-  });
-
+describe("documentation links", () => {
   it("keeps documentation links on the current origin", () => {
     expect(documentationHref()).toBe("/docs/");
     expect(documentationHref("/results")).toBe("/docs/results/");

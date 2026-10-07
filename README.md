@@ -1,6 +1,6 @@
 # QueryHost Web
 
-The public QueryHost website, query playground, and documentation service. One portable Astro/Node.js application with a React interface serves `query.host`, with documentation under `query.host/docs/`. The former `docs.query.host` domain permanently redirects there.
+The public QueryHost website, query playground, and documentation service. One portable Astro/Node.js application with a React interface serves `query.host`, with documentation under `query.host/docs/`.
 
 The browser sends non-secret query inputs to the same-origin `POST /api/query` route. That server route validates and throttles callers before forwarding production requests to the private QueryHost API over Railway networking. During local development, the same route calls the installed `queryhost` package directly, without duplicating any game protocol implementation.
 
@@ -38,7 +38,7 @@ QUERYHOST_API_ORIGIN_TOKEN=<shared private token>
 
 The private origin and token must never use a `PUBLIC_` prefix. Optional `QUERYHOST_WEB_*` variables tune the bounded caller gate, request size, and upstream deadline; production defaults are documented on the Hosted service page.
 
-Every host uses `/` for the site and `/docs/` for documentation, so internal links always stay on the current origin. Requests to `docs.query.host` get a `301` to the matching `https://query.host/docs/` page, except `/health`.
+Every host uses `/` for the site and `/docs/` for documentation, so internal links always stay on the current origin.
 
 Astro ClientRouter handles same-origin HTML navigation, including between the site and documentation, with its built-in link prefetching. External links, downloads, modified clicks, and intentional full-page navigation retain their browser behavior.
 
@@ -62,7 +62,7 @@ The web service pins exact `queryhost@1.3.0` from the public npm registry for th
 
 ## Deployment
 
-`npm run build` creates a standalone Node.js server. Railway runs `npm start`, checks `/health`, and keeps Serverless disabled initially. Production runs one 0.5 vCPU, 0.5 GB replica in the same US East region as the private API. The web service talks to the API through its private Railway hostname. `query.host` and `docs.query.host` point to the web service, and its Railway-generated domain remains available for rollback.
+`npm run build` creates a standalone Node.js server. Railway runs `npm start`, checks `/health`, and keeps Serverless disabled initially. Production runs one 0.5 vCPU, 0.5 GB replica in the same US East region as the private API. The web service talks to the API through its private Railway hostname. `query.host` points to the web service, and its Railway-generated domain remains available for rollback.
 
 See [docs/Operations.md](docs/Operations.md) for the production baseline, verification steps, and rollback procedure.
 

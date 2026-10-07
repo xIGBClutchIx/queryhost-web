@@ -3,7 +3,7 @@
 ## Submission URLs
 
 - Live application: <https://query.host/>
-- WebMCP documentation: <https://docs.query.host/webmcp/>
+- WebMCP documentation: <https://query.host/docs/webmcp/>
 - Primary public repository: <https://github.com/xIGBClutchIx/queryhost-web>
 - Hosted API source: <https://github.com/xIGBClutchIx/queryhost-api>
 - Published library source: <https://github.com/xIGBClutchIx/queryhost>

@@ -80,7 +80,7 @@ The repository gate is `npm run verify`. The accepted production build passed fo
 
 <https://query.host/>
 
-WebMCP documentation: <https://docs.query.host/webmcp/>
+WebMCP documentation: <https://query.host/docs/webmcp/>
 
 ## Public Repository Link
 
