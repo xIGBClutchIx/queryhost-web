@@ -29,6 +29,7 @@ const INTERNAL_COMPONENTS = new Set([
   "DataPanel",
   "DocsPager",
   "JsonPanel",
+  "MinecraftText",
   "OverviewPanel",
   "PlaygroundExamples",
   "QueryForm",

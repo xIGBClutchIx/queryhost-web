@@ -7,6 +7,10 @@ import {
   type WorkspaceGame,
   type WorkspaceResult,
 } from "./mcp-workspace-contract.js";
+import {
+  minecraftEdition,
+  stripMinecraftFormatting,
+} from "./minecraft-text.js";
 
 export interface WorkspaceBridge {
   query(
@@ -202,7 +206,11 @@ export function mountWorkspace(doc: Document, bridge: WorkspaceBridge) {
         typeof motdValue === "string" ? motdValue : object(motdValue)["plain"];
       if (typeof plainMotd === "string") {
         const motd = doc.createElement("p");
-        motd.textContent = plainMotd;
+        const edition = minecraftEdition(current.input.game);
+        motd.textContent =
+          edition === undefined
+            ? plainMotd
+            : stripMinecraftFormatting(plainMotd, edition);
         overview.append(motd);
       }
     } else {

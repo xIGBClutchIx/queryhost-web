@@ -118,7 +118,12 @@ export function startMcpCards(): void {
         .join(" ");
       heading.append(element("p", game, "game"));
       const identity = element("div");
-      const name = text(server["name"]) || host;
+      // Drop Minecraft `§` formatting codes from the display name only.
+      const rawName = text(server["name"]);
+      const name =
+        (text(input["game"]).startsWith("minecraft-")
+          ? rawName.replace(/§[0-9a-x]/giu, "")
+          : rawName) || host;
       identity.append(element("h2", name));
       if (name !== host || typeof input["port"] === "number")
         identity.append(

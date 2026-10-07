@@ -953,6 +953,32 @@
   white-space: pre-wrap;
 }
 
+/* Minecraft `§` styles; colors arrive inline, pre-lifted for contrast. */
+.mc-bold {
+  font-weight: var(--weight-bold);
+}
+
+.mc-italic {
+  font-style: italic;
+}
+
+.mc-underlined {
+  text-decoration-line: underline;
+}
+
+.mc-strikethrough {
+  text-decoration-line: line-through;
+}
+
+/* The game scrambles `§k` text; a light blur keeps it decorative but still in the DOM. */
+.mc-obfuscated {
+  filter: blur(0.18em);
+}
+
+.mc-underlined.mc-strikethrough {
+  text-decoration-line: underline line-through;
+}
+
 .query-overview {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
