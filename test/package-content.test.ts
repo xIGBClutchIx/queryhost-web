@@ -109,6 +109,23 @@ describe("packaged API reference", () => {
     expect(html).toContain("Returns");
   });
 
+  it("gives headings the ids that generated member links target", () => {
+    const html = renderApiReference(
+      {
+        category: "Interfaces",
+        markdown:
+          "# Interface: Example\n\n### appId?\n\n### players\n\n### players",
+        slug: "interfaces/Example",
+        title: "Example",
+      },
+      "/docs/reference",
+    );
+
+    expect(html).toContain('<h3 id="appid">appId?</h3>');
+    expect(html).toContain('<h3 id="players">players</h3>');
+    expect(html).toContain('<h3 id="players-1">players</h3>');
+  });
+
   it("syntax-highlights fenced examples with the dark code theme", () => {
     const html = renderApiReference(
       {
