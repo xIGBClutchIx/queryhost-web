@@ -23,8 +23,14 @@
 
 ## Re-sync risks
 
-- `brand-assets.css` inlines a copy of `public/favicon.svg`; update it when the icon changes.
-- Preview query results (`test/fixtures/playground.ts`) and the reference labels in `DocsSidebar.tsx` are hand-copied from `queryhost@1.3.0` and the site navigation; they go stale if the registry shape or `ServerInfo` changes.
-- `cfg.dtsPropsFor` is a hand copy of each component's props; prop changes in `src/components/` won't reach the design agent until it is updated.
-- `entry.ts` lists the exported components by hand; a new component in `src/components/` needs an export there plus a `componentSrcMap` entry.
+`test/design-sync.test.ts` runs in `npm run verify` and fails when a hand copy drifts:
+
+- every exported component in `src/components/` must be synced (`componentSrcMap` path plus an `entry.ts` export from that file), excluded (`null`), or listed as internal in the test;
+- each synced component's `cfg.dtsPropsFor` entry must name the same props, with the same optionality, as the component's resolved props type;
+- `brand-assets.css` must inline the current `public/favicon.svg`.
+
+Still unchecked:
+
+- The prop comments and types inside `cfg.dtsPropsFor` are prose; the test only compares names and optionality.
+- Preview query results (`test/fixtures/playground.ts`) are typed as `PlaygroundQueryResponse`, so typecheck catches shape changes, but their sample values are from `queryhost@1.3.0`. The reference labels in `DocsSidebar.tsx` previews are hand-copied from the site navigation.
 - The policy date and copy in `PolicyLayout.tsx` are sample content, not the real policy text.

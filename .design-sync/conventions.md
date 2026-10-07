@@ -13,17 +13,18 @@ QueryHost (query.host, docs.query.host) is a **dark-only**, keyboard-first site 
 
 ## Tokens (use these, never raw hex)
 
-| Role     | Tokens                                                                                                   |
-| -------- | -------------------------------------------------------------------------------------------------------- |
-| Surfaces | `--background`, `--surface`, `--surface-raised`, `--surface-subtle`, `--code-background`                 |
-| Text     | `--text-strong`, `--text`, `--muted`, `--faint`, `--code-text`                                           |
-| Lines    | `--line`, `--line-strong`                                                                                |
-| Accent   | `--accent` (teal), `--accent-strong`, `--accent-soft`, `--on-accent`                                     |
-| Status   | `--supported`, `--warning`, `--warning-soft`                                                             |
-| Layout   | `--header-height`, `--content-width`, `--docs-sidebar-width`, `--shadow`                                 |
-| Type     | `--text-3xs` … `--text-3xl`, `--weight-regular`, `--weight-medium`, `--weight-semibold`, `--weight-bold` |
-| Shape    | `--radius-xs`, `--radius-sm`, `--radius-md`, `--radius-lg`, `--radius-full`                              |
-| Motion   | `--duration-fast`, `--duration-base`, `--duration-slow`                                                  |
+| Role     | Tokens                                                                                                                       |
+| -------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Surfaces | `--background`, `--surface`, `--surface-raised`, `--surface-subtle`, `--code-background`                                     |
+| Text     | `--text-strong`, `--text`, `--muted`, `--faint`, `--code-text`                                                               |
+| Lines    | `--line`, `--line-strong`                                                                                                    |
+| Accent   | `--accent` (teal), `--accent-strong`, `--accent-soft`, `--on-accent`                                                         |
+| Status   | `--supported`, `--warning`, `--warning-soft`                                                                                 |
+| Spacing  | `--space-N` is N x 4px: `--space-0-5`, `-1`, `-1-5`, `-2`, `-2-5`, `-3`, `-3-5`, `-4`, `-5`, `-6`, `-8`, `-10`, `-12`, `-16` |
+| Layout   | `--header-height`, `--content-width`, `--docs-sidebar-width`, `--shadow`                                                     |
+| Type     | `--text-3xs` … `--text-3xl`, `--weight-regular`, `--weight-medium`, `--weight-semibold`, `--weight-bold`                     |
+| Shape    | `--radius-xs`, `--radius-sm`, `--radius-md`, `--radius-lg`, `--radius-full`                                                  |
+| Motion   | `--duration-fast`, `--duration-base`, `--duration-slow`                                                                      |
 
 Breakpoints are 50rem (tablet) and 34rem (phone). The body font is `"Geist Variable"`. Use `"Geist Mono Variable"` for code, ports, and timings.
 
@@ -36,7 +37,7 @@ Breakpoints are 50rem (tablet) and 34rem (phone). The body font is `"Geist Varia
 - Status: `status status--supported`, `status status--conditional`.
 - Screen-reader text: `sr-only`.
 
-Do not invent new class names for these patterns. For your own layout glue, use inline styles with the tokens above.
+Do not invent new class names for these patterns. For your own layout glue, use inline styles with the tokens above, including `--space-*` for every margin, padding, and gap.
 
 ## Where the truth lives
 
@@ -51,7 +52,11 @@ const { Header, Callout } = window.QueryHost;
   <Header active="docs" hostname="docs.query.host" />
   <main
     className="doc-prose"
-    style={{ maxWidth: "58rem", margin: "0 auto", padding: "3rem 2rem" }}
+    style={{
+      maxWidth: "58rem",
+      margin: "0 auto",
+      padding: "var(--space-12) var(--space-8)",
+    }}
   >
     <p className="eyebrow">Guide</p>
     <h1 style={{ color: "var(--text-strong)" }}>Hosted service</h1>
