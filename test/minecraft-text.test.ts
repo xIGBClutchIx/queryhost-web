@@ -105,6 +105,28 @@ describe("Minecraft formatting codes", () => {
     expect(blue).toBeGreaterThan(green ?? 0);
   });
 
+  it("keeps every lifted color at 4.5:1 on the glass card and lighter surfaces", () => {
+    const luminance = (hex: string): number => {
+      const [red = 0, green = 0, blue = 0] = [1, 3, 5].map((offset) => {
+        const channel =
+          Number.parseInt(hex.slice(offset, offset + 2), 16) / 255;
+        return channel <= 0.039_28
+          ? channel / 12.92
+          : ((channel + 0.055) / 1.055) ** 2.4;
+      });
+      return 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+    };
+    const codes = "0123456789abcdefghijmnpqstuvw";
+    for (const surface of ["#0f181c", "#172429"]) {
+      for (const code of codes) {
+        const [segment] = minecraftTextSegments(`§${code}x`, "bedrock");
+        const color = segment?.color ?? "#000000";
+        const ratio = (luminance(color) + 0.05) / (luminance(surface) + 0.05);
+        expect(ratio, `§${code} on ${surface}`).toBeGreaterThanOrEqual(4.5);
+      }
+    }
+  });
+
   it("applies only to Minecraft games", () => {
     expect(minecraftEdition("minecraft-java")).toBe("java");
     expect(minecraftEdition("minecraft-bedrock")).toBe("bedrock");

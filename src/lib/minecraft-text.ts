@@ -66,8 +66,9 @@ const PLAIN_STATE: FormatState = {
   obfuscated: false,
 };
 
-// The darkest surface a result renders on (`--background`); colors must stay readable on it.
-const SURFACE = "#0b1215";
+// Lightest surface token (`--surface-subtle`), above the glass result card's composite,
+// so lifted colors keep at least 4.5:1 wherever a result renders.
+const SURFACE = "#172429";
 const MIN_CONTRAST = 4.5;
 
 function channels(hex: string): readonly number[] {
