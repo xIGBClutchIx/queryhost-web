@@ -12,6 +12,7 @@ import * as errors from "../src/views/docs/ErrorsPage.js";
 import * as games from "../src/views/docs/GamesPage.js";
 import * as gettingStarted from "../src/views/docs/GettingStartedPage.js";
 import * as hostedService from "../src/views/docs/HostedServicePage.js";
+import * as publicApi from "../src/views/docs/PublicApiPage.js";
 import * as querying from "../src/views/docs/QueryingPage.js";
 import * as referenceIndex from "../src/views/docs/ReferenceIndexPage.js";
 import * as results from "../src/views/docs/ResultsPage.js";
@@ -26,6 +27,7 @@ const DOCS_VIEWS = [
   [games.metadata, games.GamesPage],
   [gettingStarted.metadata, gettingStarted.GettingStartedPage],
   [hostedService.metadata, hostedService.HostedServicePage],
+  [publicApi.metadata, publicApi.PublicApiPage],
   [querying.metadata, querying.QueryingPage],
   [referenceIndex.metadata, referenceIndex.ReferenceIndexPage],
   [results.metadata, results.ResultsPage],

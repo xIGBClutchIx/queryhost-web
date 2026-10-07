@@ -1,15 +1,47 @@
 import { defineMiddleware } from "astro:middleware";
 
 import {
+  API_HOSTNAME,
   cacheControlForPath,
   DOCS_HOSTNAME,
+  internalApiPath,
   internalDocumentationPath,
+  isInternalApiPath,
   requestHostname,
 } from "./lib/site.js";
 
 export const onRequest = defineMiddleware(async (context, next) => {
   const hostname = requestHostname(context.request);
   const pathname = context.url.pathname;
+
+  // The API domain serves only the versioned public API and health; it never
+  // exposes site pages, the playground route, or MCP.
+  // Rewritten requests re-enter middleware with their internal path, which
+  // continues to the route below.
+  if (
+    hostname === API_HOSTNAME &&
+    pathname !== "/health" &&
+    !isInternalApiPath(pathname)
+  ) {
+    const internalPath = internalApiPath(pathname);
+    if (internalPath === undefined) {
+      return new Response(
+        JSON.stringify({
+          error: { code: "NOT_FOUND", message: "Unknown API route." },
+        }),
+        {
+          headers: {
+            "Access-Control-Allow-Origin": "*",
+            "Cache-Control": "no-store",
+            "Content-Type": "application/json; charset=utf-8",
+            "X-Content-Type-Options": "nosniff",
+          },
+          status: 404,
+        },
+      );
+    }
+    return context.rewrite(`${internalPath}${context.url.search}`);
+  }
 
   if (
     hostname === DOCS_HOSTNAME &&

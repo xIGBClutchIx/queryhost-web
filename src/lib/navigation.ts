@@ -23,6 +23,7 @@ export const DOCUMENTATION_NAVIGATION: readonly NavigationSection[] = [
     items: [
       { href: "/games/", label: "Supported games" },
       { href: "/errors/", label: "Errors and warnings" },
+      { href: "/public-api/", label: "Public API" },
       { href: "/hosted-service/", label: "Hosted service" },
       { href: "/webmcp/", label: "WebMCP tools" },
     ],
