@@ -992,7 +992,11 @@
     display: none;
   }
 
+  /* Pinned under the sticky header so the menu stays one tap away while reading. */
   .docs-mobile-nav {
+    position: sticky;
+    top: var(--header-height);
+    z-index: 9;
     display: block;
     border-bottom: 1px solid var(--line);
     background: var(--surface);
@@ -1011,11 +1015,15 @@
     font-weight: var(--weight-semibold);
   }
 
+  /* An open menu scrolls inside the viewport instead of pushing past it. */
   .docs-mobile-nav nav {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--space-1);
+    max-height: calc(100dvh - var(--header-height) - var(--space-16));
     padding-bottom: var(--space-3);
+    overflow-y: auto;
+    overscroll-behavior: contain;
   }
 
   .docs-mobile-nav a {
@@ -1045,6 +1053,12 @@
   .doc-content {
     padding: var(--space-10) var(--space-5) 5rem;
     margin-inline: auto;
+  }
+
+  /* Anchored headings land below the header and the pinned menu bar. */
+  .doc-prose h2,
+  .doc-prose h3 {
+    scroll-margin-top: calc(var(--header-height) + var(--space-16));
   }
 
   .docs-start-panel {
