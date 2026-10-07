@@ -117,6 +117,26 @@ describe("playground form state", () => {
     expect(
       isCompleteSharedQuery("?host=play.example.com", PLAYGROUND_GAMES),
     ).toBe(false);
+    for (const ports of [
+      "port=abc",
+      "port=123456",
+      "port=0",
+      "port=",
+      "queryPort=70000",
+    ]) {
+      expect(
+        isCompleteSharedQuery(
+          `?game=rust&host=play.example.com&${ports}`,
+          PLAYGROUND_GAMES,
+        ),
+      ).toBe(false);
+    }
+    expect(
+      isCompleteSharedQuery(
+        "?game=rust&host=play.example.com&port=28016&queryPort=28020",
+        PLAYGROUND_GAMES,
+      ),
+    ).toBe(true);
     expect(
       isCompleteSharedQuery(
         "?game=unknown&host=play.example.com",

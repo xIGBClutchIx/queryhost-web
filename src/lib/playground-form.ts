@@ -145,9 +145,16 @@ export function formStateFromSearch(
   };
 }
 
+function validPortParameter(value: string | null): boolean {
+  if (value === null) return true;
+  const port = Number(value);
+  return PORT_PARAMETER.test(value) && port >= 1 && port <= 65_535;
+}
+
 /**
- * A shared link names a complete query when it carries a known game and a host;
- * the playground runs such a link once when the page loads.
+ * A shared link names a complete query when it carries a known game, a host, and
+ * only valid ports; the playground runs such a link once when the page loads. A
+ * malformed port would otherwise fall back to the default and query another target.
  */
 export function isCompleteSharedQuery(
   search: string,
@@ -156,7 +163,9 @@ export function isCompleteSharedQuery(
   const parameters = new URLSearchParams(search);
   return (
     findGame(games, parameters.get("game") ?? "") !== undefined &&
-    (parameters.get("host") ?? "").trim().length > 0
+    (parameters.get("host") ?? "").trim().length > 0 &&
+    validPortParameter(parameters.get("port")) &&
+    validPortParameter(parameters.get("queryPort"))
   );
 }
 
