@@ -56,6 +56,30 @@ describe("stylesheet tokens", () => {
     }
     expect(rules).not.toMatch(/(?<![\d.])[1-9]\d{2}ms/);
   });
+
+  it("uses the spacing scale for margins, padding, gaps, and offsets", () => {
+    const spacing = [
+      ...rules.matchAll(
+        /\n\s*((?:padding|margin|inset|scroll-margin)(?:-[a-z-]+)?|(?:row-|column-)?gap|top|right|bottom|left):\s*([^;]+);/g,
+      ),
+    ].map((match) => match[2] ?? "");
+    // Fluid clamp() gutters keep their bounds; page-level padding from 5rem up stays literal.
+    const literals = spacing
+      .map((value) => value.replace(/clamp\([^)]*(?:\([^)]*\)[^)]*)*\)/g, ""))
+      .flatMap((value) => value.match(/[\d.]+rem/g) ?? [])
+      .filter((value) => Number.parseFloat(value) < 5);
+    expect(literals).toEqual([]);
+  });
+
+  it("names each spacing step by its multiple of 4px", () => {
+    const steps = [...base.matchAll(/--space-([\d-]+): ([\d.]+)rem;/g)];
+    expect(steps.length).toBeGreaterThan(0);
+    for (const [, name = "", rem = ""] of steps) {
+      expect(Number.parseFloat(rem) * 4, `--space-${name}`).toBe(
+        Number.parseFloat(name.replace("-", ".")),
+      );
+    }
+  });
 });
 
 function token(name: string): string {

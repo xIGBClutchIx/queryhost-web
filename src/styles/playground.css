@@ -67,7 +67,7 @@
 }
 
 .playground__heading {
-  margin-bottom: 1.75rem;
+  margin-bottom: var(--space-8);
   text-align: center;
 }
 
@@ -81,7 +81,7 @@
 }
 
 .playground__heading > p {
-  margin: 0.55rem 0 0;
+  margin: var(--space-2) 0 0;
   color: var(--muted);
   font-size: var(--text-md);
 }
@@ -103,8 +103,8 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem 0.75rem;
-  margin-top: 1.25rem;
+  gap: var(--space-2) var(--space-3);
+  margin-top: var(--space-5);
 }
 
 .playground-examples__label {
@@ -116,7 +116,7 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 0.5rem;
+  gap: var(--space-2);
   padding: 0;
   margin: 0;
   list-style: none;
@@ -125,8 +125,8 @@
 .playground-examples__chip {
   display: inline-flex;
   align-items: baseline;
-  gap: 0.45rem;
-  padding: 0.35rem 0.8rem;
+  gap: var(--space-2);
+  padding: var(--space-1-5) var(--space-3);
   border: 1px solid var(--glass-edge);
   border-radius: var(--radius-full);
   background: var(--glass-fill);
@@ -157,8 +157,8 @@
     top: var(--header-height);
     z-index: 5;
     isolation: isolate;
-    padding: 0.75rem 0 1rem;
-    margin: -0.75rem 0 -1rem;
+    padding: var(--space-3) 0 var(--space-4);
+    margin: calc(-1 * var(--space-3)) 0 calc(-1 * var(--space-4));
   }
 
   .query-form-dock::before {
@@ -188,7 +188,7 @@
     isolation: isolate;
     grid-template-columns: minmax(12rem, 0.8fr) minmax(18rem, 1fr) auto;
     min-height: 4.25rem;
-    padding: 0 1.25rem;
+    padding: 0 var(--space-5);
     border: 0;
     background: transparent;
   }
@@ -226,7 +226,7 @@
     grid-column: 2;
     align-self: stretch;
     padding: 0;
-    margin: 0 1.25rem;
+    margin: 0 var(--space-5);
     border: 0;
   }
 }
@@ -234,17 +234,17 @@
 .query-form__primary {
   display: grid;
   grid-template-columns: minmax(12rem, 0.9fr) minmax(16rem, 1.55fr) 9rem auto;
-  gap: 0.65rem;
+  gap: var(--space-2-5);
   align-items: end;
-  padding: 1rem;
+  padding: var(--space-4);
 }
 
 .query-form__secondary {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1rem;
+  gap: var(--space-4);
   align-items: start;
-  padding: 0 1.25rem 1.1rem;
+  padding: 0 var(--space-5) var(--space-4);
 }
 
 .query-form__advanced {
@@ -256,10 +256,10 @@
 
 .query-form__advanced-trigger {
   display: flex;
-  gap: 0.45rem;
+  gap: var(--space-2);
   align-items: center;
   width: max-content;
-  padding: 0.65rem 1rem 0.8rem;
+  padding: var(--space-2-5) var(--space-4) var(--space-3);
   border: 0;
   background: transparent;
   color: var(--muted);
@@ -310,7 +310,7 @@
 
 .field {
   display: grid;
-  gap: 0.4rem;
+  gap: var(--space-1-5);
   min-width: 0;
 }
 
@@ -329,10 +329,10 @@
 /* Hint for the "/" shortcut; it gets out of the way once the field is in use. */
 .field__shortcut {
   position: absolute;
-  right: 0.6rem;
-  bottom: 0.7rem;
+  right: var(--space-2-5);
+  bottom: var(--space-3);
   min-width: 1.4rem;
-  padding: 0.05rem 0.35rem;
+  padding: var(--space-0-5) var(--space-1-5);
   border: 1px solid var(--glass-edge);
   border-radius: var(--radius-xs);
   color: var(--muted);
@@ -359,7 +359,7 @@
 .custom-select__trigger {
   width: 100%;
   height: 2.75rem;
-  padding: 0 0.75rem;
+  padding: 0 var(--space-3);
   border: 0;
   border-radius: var(--radius-md);
   outline: 0;
@@ -406,7 +406,7 @@
 
 .custom-select__trigger {
   display: flex;
-  gap: 0.65rem;
+  gap: var(--space-2-5);
   align-items: center;
   justify-content: flex-start;
   cursor: pointer;
@@ -425,7 +425,7 @@
   width: 0.45rem;
   height: 0.45rem;
   margin-left: auto;
-  margin-top: -0.2rem;
+  margin-top: calc(-1 * var(--space-1));
   border-right: 1.5px solid var(--muted);
   border-bottom: 1.5px solid var(--muted);
   transform: rotate(45deg);
@@ -433,19 +433,19 @@
 }
 
 .custom-select.is-open .custom-select__chevron {
-  margin-top: 0.2rem;
+  margin-top: var(--space-1);
   transform: rotate(225deg);
 }
 
 .custom-select__menu {
   position: absolute;
-  top: calc(100% + 0.4rem);
+  top: calc(100% + var(--space-1-5));
   left: 0;
   z-index: 5;
   display: grid;
   width: 100%;
   max-height: 15rem;
-  padding: 0.3rem;
+  padding: var(--space-1);
   overflow-y: auto;
   border: 1px solid var(--line-strong);
   border-radius: var(--radius-md);
@@ -471,7 +471,7 @@
 .custom-select__option {
   width: 100%;
   min-height: 2.25rem;
-  padding: 0.45rem 0.65rem;
+  padding: var(--space-2) var(--space-2-5);
   border: 0;
   border-radius: var(--radius-sm);
   background: transparent;
@@ -502,7 +502,7 @@
 .query-submit {
   height: 2.75rem;
   min-width: 7.5rem;
-  padding: 0 1.1rem;
+  padding: 0 var(--space-4);
   border: 0;
   border-radius: var(--radius-md);
   background: var(--accent);
@@ -530,22 +530,22 @@
 
 .query-form__error {
   margin: 0;
-  padding: 0.75rem 1.25rem;
+  padding: var(--space-3) var(--space-5);
   background: var(--warning-soft);
   color: var(--warning);
   font-size: var(--text-sm);
 }
 
 .query-output {
-  margin-top: 1rem;
+  margin-top: var(--space-4);
 }
 
 .query-request-error {
   display: flex;
-  gap: 0.7rem;
+  gap: var(--space-3);
   align-items: center;
   min-height: 4rem;
-  padding: 1rem 1.25rem;
+  padding: var(--space-4) var(--space-5);
 }
 
 .query-result__state > span,
@@ -585,7 +585,7 @@
 
 .query-loading {
   min-height: 13rem;
-  padding: 2rem;
+  padding: var(--space-8);
   border: 1px solid var(--glass-edge);
   border-radius: var(--radius-lg);
   background: var(--glass-fill);
@@ -612,8 +612,8 @@
 .query-loading__grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.75rem;
-  margin-top: 1.5rem;
+  gap: var(--space-3);
+  margin-top: var(--space-6);
 }
 
 .query-loading__grid span {
@@ -622,7 +622,7 @@
 }
 
 .query-loading p {
-  margin: 1rem 0 0;
+  margin: var(--space-4) 0 0;
   color: var(--faint);
   font-size: var(--text-xs);
 }
@@ -637,9 +637,9 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 1.5rem;
+  gap: var(--space-6);
   min-height: 4.5rem;
-  padding: 1rem 1.25rem 0;
+  padding: var(--space-4) var(--space-5) 0;
   border-bottom: 1px solid var(--glass-inset-edge);
 }
 
@@ -653,7 +653,7 @@
 
 .query-result__state {
   display: flex;
-  gap: 0.8rem;
+  gap: var(--space-3);
   align-items: center;
   min-width: 0;
 }
@@ -728,10 +728,10 @@
   display: flex;
   grid-row: 2;
   grid-column: 1 / -1;
-  gap: 1.5rem;
+  gap: var(--space-6);
   align-self: end;
-  padding: 0 1.25rem;
-  margin: 0 -1.25rem;
+  padding: 0 var(--space-5);
+  margin: 0 calc(-1 * var(--space-5));
   overflow-x: auto;
   overflow-y: hidden;
   border-top: 1px solid var(--line);
@@ -740,7 +740,7 @@
 .query-tabs button {
   position: relative;
   flex: none;
-  padding: 0.8rem 0;
+  padding: var(--space-3) 0;
   border: 0;
   background: transparent;
   color: var(--muted);
@@ -764,17 +764,17 @@
 }
 
 .query-panel {
-  padding: 1.25rem;
+  padding: var(--space-5);
 }
 
 .query-path {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  gap: 1rem;
+  gap: var(--space-4);
   align-items: center;
   min-height: 3rem;
-  padding: 0.6rem 0.85rem;
-  margin-bottom: 1rem;
+  padding: var(--space-2-5) var(--space-3-5);
+  margin-bottom: var(--space-4);
   border: 1px solid var(--glass-inset-edge);
   border-radius: var(--radius-md);
   background: var(--glass-inset);
@@ -799,7 +799,7 @@
 .query-path__step {
   position: relative;
   min-width: 0;
-  padding: 0.95rem 0.55rem 0 0;
+  padding: var(--space-4) var(--space-2) 0 0;
 }
 
 .query-path__step:last-child {
@@ -808,9 +808,9 @@
 
 .query-path__step:not(:last-child)::after {
   position: absolute;
-  top: 0.31rem;
-  right: 0.1rem;
-  left: 0.65rem;
+  top: var(--space-1);
+  right: var(--space-0-5);
+  left: var(--space-2-5);
   height: 1px;
   background: var(--line-strong);
   content: "";
@@ -818,7 +818,7 @@
 
 .query-path__node {
   position: absolute;
-  top: 0.05rem;
+  top: var(--space-0-5);
   left: 0;
   z-index: 1;
   width: 0.55rem;
@@ -846,10 +846,10 @@
 
 .query-path__step > div {
   display: flex;
-  gap: 0.4rem;
+  gap: var(--space-1-5);
   align-items: baseline;
   min-width: 0;
-  padding-right: 0.35rem;
+  padding-right: var(--space-1-5);
 }
 
 .query-path__step strong,
@@ -873,10 +873,10 @@
 .query-game-summary {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  gap: 0.9rem;
+  gap: var(--space-3-5);
   align-items: center;
-  padding: 0.8rem 0.9rem;
-  margin-bottom: 1rem;
+  padding: var(--space-3) var(--space-3-5);
+  margin-bottom: var(--space-4);
   border: 1px solid var(--glass-inset-edge);
   border-radius: var(--radius-md);
   background: var(--glass-inset);
@@ -905,7 +905,7 @@
 }
 
 .query-game-summary p {
-  margin: 0.18rem 0 0;
+  margin: var(--space-0-5) 0 0;
   overflow-wrap: anywhere;
   color: var(--text-strong);
   font-size: var(--text-md);
@@ -917,13 +917,13 @@
 .query-overview {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
-  gap: 0.65rem;
+  gap: var(--space-2-5);
   margin: 0;
 }
 
 .query-overview > div {
   min-width: 0;
-  padding: 0.8rem 0.9rem;
+  padding: var(--space-3) var(--space-3-5);
   border: 1px solid var(--glass-inset-edge);
   border-radius: var(--radius-md);
   background: var(--glass-inset);
@@ -937,7 +937,7 @@
 }
 
 .query-overview dd {
-  margin: 0.2rem 0 0;
+  margin: var(--space-1) 0 0;
   color: var(--text-strong);
   font-size: var(--text-md);
   font-weight: var(--weight-semibold);
@@ -949,7 +949,7 @@
 .query-overview__meter {
   display: block;
   height: 0.3rem;
-  margin-top: 0.55rem;
+  margin-top: var(--space-2);
   overflow: hidden;
   border-radius: var(--radius-full);
   background: var(--surface-subtle);
@@ -965,22 +965,22 @@
 }
 
 .query-warnings {
-  margin-top: 1rem;
-  padding: 0.9rem 1rem;
+  margin-top: var(--space-4);
+  padding: var(--space-3-5) var(--space-4);
   border-left: 2px solid var(--warning);
   background: var(--warning-soft);
 }
 
 .query-warnings h3,
 .query-data-section h3 {
-  margin: 0 0 0.55rem;
+  margin: 0 0 var(--space-2);
   color: var(--text-strong);
   font-size: var(--text-xs);
 }
 
 .query-warnings ul {
   display: grid;
-  gap: 0.35rem;
+  gap: var(--space-1-5);
   padding: 0;
   margin: 0;
   list-style: none;
@@ -988,7 +988,7 @@
 
 .query-warnings li {
   display: flex;
-  gap: 0.65rem;
+  gap: var(--space-2-5);
   color: var(--warning);
   font-size: var(--text-xs);
 }
@@ -999,7 +999,7 @@
 }
 
 .query-data-section + .query-data-section {
-  margin-top: 1.5rem;
+  margin-top: var(--space-6);
 }
 
 .query-data-list,
@@ -1011,9 +1011,9 @@
 .query-source-list > div {
   display: grid;
   grid-template-columns: minmax(9rem, 0.42fr) minmax(0, 1fr);
-  gap: 1rem;
+  gap: var(--space-4);
   align-items: start;
-  padding: 0.7rem 0;
+  padding: var(--space-3) 0;
   border-bottom: 1px solid var(--line);
 }
 
@@ -1032,7 +1032,7 @@
 
 .query-data-list pre {
   max-height: 16rem;
-  padding: 0.7rem;
+  padding: var(--space-3);
   margin: 0;
   overflow: auto;
   background: var(--code-background);
@@ -1040,7 +1040,7 @@
 
 .query-data-empty {
   margin: 0;
-  padding: 1rem 0;
+  padding: var(--space-4) 0;
   color: var(--faint);
   font-size: var(--text-sm);
 }
@@ -1053,7 +1053,7 @@
 .query-source-list > div > div {
   display: grid;
   grid-template-columns: auto minmax(8rem, auto) minmax(7rem, 1fr);
-  gap: 0.65rem;
+  gap: var(--space-2-5);
   align-items: center;
 }
 
@@ -1088,7 +1088,7 @@
 .query-json-toolbar {
   display: flex;
   justify-content: space-between;
-  padding: 0.65rem 1.25rem;
+  padding: var(--space-2-5) var(--space-5);
   color: var(--muted);
   font-size: var(--text-2xs);
 }
@@ -1104,7 +1104,7 @@
 
 .query-panel--json pre {
   max-height: 34rem;
-  padding: 1.25rem;
+  padding: var(--space-5);
   margin: 0;
   overflow: auto;
   border-top: 1px solid var(--line);
@@ -1141,13 +1141,13 @@
 /* Breakpoint: phone. */
 @media (max-width: 34rem) {
   .playground {
-    padding: 2.75rem 0 3.5rem;
+    padding: var(--space-12) 0 var(--space-16);
   }
 
   .query-form__primary,
   .query-form__secondary {
     grid-template-columns: 1fr;
-    padding: 1rem;
+    padding: var(--space-4);
   }
 
   .query-submit {
@@ -1157,18 +1157,18 @@
   .query-request-error,
   .query-loading,
   .query-panel {
-    padding: 1rem;
+    padding: var(--space-4);
   }
 
   .query-result__toolbar {
     align-items: start;
-    padding: 1rem 1rem 0;
+    padding: var(--space-4) var(--space-4) 0;
   }
 
   .query-path {
     grid-template-columns: minmax(0, 1fr);
     gap: 0;
-    padding: 0.65rem 0.75rem;
+    padding: var(--space-2-5) var(--space-3);
   }
 
   .query-path__label {
@@ -1189,14 +1189,14 @@
   }
 
   .query-tabs {
-    gap: 1.15rem;
-    padding: 0 1rem;
-    margin-inline: -1rem;
+    gap: var(--space-5);
+    padding: 0 var(--space-4);
+    margin-inline: calc(-1 * var(--space-4));
   }
 
   .query-data-list > div {
     grid-template-columns: 1fr;
-    gap: 0.2rem;
+    gap: var(--space-1);
   }
 
   .query-source-list > div > div {

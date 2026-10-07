@@ -29,16 +29,16 @@
   position: sticky;
   top: var(--header-height);
   max-height: calc(100dvh - var(--header-height));
-  padding: 1.2rem 1.5rem 3rem 1rem;
+  padding: var(--space-5) var(--space-6) var(--space-12) var(--space-4);
   overflow-y: auto;
 }
 
 .docs-nav__section {
-  margin-top: 1.7rem;
+  margin-top: var(--space-6);
 }
 
 .docs-nav__section h2 {
-  margin: 0 0 0.35rem;
+  margin: 0 0 var(--space-1-5);
   color: var(--faint);
   font-size: var(--text-2xs);
   font-weight: var(--weight-bold);
@@ -54,7 +54,7 @@
 
 .docs-nav__section a {
   display: block;
-  padding: 0.38rem 0 0.38rem 0.35rem;
+  padding: var(--space-1-5) 0 var(--space-1-5) var(--space-1-5);
   color: var(--muted);
   font-size: var(--text-sm);
   text-decoration: none;
@@ -73,11 +73,11 @@
 }
 
 .docs-nav__reference-context {
-  margin: 0.65rem 0 0 0.4rem;
+  margin: var(--space-2-5) 0 0 var(--space-1-5);
 }
 
 .docs-nav__reference-context h3 {
-  margin: 0 0 0.28rem;
+  margin: 0 0 var(--space-1);
   color: var(--text);
   font-size: var(--text-3xs);
   font-weight: var(--weight-bold);
@@ -86,7 +86,7 @@
 }
 
 .docs-nav__reference-context a {
-  padding-block: 0.3rem;
+  padding-block: var(--space-1);
   padding-left: 0;
   font-family: "Geist Mono Variable", monospace;
   font-size: var(--text-xs);
@@ -100,7 +100,7 @@
 
 .doc-content {
   width: min(100%, 58rem);
-  padding: 3.75rem clamp(2rem, 6vw, 5.5rem) 7rem;
+  padding: var(--space-16) clamp(2rem, 6vw, 5.5rem) 7rem;
 }
 
 @keyframes docs-content-enter {
@@ -130,7 +130,7 @@
 }
 
 .doc-heading {
-  padding-bottom: 1.25rem;
+  padding-bottom: var(--space-5);
 }
 
 .doc-heading h1 {
@@ -145,14 +145,14 @@
 
 .doc-heading > p:not(.eyebrow) {
   max-width: 62ch;
-  margin: 0.9rem 0 0;
+  margin: var(--space-3-5) 0 0;
   color: var(--muted);
   font-size: var(--text-base);
 }
 
 .doc-prose {
   max-width: 72ch;
-  padding-top: 1.5rem;
+  padding-top: var(--space-6);
 }
 
 .doc-prose h2,
@@ -160,16 +160,16 @@
   color: var(--text-strong);
   letter-spacing: -0.025em;
   line-height: 1.2;
-  scroll-margin-top: calc(var(--header-height) + 1.5rem);
+  scroll-margin-top: calc(var(--header-height) + var(--space-6));
 }
 
 .doc-prose h2 {
-  margin: 2.75rem 0 0.75rem;
+  margin: var(--space-12) 0 var(--space-3);
   font-size: var(--text-2xl);
 }
 
 .doc-prose h3 {
-  margin: 2rem 0 0.65rem;
+  margin: var(--space-8) 0 var(--space-2-5);
   font-size: var(--text-lg);
 }
 
@@ -183,7 +183,7 @@
 }
 
 .doc-prose li + li {
-  margin-top: 0.35rem;
+  margin-top: var(--space-1-5);
 }
 
 .doc-prose code:not(pre code) {
@@ -199,7 +199,7 @@
 .docs-start-panel {
   display: grid;
   grid-template-columns: minmax(0, 1.2fr) minmax(15rem, 0.8fr);
-  margin-bottom: 3rem;
+  margin-bottom: var(--space-12);
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--line-strong) 72%, transparent);
   border-radius: var(--radius-md);
@@ -210,7 +210,7 @@
 
 .docs-start-panel__summary,
 .docs-start-panel__requirements {
-  padding: 1.25rem 1.35rem;
+  padding: var(--space-5) var(--space-5);
 }
 
 .docs-start-panel__requirements {
@@ -225,7 +225,7 @@
 }
 
 .docs-start-panel__label {
-  margin: 0 0 0.55rem;
+  margin: 0 0 var(--space-2);
   color: var(--accent-strong);
   font-size: var(--text-3xs);
   font-weight: var(--weight-bold);
@@ -234,7 +234,7 @@
 }
 
 .docs-start-panel__summary > p:not(.docs-start-panel__label) {
-  margin: 0.65rem 0 0;
+  margin: var(--space-2-5) 0 0;
   color: var(--muted);
   font-size: var(--text-sm);
   line-height: 1.55;
@@ -242,7 +242,7 @@
 
 .docs-source-link {
   display: inline-block;
-  margin-top: 0.9rem;
+  margin-top: var(--space-3-5);
   color: var(--accent-strong);
   font-size: var(--text-xs);
   font-weight: var(--weight-semibold);
@@ -251,14 +251,14 @@
 }
 
 .docs-start-panel dl {
-  margin: 0.65rem 0 0;
+  margin: var(--space-2-5) 0 0;
 }
 
 .docs-start-panel dl > div {
   display: grid;
   grid-template-columns: 4.5rem minmax(0, 1fr);
-  gap: 0.7rem;
-  padding: 0.45rem 0;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
   border-bottom: 1px solid var(--line);
 }
 
@@ -289,9 +289,9 @@
 .docs-next-links a {
   display: grid;
   grid-template-columns: minmax(10.5rem, 0.42fr) minmax(0, 1fr);
-  gap: 1rem;
+  gap: var(--space-4);
   align-items: baseline;
-  padding: 0.85rem 0;
+  padding: var(--space-3-5) 0;
   border-bottom: 1px solid var(--line);
   color: inherit;
   text-decoration: none;
@@ -314,7 +314,7 @@
 }
 
 .code-block {
-  margin: 1.35rem 0;
+  margin: var(--space-5) 0;
   border: 1px solid color-mix(in srgb, var(--line-strong) 72%, transparent);
   border-radius: var(--radius-md);
   overflow: hidden;
@@ -326,7 +326,7 @@
 .code-block figcaption {
   display: flex;
   justify-content: space-between;
-  padding: 0.55rem 0.8rem;
+  padding: var(--space-2) var(--space-3);
   border-bottom: 1px solid color-mix(in srgb, var(--line) 68%, transparent);
   background: color-mix(
     in srgb,
@@ -340,7 +340,7 @@
 .code-block figcaption,
 .code-block__meta {
   align-items: center;
-  gap: 0.75rem;
+  gap: var(--space-3);
 }
 
 .code-block__meta {
@@ -352,7 +352,7 @@
 }
 
 .code-block__copy {
-  padding: 0.1rem 0.5rem;
+  padding: var(--space-0-5) var(--space-2);
   border: 1px solid var(--line-strong);
   border-radius: var(--radius-xs);
   background: transparent;
@@ -377,7 +377,7 @@
 
 .code-block pre,
 .api-reference pre {
-  padding: 1rem;
+  padding: var(--space-4);
   margin: 0;
   overflow-x: auto;
   color: var(--code-text);
@@ -395,9 +395,9 @@
 .callout {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  gap: 0.85rem;
-  padding: 1rem;
-  margin: 1.5rem 0;
+  gap: var(--space-3-5);
+  padding: var(--space-4);
+  margin: var(--space-6) 0;
   border: 0;
   border-left: 2px solid var(--accent);
   border-radius: var(--radius-sm);
@@ -414,7 +414,7 @@
   place-items: center;
   width: 1.35rem;
   height: 1.35rem;
-  margin-top: 0.1rem;
+  margin-top: var(--space-0-5);
   border: 1px solid currentColor;
   border-radius: 50%;
   color: var(--accent-strong);
@@ -428,7 +428,7 @@
 }
 
 .callout h2 {
-  margin: 0 0 0.25rem;
+  margin: 0 0 var(--space-1);
   font-size: var(--text-md);
 }
 
@@ -440,14 +440,14 @@
 
 .data-table {
   width: 100%;
-  margin: 1.25rem 0;
+  margin: var(--space-5) 0;
   border-collapse: collapse;
   font-size: var(--text-sm);
 }
 
 .data-table th,
 .data-table td {
-  padding: 0.72rem 0.65rem;
+  padding: var(--space-3) var(--space-2-5);
   border-bottom: 1px solid var(--line);
   text-align: left;
   vertical-align: top;
@@ -468,7 +468,7 @@
 .status {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: var(--space-1-5);
   color: var(--muted);
   font-size: var(--text-xs);
 }
@@ -515,14 +515,14 @@
 
 .api-reference th,
 .api-reference td {
-  padding: 0.6rem;
+  padding: var(--space-2-5);
   border: 0;
   border-bottom: 1px solid var(--line);
   text-align: left;
 }
 
 .api-reference pre {
-  margin-block: 1rem;
+  margin-block: var(--space-4);
   border: 1px solid color-mix(in srgb, var(--line-strong) 72%, transparent);
   border-radius: var(--radius-md);
   background: var(--code-background);
@@ -532,26 +532,26 @@
 
 .api-reference hr {
   height: 0;
-  margin-block: 1.5rem;
+  margin-block: var(--space-6);
   border: 0;
   border-top: 1px solid var(--line);
 }
 
 .reference-index {
-  margin-top: 1.5rem;
+  margin-top: var(--space-6);
 }
 
 .reference-group {
   display: grid;
   grid-template-columns: 8rem minmax(0, 1fr);
-  gap: 1rem;
+  gap: var(--space-4);
   align-items: start;
-  padding: 0.85rem 0;
+  padding: var(--space-3-5) 0;
   border-top: 1px solid var(--line);
 }
 
 .reference-group h2 {
-  margin: 0.12rem 0 0;
+  margin: var(--space-0-5) 0 0;
   color: var(--muted);
   font-size: var(--text-2xs);
   letter-spacing: 0.08em;
@@ -561,7 +561,7 @@
 .reference-group ul {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.32rem 1rem;
+  gap: var(--space-1-5) var(--space-4);
   padding: 0;
   margin: 0;
   list-style: none;
@@ -589,8 +589,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem 2rem;
-  margin-bottom: 1rem;
+  gap: var(--space-4) var(--space-8);
+  margin-bottom: var(--space-4);
 }
 
 .capability-overview p {
@@ -604,15 +604,15 @@
   display: flex;
   flex: none;
   flex-wrap: wrap;
-  gap: 0.45rem 0.9rem;
+  gap: var(--space-2) var(--space-3-5);
 }
 
 .capability-filter {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.5rem 0.85rem;
-  margin-top: 1.25rem;
+  gap: var(--space-2) var(--space-3-5);
+  margin-top: var(--space-5);
 }
 
 .capability-filter label {
@@ -624,7 +624,7 @@
 .capability-filter input {
   width: min(100%, 18rem);
   min-height: 2.35rem;
-  padding: 0.4rem 0.7rem;
+  padding: var(--space-1-5) var(--space-3);
   border: 1px solid var(--line-strong);
   border-radius: var(--radius-sm);
   background: var(--surface);
@@ -647,7 +647,7 @@
 }
 
 .capability-filter__empty {
-  margin: 1rem 0 0;
+  margin: var(--space-4) 0 0;
   color: var(--muted);
   font-size: var(--text-sm);
 }
@@ -656,7 +656,7 @@
   /* Contain the cells' absolutely positioned .sr-only labels so they scroll
      with the table instead of widening the page. */
   position: relative;
-  margin-top: 1rem;
+  margin-top: var(--space-4);
   overflow-x: auto;
 }
 
@@ -672,17 +672,17 @@
 
 .capability-table th,
 .capability-table td {
-  padding: 0.72rem 0.55rem;
+  padding: var(--space-3) var(--space-2);
 }
 
 .capability-table th:first-child,
 .capability-table td:first-child {
-  padding-left: 0.35rem;
+  padding-left: var(--space-1-5);
 }
 
 .capability-table__groups th {
-  padding-top: 0.45rem;
-  padding-bottom: 0.3rem;
+  padding-top: var(--space-2);
+  padding-bottom: var(--space-1);
   border-bottom: 0;
   color: var(--faint);
   font-size: var(--text-3xs);
@@ -690,7 +690,7 @@
 }
 
 .capability-table thead tr:last-child th {
-  padding-top: 0.3rem;
+  padding-top: var(--space-1);
   text-align: center;
 }
 
@@ -710,7 +710,7 @@
 }
 
 .capability-table__game-group {
-  margin-bottom: 0.18rem;
+  margin-bottom: var(--space-0-5);
   color: var(--text-strong);
   font-size: var(--text-sm);
   font-weight: var(--weight-semibold);
@@ -735,7 +735,7 @@
 .capability-table tbody > tr > :nth-child(4),
 .capability-table tbody > tr > :nth-child(7),
 .capability-table tbody > tr > :nth-child(10) {
-  padding-left: 1rem;
+  padding-left: var(--space-4);
 }
 
 .capability-table .capability-table__game {
@@ -870,17 +870,17 @@
 .doc-pager {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1rem;
+  gap: var(--space-4);
   max-width: 72ch;
-  margin-top: 4rem;
-  padding-top: 1.5rem;
+  margin-top: var(--space-16);
+  padding-top: var(--space-6);
   border-top: 1px solid var(--line);
 }
 
 .doc-pager__link {
   display: grid;
-  gap: 0.15rem;
-  padding: 0.85rem 1rem;
+  gap: var(--space-0-5);
+  padding: var(--space-3-5) var(--space-4);
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
   color: inherit;
@@ -919,11 +919,13 @@
 .doc-toc {
   position: sticky;
   top: var(--header-height);
-  padding: 4.25rem 1rem 2rem 0;
+  /* Sits --space-2 below .doc-content's top padding. */
+  padding: calc(var(--space-16) + var(--space-2)) var(--space-4) var(--space-8)
+    0;
 }
 
 .doc-toc__label {
-  margin: 0 0 0.5rem;
+  margin: 0 0 var(--space-2);
   color: var(--muted);
   font-size: var(--text-2xs);
   font-weight: var(--weight-bold);
@@ -940,7 +942,7 @@
 
 .doc-toc a {
   display: block;
-  padding: 0.3rem 0 0.3rem 0.85rem;
+  padding: var(--space-1) 0 var(--space-1) var(--space-3-5);
   margin-left: -1px;
   border-left: 1px solid transparent;
   color: var(--muted);
@@ -968,7 +970,7 @@
   }
 
   .docs-shell--contents .doc-content {
-    padding-right: 2rem;
+    padding-right: var(--space-8);
   }
 
   .doc-toc-column {
@@ -1002,7 +1004,7 @@
   }
 
   .docs-mobile-nav summary {
-    padding: 0.75rem 0;
+    padding: var(--space-3) 0;
     color: var(--muted);
     cursor: pointer;
     font-size: var(--text-sm);
@@ -1012,12 +1014,12 @@
   .docs-mobile-nav nav {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.25rem;
-    padding-bottom: 0.8rem;
+    gap: var(--space-1);
+    padding-bottom: var(--space-3);
   }
 
   .docs-mobile-nav a {
-    padding: 0.45rem 0.55rem;
+    padding: var(--space-2) var(--space-2);
     border-radius: var(--radius-xs);
     color: var(--muted);
     font-size: var(--text-sm);
@@ -1031,7 +1033,7 @@
 
   .docs-mobile-nav__context {
     grid-column: 1 / -1;
-    padding: 0.65rem 0.55rem 0.15rem;
+    padding: var(--space-2-5) var(--space-2) var(--space-0-5);
     border-top: 1px solid var(--line);
     color: var(--faint);
     font-size: var(--text-3xs);
@@ -1041,7 +1043,7 @@
   }
 
   .doc-content {
-    padding: 2.4rem 1.25rem 5rem;
+    padding: var(--space-10) var(--space-5) 5rem;
     margin-inline: auto;
   }
 
@@ -1060,7 +1062,7 @@
 
   .reference-group {
     grid-template-columns: 1fr;
-    gap: 0.55rem;
+    gap: var(--space-2);
   }
 
   .reference-group ul {
@@ -1084,7 +1086,7 @@
 
   .docs-next-links a {
     grid-template-columns: minmax(0, 1fr);
-    gap: 0.15rem;
+    gap: var(--space-0-5);
   }
 
   .doc-pager {
