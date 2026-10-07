@@ -4,6 +4,7 @@ import { GAMES } from "../src/lib/queryhost.js";
 import { ProxyGate } from "../src/server/proxy-gate.js";
 import {
   handlePublicApiGames,
+  handlePublicApiNotFound,
   handlePublicApiQuery,
 } from "../src/server/public-api.js";
 import {
@@ -123,6 +124,17 @@ describe("public API", () => {
         new Request(`${API_URL}/games`, { method: "DELETE" }),
       ).status,
     ).toBe(405);
+  });
+
+  it("answers unknown API paths with a readable JSON 404", async () => {
+    const response = handlePublicApiNotFound();
+
+    expect(response.status).toBe(404);
+    expect(response.headers.get("access-control-allow-origin")).toBe("*");
+    expect(response.headers.get("content-type")).toContain("application/json");
+    expect(await response.json()).toEqual({
+      error: { code: "NOT_FOUND", message: "Unknown API route." },
+    });
   });
 
   it("reads its caller budget under a separate prefix", () => {

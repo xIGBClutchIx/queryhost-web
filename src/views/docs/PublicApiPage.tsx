@@ -151,10 +151,10 @@ export function PublicApiPage(): ReactNode {
       <p>
         Request failures return <code>{"{ error: { code, message } }"}</code>.
         Codes are <code>BAD_REQUEST</code>, <code>BODY_TOO_LARGE</code>,{" "}
-        <code>METHOD_NOT_ALLOWED</code>, <code>RATE_LIMITED</code> (your IP or
-        the API budget), <code>OVERLOADED</code> (the query service is at
-        capacity), <code>UPSTREAM_INVALID</code>, and{" "}
-        <code>UPSTREAM_UNAVAILABLE</code>.
+        <code>METHOD_NOT_ALLOWED</code>, <code>NOT_FOUND</code>,{" "}
+        <code>RATE_LIMITED</code> (your IP or the API budget),{" "}
+        <code>OVERLOADED</code> (the query service is at capacity),{" "}
+        <code>UPSTREAM_INVALID</code>, and <code>UPSTREAM_UNAVAILABLE</code>.
       </p>
       <h2 id="cors">Browser use</h2>
       <p>
