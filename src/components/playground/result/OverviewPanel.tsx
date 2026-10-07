@@ -8,11 +8,13 @@ import {
   milliseconds,
   minecraftSummary,
 } from "../../../lib/playground-form.js";
+import { minecraftEdition } from "../../../lib/minecraft-text.js";
 import {
   formatPlayerCount,
   playerFillRatio,
 } from "../../../lib/player-count.js";
 import { queryPathItems } from "../../../lib/query-path.js";
+import { MinecraftText } from "./MinecraftText.js";
 
 interface OverviewRow {
   readonly fill?: number;
@@ -114,7 +116,8 @@ function MinecraftSummaryView({
   const summary = result.ok
     ? minecraftSummary(result.game, result.data)
     : undefined;
-  if (summary === undefined) {
+  const edition = minecraftEdition(result.game);
+  if (summary === undefined || edition === undefined) {
     return <div className="query-game-summary" hidden />;
   }
   const hasMotd =
@@ -134,7 +137,9 @@ function MinecraftSummaryView({
         <div>
           <span>Message of the day</span>
           {summary.motdHtml === undefined ? (
-            <p>{summary.motdPlain}</p>
+            <p>
+              <MinecraftText edition={edition} text={summary.motdPlain ?? ""} />
+            </p>
           ) : (
             <p
               // QueryHost emits only escaped text and allow-listed formatting here.

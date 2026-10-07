@@ -5,6 +5,10 @@ import type {
   PlaygroundGameDefinition,
   PlaygroundQueryResponse,
 } from "../../lib/playground-contracts.js";
+import {
+  minecraftEdition,
+  stripMinecraftFormatting,
+} from "../../lib/minecraft-text.js";
 import { cacheLabel, milliseconds } from "../../lib/playground-form.js";
 import { TabPanel, Tabs } from "../Tabs.js";
 import { DataPanel } from "./result/DataPanel.js";
@@ -44,8 +48,15 @@ export const QueryResult = memo(function QueryResult({
       ? "Online · partial"
       : "Online"
     : "Offline or unreachable";
+  const edition = minecraftEdition(result.game);
+  const rawName = result.ok ? result.server.name : undefined;
+  // Show Minecraft names without their `§` codes; the JSON view keeps the raw value.
   const name = result.ok
-    ? (result.server.name ?? "Unnamed server")
+    ? rawName === undefined
+      ? "Unnamed server"
+      : edition === undefined
+        ? rawName
+        : stripMinecraftFormatting(rawName, edition) || "Unnamed server"
     : result.error.message;
   const dot = result.ok
     ? result.partial

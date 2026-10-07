@@ -4,9 +4,21 @@ import type {
   JsonObject,
   PlaygroundQueryResponse,
 } from "../../../lib/playground-contracts.js";
+import {
+  minecraftEdition,
+  type MinecraftEdition,
+} from "../../../lib/minecraft-text.js";
 import { readableKey, scalarText } from "../../../lib/playground-form.js";
+import { MinecraftText } from "./MinecraftText.js";
 
-function DataList({ data }: { readonly data: JsonObject }): ReactNode {
+function DataList({
+  data,
+  edition,
+}: {
+  readonly data: JsonObject;
+  /** Formats string fields as Minecraft text; omitted for untouched protocol data. */
+  readonly edition?: MinecraftEdition;
+}): ReactNode {
   const entries = Object.entries(data);
   if (entries.length === 0) {
     return (
@@ -21,10 +33,14 @@ function DataList({ data }: { readonly data: JsonObject }): ReactNode {
       <div key={key}>
         <span>{readableKey(key)}</span>
         <div>
-          {scalar ?? (
-            <pre>
-              <code>{JSON.stringify(value, null, 2)}</code>
-            </pre>
+          {edition !== undefined && typeof value === "string" ? (
+            <MinecraftText edition={edition} text={value} />
+          ) : (
+            (scalar ?? (
+              <pre>
+                <code>{JSON.stringify(value, null, 2)}</code>
+              </pre>
+            ))
           )}
         </div>
       </div>
@@ -38,12 +54,16 @@ export function DataPanel({
 }: {
   readonly result: PlaygroundQueryResponse;
 }): ReactNode {
+  const edition = minecraftEdition(result.game);
   return (
     <>
       <div className="query-data-section">
         <h3>Game-specific data</h3>
         <div className="query-data-list">
-          <DataList data={result.ok ? result.data : {}} />
+          <DataList
+            data={result.ok ? result.data : {}}
+            {...(edition === undefined ? {} : { edition })}
+          />
         </div>
       </div>
       {result.ok && result.rawData !== undefined && (

@@ -148,6 +148,19 @@ describe("query workspace", () => {
     expect(overview?.querySelector("b")).toBeNull();
     workspace.dispose();
   });
+  it("shows Minecraft MOTDs without § formatting codes", async () => {
+    const result = output();
+    result.structuredContent = {
+      ...result.structuredContent,
+      result: { ok: true, server: {}, data: { motd: "§f§f§lHALLOWEEN EVENT" } },
+    };
+    const { workspace } = setup(vi.fn().mockResolvedValue(result));
+    await submit();
+    const overview = document.getElementById("panel-overview");
+    expect(overview?.textContent).toContain("HALLOWEEN EVENT");
+    expect(overview?.textContent).not.toContain("§");
+    workspace.dispose();
+  });
   it("uses full UI metadata, renders zero safely, and shares only bounded trusted context", async () => {
     const full = output();
     full._meta = {
