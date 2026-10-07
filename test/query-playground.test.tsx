@@ -283,4 +283,57 @@ describe("query playground island", () => {
     expect(element<HTMLElement>("#query-query-port-field").hidden).toBe(true);
     expect(element("#query-mode-value").textContent).toBe("Full details");
   });
+  it("opens the game list scrolled to the selected game", () => {
+    act(() => {
+      root.render(<QueryPlayground games={PLAYGROUND_GAMES} search="" />);
+    });
+    const list = element<HTMLElement>("#query-game-menu");
+    const selected = element<HTMLElement>(
+      "#query-game-menu [aria-selected='true']",
+    );
+    Object.defineProperties(list, {
+      clientHeight: { value: 200 },
+      scrollHeight: { value: 900 },
+    });
+    Object.defineProperties(selected, {
+      offsetHeight: { value: 36 },
+      offsetTop: { value: 500 },
+    });
+    act(() => {
+      element<HTMLButtonElement>("[aria-controls='query-game-menu']").click();
+    });
+    // Centred: 500 - (200 - 36) / 2.
+    expect(list.scrollTop).toBe(418);
+    expect(list.className).toBe(
+      "custom-select__list has-more-above has-more-below",
+    );
+  });
+
+  it("marks the game list edges that have more options past them", () => {
+    act(() => {
+      root.render(<QueryPlayground games={PLAYGROUND_GAMES} search="" />);
+    });
+    const list = element<HTMLElement>("#query-game-menu");
+    Object.defineProperties(list, {
+      clientHeight: { value: 200 },
+      scrollHeight: { value: 900 },
+    });
+    act(() => {
+      list.scrollTop = 0;
+      list.dispatchEvent(new Event("scroll"));
+    });
+    expect(list.className).toBe("custom-select__list has-more-below");
+    act(() => {
+      list.scrollTop = 300;
+      list.dispatchEvent(new Event("scroll"));
+    });
+    expect(list.className).toBe(
+      "custom-select__list has-more-above has-more-below",
+    );
+    act(() => {
+      list.scrollTop = 700;
+      list.dispatchEvent(new Event("scroll"));
+    });
+    expect(list.className).toBe("custom-select__list has-more-above");
+  });
 });

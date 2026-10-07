@@ -444,9 +444,7 @@
   z-index: 5;
   display: grid;
   width: 100%;
-  max-height: 15rem;
-  padding: var(--space-1);
-  overflow-y: auto;
+  overflow: hidden;
   border: 1px solid var(--line-strong);
   border-radius: var(--radius-md);
   background: var(--surface-raised);
@@ -459,6 +457,41 @@
     opacity var(--duration-base) ease,
     transform var(--duration-base) cubic-bezier(0.16, 1, 0.3, 1),
     visibility var(--duration-base);
+}
+
+/* The max height is deliberately not a whole number of rows: a half-visible
+   last option, faded at the edge, shows the list continues. */
+.custom-select__list {
+  display: grid;
+  max-height: 15.5rem;
+  padding: var(--space-1);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: color-mix(in srgb, var(--text-strong) 22%, transparent)
+    transparent;
+  scrollbar-width: thin;
+}
+
+.custom-select__list.has-more-below {
+  mask-image: linear-gradient(
+    to bottom,
+    #000 calc(100% - var(--space-10)),
+    transparent
+  );
+}
+
+.custom-select__list.has-more-above {
+  mask-image: linear-gradient(to bottom, transparent, #000 var(--space-6));
+}
+
+.custom-select__list.has-more-above.has-more-below {
+  mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    #000 var(--space-6),
+    #000 calc(100% - var(--space-10)),
+    transparent
+  );
 }
 
 .custom-select.is-open .custom-select__menu {

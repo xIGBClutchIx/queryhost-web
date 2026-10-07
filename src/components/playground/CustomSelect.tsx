@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { KeyboardEvent, ReactNode } from "react";
 import "../../styles/playground.css";
 
@@ -20,6 +20,20 @@ interface CustomSelectProps<V extends string> {
 
 type FocusTarget = "first" | "last" | "selected";
 
+interface ScrollEdges {
+  readonly above: boolean;
+  readonly below: boolean;
+}
+
+const NO_OVERFLOW: ScrollEdges = { above: false, below: false };
+
+function scrollEdges(list: HTMLElement): ScrollEdges {
+  return {
+    above: list.scrollTop > 1,
+    below: list.scrollTop + list.clientHeight < list.scrollHeight - 1,
+  };
+}
+
 /**
  * Styled listbox that keeps a hidden native select in the form, so form semantics and
  * autofill keep working while the visible control follows the keyboard listbox pattern.
@@ -35,10 +49,13 @@ export function CustomSelect<V extends string>({
   value,
 }: CustomSelectProps<V>): ReactNode {
   const [open, setOpen] = useState(false);
+  const [edges, setEdges] = useState<ScrollEdges>(NO_OVERFLOW);
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
   const optionRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const pendingFocus = useRef<FocusTarget | undefined>(undefined);
+  const revealSelected = useRef(false);
   const selectedIndex = options.findIndex((option) => option.value === value);
   const selected = options[selectedIndex];
   if (selected === undefined) {
@@ -58,6 +75,20 @@ export function CustomSelect<V extends string>({
           : selectedIndex;
     optionRefs.current[index]?.focus();
   }
+
+  // Open on the selected option, so a long list shows where the current choice sits,
+  // then record which edges have more options past them for the fades.
+  useLayoutEffect(() => {
+    const list = listRef.current;
+    if (!open || !revealSelected.current || list === null) return;
+    revealSelected.current = false;
+    const option = optionRefs.current[selectedIndex];
+    if (option !== null && option !== undefined) {
+      list.scrollTop =
+        option.offsetTop - (list.clientHeight - option.offsetHeight) / 2;
+    }
+    setEdges(scrollEdges(list));
+  }, [open, selectedIndex]);
 
   // Options are inert while closed, so keyboard focus moves only after the menu opens.
   useEffect(() => {
@@ -83,13 +114,15 @@ export function CustomSelect<V extends string>({
     };
   }, [open]);
 
-  function openWithFocus(target: FocusTarget): void {
-    if (open) {
-      focusOption(target);
-      return;
-    }
+  function openMenu(target: FocusTarget | undefined): void {
     pendingFocus.current = target;
+    revealSelected.current = true;
     setOpen(true);
+  }
+
+  function openWithFocus(target: FocusTarget): void {
+    if (open) focusOption(target);
+    else openMenu(target);
   }
 
   function closeAndReturnFocus(): void {
@@ -128,6 +161,10 @@ export function CustomSelect<V extends string>({
       (index + direction + options.length) % options.length
     ]?.focus();
   }
+
+  const listClasses = ["custom-select__list"];
+  if (edges.above) listClasses.push("has-more-above");
+  if (edges.below) listClasses.push("has-more-below");
 
   return (
     <div className="field">
@@ -172,42 +209,48 @@ export function CustomSelect<V extends string>({
           aria-controls={menuId}
           aria-labelledby={`${labelId} ${valueId}`}
           onClick={() => {
-            setOpen(!open);
+            if (open) setOpen(false);
+            else openMenu(undefined);
           }}
           onKeyDown={onTriggerKeyDown}
         >
           <span id={valueId}>{selected.label}</span>
           <span className="custom-select__chevron" aria-hidden="true" />
         </button>
-        <div
-          className="custom-select__menu"
-          id={menuId}
-          role="listbox"
-          aria-labelledby={labelId}
-          aria-hidden={!open}
-          inert={!open}
-        >
-          {options.map((option, index) => (
-            <button
-              key={option.value}
-              ref={(element) => {
-                optionRefs.current[index] = element;
-              }}
-              className="custom-select__option"
-              type="button"
-              role="option"
-              aria-selected={option.value === value}
-              onClick={() => {
-                onChange(option.value);
-                closeAndReturnFocus();
-              }}
-              onKeyDown={(event) => {
-                onOptionKeyDown(event, index);
-              }}
-            >
-              {option.label}
-            </button>
-          ))}
+        {/* The fades mask the inner list, so the menu's border stays intact. */}
+        <div className="custom-select__menu" aria-hidden={!open} inert={!open}>
+          <div
+            className={listClasses.join(" ")}
+            id={menuId}
+            ref={listRef}
+            role="listbox"
+            aria-labelledby={labelId}
+            onScroll={(event) => {
+              setEdges(scrollEdges(event.currentTarget));
+            }}
+          >
+            {options.map((option, index) => (
+              <button
+                key={option.value}
+                ref={(element) => {
+                  optionRefs.current[index] = element;
+                }}
+                className="custom-select__option"
+                type="button"
+                role="option"
+                aria-selected={option.value === value}
+                onClick={() => {
+                  onChange(option.value);
+                  closeAndReturnFocus();
+                }}
+                onKeyDown={(event) => {
+                  onOptionKeyDown(event, index);
+                }}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
       {help !== undefined && <small>{help}</small>}
