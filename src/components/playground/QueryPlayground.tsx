@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ReactNode, SubmitEvent } from "react";
 
 import type {
@@ -11,6 +11,7 @@ import {
   formStateFromQueryInput,
   formStateFromSearch,
   initialFormState,
+  isCompleteSharedQuery,
 } from "../../lib/playground-form.js";
 import type { PlaygroundFormState } from "../../lib/playground-form.js";
 import { HOME_HEADLINE, HOME_SUMMARY } from "../../lib/site.js";
@@ -76,6 +77,22 @@ export function QueryPlayground({
     setForm(next);
     submit(next);
   }
+
+  // A complete shared link, including a refresh after a query, runs exactly once per
+  // page load. Incomplete or invalid links stay prefilled and wait for a submit.
+  const autoRan = useRef(false);
+  useEffect(() => {
+    if (autoRan.current) return;
+    autoRan.current = true;
+    if (!isCompleteSharedQuery(search, games)) return;
+    if (formRef.current?.checkValidity() === false) return;
+    const parsed = formQueryInput(
+      formStateFromSearch(search, games, initialFormState(games)),
+    );
+    if (parsed.kind === "valid") {
+      runQuery(parsed.input).catch(() => undefined);
+    }
+  }, [games, runQuery, search]);
 
   const loading = output.kind === "loading";
 
