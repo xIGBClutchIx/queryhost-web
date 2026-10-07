@@ -13,6 +13,7 @@ import {
   initialFormState,
 } from "../../lib/playground-form.js";
 import type { PlaygroundFormState } from "../../lib/playground-form.js";
+import { HOME_HEADLINE, HOME_SUMMARY } from "../../lib/site.js";
 import { PlaygroundExamples } from "./PlaygroundExamples.js";
 import { QueryForm } from "./QueryForm.js";
 import { QueryResult } from "./QueryResult.js";
@@ -85,8 +86,8 @@ export function QueryPlayground({
       ref={playgroundRef}
     >
       <div className="playground__heading">
-        <h1 id="query-heading">Query a server</h1>
-        <p>Enter a public game server address to get its current status.</p>
+        <h1 id="query-heading">{HOME_HEADLINE}</h1>
+        <p>{HOME_SUMMARY}</p>
       </div>
 
       <div className="query-form-dock" ref={dockRef}>

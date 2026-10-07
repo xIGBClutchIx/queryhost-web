@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { QueryPlayground } from "../src/components/playground/QueryPlayground.js";
 import { PLAYGROUND_GAMES } from "../src/lib/playground-games.js";
+import { HOME_HEADLINE, HOME_SUMMARY } from "../src/lib/site.js";
 import { MINECRAFT_ONLINE } from "./fixtures/playground.js";
 
 declare global {
@@ -58,6 +59,14 @@ afterEach(() => {
 });
 
 describe("query playground island", () => {
+  it("leads with the shared homepage headline and subline", () => {
+    const html = renderToString(
+      <QueryPlayground games={PLAYGROUND_GAMES} search="" />,
+    );
+    expect(html).toContain(`<h1 id="query-heading">${HOME_HEADLINE}</h1>`);
+    expect(html).toContain(`<p>${HOME_SUMMARY}</p>`);
+  });
+
   it("server-renders a shared link already filled in", () => {
     const html = renderToString(
       <QueryPlayground

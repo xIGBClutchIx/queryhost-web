@@ -5,6 +5,11 @@ export const BRAND_ICON_URL = "/favicon.svg?v=2";
 export const GITHUB_REPOSITORY_URL =
   "https://github.com/xIGBClutchIx/queryhost";
 export const SITE_HOSTNAME = "query.host";
+/** Homepage headline, shared by the visible hero and the page title. */
+export const HOME_HEADLINE = "Look up any game server";
+/** Homepage subline, shared by the visible hero and the meta and Open Graph descriptions. */
+export const HOME_SUMMARY =
+  "Check its live status right in your browser. Developers can run the same queries with the QueryHost library and API.";
 
 /** Normalizes a Host-style value without accepting a path, credentials, or scheme. */
 export function normalizeHostname(value: string): string {
