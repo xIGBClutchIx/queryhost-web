@@ -21,6 +21,7 @@ import { QueryResult } from "./QueryResult.js";
 import { useDockHeight } from "./use-dock-height.js";
 import { useFocusShortcut } from "./use-focus-shortcut.js";
 import { usePlaygroundSession } from "./use-playground-session.js";
+import { useRevealOutput } from "./use-reveal-output.js";
 import "../../styles/playground.css";
 
 interface QueryPlaygroundProps {
@@ -49,6 +50,7 @@ export function QueryPlayground({
     setForm(formStateFromQueryInput(input));
   }, []);
   const { output, runQuery } = usePlaygroundSession(games, onAgentQuery);
+  const outputRef = useRevealOutput(output);
 
   function submit(next: PlaygroundFormState): void {
     setFormError(undefined);
@@ -130,6 +132,7 @@ export function QueryPlayground({
       <section
         className="query-output"
         id="query-output"
+        ref={outputRef}
         aria-live="polite"
         aria-busy={loading}
       >
