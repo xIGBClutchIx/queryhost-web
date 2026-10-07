@@ -1,6 +1,6 @@
 # Working in QueryHost Web
 
-This repository contains the public site and documentation service. It owns `query.host` and `docs.query.host` while consuming QueryHost only through its packaged public contract.
+This repository contains the public site and documentation service. It owns `query.host`, including documentation under `/docs/` (`docs.query.host` only redirects there), while consuming QueryHost only through its packaged public contract.
 
 ## Boundaries
 

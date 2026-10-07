@@ -4,19 +4,16 @@ import {
   BRAND_ICON_URL,
   documentationHref,
   GITHUB_REPOSITORY_URL,
-  siteHref,
 } from "../lib/site.js";
 
 interface HeaderProps {
   readonly active: "docs" | "site";
-  readonly hostname: string;
   /** Brand mark URL; defaults to the site's icon. */
   readonly iconSrc?: string | undefined;
 }
 
 export function Header({
   active,
-  hostname,
   iconSrc = BRAND_ICON_URL,
 }: HeaderProps): ReactNode {
   return (
@@ -24,7 +21,7 @@ export function Header({
       <div className={`topbar__inner topbar__inner--${active}`}>
         <a
           className="brand"
-          href={siteHref(hostname)}
+          href="/"
           aria-label="QueryHost home"
           aria-current={active === "site" ? "page" : undefined}
         >
@@ -48,7 +45,7 @@ export function Header({
                 ? "primary-nav__link is-active"
                 : "primary-nav__link"
             }
-            href={documentationHref(hostname)}
+            href={documentationHref()}
             aria-current={active === "docs" ? "page" : undefined}
           >
             Docs

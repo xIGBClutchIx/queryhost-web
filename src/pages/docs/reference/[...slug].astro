@@ -1,7 +1,6 @@
 ---
 import BaseLayout from "../../../layouts/BaseLayout.astro";
 import { apiReferencePage } from "../../../lib/api-reference.js";
-import { requestHostname } from "../../../lib/site.js";
 import {
   API_REFERENCE_DESCRIPTION,
   ApiReferencePage,
@@ -18,5 +17,5 @@ if (page === undefined) {
   title={page.title}
   description={API_REFERENCE_DESCRIPTION}
 >
-  <ApiReferencePage hostname={requestHostname(Astro.request)} page={page} />
+  <ApiReferencePage page={page} />
 </BaseLayout>

@@ -6,12 +6,8 @@ import {
   DOCS_HOSTNAME,
   GITHUB_REPOSITORY_URL,
   documentationHref,
-  experienceForHostname,
-  internalDocumentationPath,
-  isCanonicalHostname,
   normalizeHostname,
   requestHostname,
-  siteHref,
 } from "../src/lib/site.js";
 
 describe("hostname routing", () => {
@@ -27,46 +23,25 @@ describe("hostname routing", () => {
       headers: { "x-forwarded-host": "docs.query.host" },
     });
     expect(requestHostname(request)).toBe(DOCS_HOSTNAME);
-    expect(experienceForHostname(requestHostname(request))).toBe("docs");
   });
 
-  it("maps clean documentation paths to internal Astro routes", () => {
-    expect(internalDocumentationPath("/")).toBe("/docs/");
-    expect(internalDocumentationPath("/results")).toBe("/docs/results/");
-    expect(internalDocumentationPath("//reference/query//")).toBe(
+  it("keeps documentation links on the current origin", () => {
+    expect(documentationHref()).toBe("/docs/");
+    expect(documentationHref("/results")).toBe("/docs/results/");
+    expect(documentationHref("//reference/query//")).toBe(
       "/docs/reference/query/",
     );
-  });
-
-  it("keeps all internal navigation on preview hosts", () => {
-    expect(documentationHref("localhost", "/games/")).toBe("/docs/games/");
-    expect(
-      documentationHref("web-production-d8918.up.railway.app", "/games/"),
-    ).toBe("/docs/games/");
-    expect(siteHref("web-production-d8918.up.railway.app")).toBe("/");
-  });
-
-  it("crosses origins only between the canonical production domains", () => {
-    expect(isCanonicalHostname("query.host")).toBe(true);
-    expect(isCanonicalHostname("docs.query.host")).toBe(true);
-    expect(isCanonicalHostname("preview.query.host")).toBe(false);
-    expect(documentationHref("query.host", "/games/")).toBe(
-      "https://docs.query.host/games/",
-    );
-    expect(siteHref("docs.query.host")).toBe("https://query.host/");
   });
 });
 
 describe("canonical URLs", () => {
-  it("points documentation at the docs domain and site pages at query.host", () => {
+  it("points every page, documentation included, at query.host", () => {
     expect(canonicalUrl("/")).toBe("https://query.host/");
     expect(canonicalUrl("/privacy/")).toBe("https://query.host/privacy/");
-    expect(canonicalUrl("/docs/")).toBe("https://docs.query.host/");
-    expect(canonicalUrl("/docs")).toBe("https://docs.query.host/");
+    expect(canonicalUrl("/docs/")).toBe("https://query.host/docs/");
     expect(canonicalUrl("/docs/reference/query/")).toBe(
-      "https://docs.query.host/reference/query/",
+      "https://query.host/docs/reference/query/",
     );
-    expect(canonicalUrl("/docsearch/")).toBe("https://query.host/docsearch/");
   });
 });
 

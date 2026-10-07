@@ -1,6 +1,5 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
-import { requestHostname } from "../../lib/site.js";
 import { QueryingPage, metadata } from "../../views/docs/QueryingPage.tsx";
 ---
 
@@ -9,5 +8,5 @@ import { QueryingPage, metadata } from "../../views/docs/QueryingPage.tsx";
   title={metadata.title}
   description={metadata.description}
 >
-  <QueryingPage hostname={requestHostname(Astro.request)} />
+  <QueryingPage />
 </BaseLayout>

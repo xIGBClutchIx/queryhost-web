@@ -3,21 +3,26 @@ import { defineMiddleware } from "astro:middleware";
 import {
   cacheControlForPath,
   DOCS_HOSTNAME,
-  internalDocumentationPath,
+  documentationHref,
   requestHostname,
+  SITE_HOSTNAME,
 } from "./lib/site.js";
 
 export const onRequest = defineMiddleware(async (context, next) => {
   const hostname = requestHostname(context.request);
   const pathname = context.url.pathname;
 
-  if (
-    hostname === DOCS_HOSTNAME &&
-    !pathname.startsWith("/docs/") &&
-    pathname !== "/health"
-  ) {
-    const internalPath = internalDocumentationPath(pathname);
-    return context.rewrite(`${internalPath}${context.url.search}`);
+  // Documentation moved to query.host/docs/. Keep old links working with a
+  // permanent redirect.
+  if (hostname === DOCS_HOSTNAME && pathname !== "/health") {
+    const target =
+      pathname === "/docs" || pathname.startsWith("/docs/")
+        ? pathname
+        : documentationHref(pathname);
+    return context.redirect(
+      `https://${SITE_HOSTNAME}${target}${context.url.search}`,
+      301,
+    );
   }
 
   const response = await next();

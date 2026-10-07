@@ -4,7 +4,6 @@ import { Callout } from "../../components/Callout.js";
 import { DocsLayout } from "../../components/DocsLayout.js";
 import type { DocsPageMetadata } from "../../components/DocsLayout.js";
 import { documentationHref } from "../../lib/site.js";
-import type { PageProps } from "../page-props.js";
 
 export const metadata = {
   activeHref: "/hosted-service/",
@@ -15,9 +14,9 @@ export const metadata = {
     "The public web service and private API add caching and abuse controls without changing the live-by-default library.",
 } as const satisfies DocsPageMetadata;
 
-export function HostedServicePage({ hostname }: PageProps): ReactNode {
+export function HostedServicePage(): ReactNode {
   return (
-    <DocsLayout {...metadata} hostname={hostname}>
+    <DocsLayout {...metadata}>
       <h2 id="boundary">Service boundary</h2>
       <p>
         The browser sends non-secret inputs to <code>POST /api/query</code> on
@@ -64,8 +63,8 @@ export function HostedServicePage({ hostname }: PageProps): ReactNode {
       <p>
         The private API has no <code>/v1</code> prefix and no public domain.
         Third-party callers use the versioned{" "}
-        <a href={documentationHref(hostname, "/public-api/")}>public API</a> on
-        the web service, which has its own caller budget.
+        <a href={documentationHref("/public-api/")}>public API</a> on the web
+        service, which has its own caller budget.
       </p>
       <h2 id="cache">Caching</h2>
       <ul>

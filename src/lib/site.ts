@@ -1,5 +1,4 @@
-export type SiteExperience = "docs" | "site";
-
+/** Former documentation domain, kept only to redirect old links. */
 export const DOCS_HOSTNAME = "docs.query.host";
 export const BRAND_ICON_URL = "/favicon.svg?v=2";
 export const GITHUB_REPOSITORY_URL =
@@ -30,52 +29,15 @@ export function requestHostname(request: Request): string {
     : normalizeHostname(forwardedHost);
 }
 
-export function experienceForHostname(hostname: string): SiteExperience {
-  return normalizeHostname(hostname) === DOCS_HOSTNAME ? "docs" : "site";
-}
-
-/** Limits cross-origin navigation to QueryHost's two canonical public domains. */
-export function isCanonicalHostname(hostname: string): boolean {
-  const normalizedHostname = normalizeHostname(hostname);
-  return (
-    normalizedHostname === SITE_HOSTNAME || normalizedHostname === DOCS_HOSTNAME
-  );
-}
-
-/** Maps a public clean documentation path to its internal Astro route. */
-export function internalDocumentationPath(pathname: string): string {
+/** Returns the same-origin URL of a clean documentation path. */
+export function documentationHref(pathname = "/"): string {
   const cleanPath =
     pathname === "/" ? "/" : `/${pathname.replace(/^\/+|\/+$/g, "")}/`;
   return cleanPath === "/" ? "/docs/" : `/docs${cleanPath}`;
 }
 
-/** Uses the docs domain in production and a same-origin route on every preview host. */
-export function documentationHref(hostname: string, pathname = "/"): string {
-  const normalizedPath =
-    pathname === "/" ? "/" : `/${pathname.replace(/^\/+|\/+$/g, "")}/`;
-  if (!isCanonicalHostname(hostname)) {
-    return internalDocumentationPath(normalizedPath);
-  }
-
-  return `https://${DOCS_HOSTNAME}${normalizedPath}`;
-}
-
-export function siteHref(hostname: string): string {
-  return isCanonicalHostname(hostname) ? `https://${SITE_HOSTNAME}/` : "/";
-}
-
-/**
- * Returns the production URL search engines and link previews should use for a
- * route. Documentation is canonical on the docs domain, not under `/docs/`.
- */
+/** Returns the production URL search engines and link previews should use. */
 export function canonicalUrl(pathname: string): string {
-  if (pathname === "/docs" || pathname.startsWith("/docs/")) {
-    return documentationHref(
-      DOCS_HOSTNAME,
-      pathname.slice("/docs".length) || "/",
-    );
-  }
-
   return new URL(pathname, `https://${SITE_HOSTNAME}`).href;
 }
 

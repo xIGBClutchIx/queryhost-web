@@ -1,6 +1,5 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
-import { requestHostname } from "../../lib/site.js";
 import { GamesPage, metadata } from "../../views/docs/GamesPage.tsx";
 ---
 
@@ -9,5 +8,5 @@ import { GamesPage, metadata } from "../../views/docs/GamesPage.tsx";
   title={metadata.title}
   description={metadata.description}
 >
-  <GamesPage hostname={requestHostname(Astro.request)} />
+  <GamesPage />
 </BaseLayout>

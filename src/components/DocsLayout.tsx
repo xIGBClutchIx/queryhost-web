@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 
 import { DocsMobileNavigation, DocsSidebar } from "./DocsNavigation.js";
 import type { ReferenceContext } from "./DocsNavigation.js";
-import type { PageProps } from "../views/page-props.js";
 import { DocsPager } from "./DocsPager.js";
 import { Header } from "./Header.js";
 import "../styles/docs.css";
@@ -18,10 +17,9 @@ export interface DocsPageMetadata {
   readonly wide?: boolean;
 }
 
-type DocsLayoutProps = DocsPageMetadata &
-  PageProps & {
-    readonly reference?: ReferenceContext | undefined;
-  } & (
+type DocsLayoutProps = DocsPageMetadata & {
+  readonly reference?: ReferenceContext | undefined;
+} & (
     | { readonly children: ReactNode; readonly html?: never }
     // Trusted HTML rendered on the server from package-owned Markdown.
     | { readonly children?: never; readonly html: string }
@@ -33,7 +31,6 @@ export function DocsLayout({
   contents = false,
   description,
   eyebrow,
-  hostname,
   html,
   reference,
   title,
@@ -41,10 +38,10 @@ export function DocsLayout({
 }: DocsLayoutProps): ReactNode {
   return (
     <>
-      <Header active="docs" hostname={hostname} />
+      <Header active="docs" />
       <DocsMobileNavigation
         activeHref={activeHref}
-        hostname={hostname}
+
         reference={reference}
       />
       <div
@@ -53,7 +50,7 @@ export function DocsLayout({
         <aside className="docs-sidebar">
           <DocsSidebar
             activeHref={activeHref}
-            hostname={hostname}
+
             reference={reference}
           />
         </aside>
@@ -74,7 +71,7 @@ export function DocsLayout({
               dangerouslySetInnerHTML={{ __html: html }}
             />
           )}
-          <DocsPager activeHref={activeHref} hostname={hostname} />
+          <DocsPager activeHref={activeHref} />
         </main>
         {contents && (
           <aside className="doc-toc-column">
