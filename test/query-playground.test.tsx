@@ -279,6 +279,7 @@ describe("query playground island", () => {
     "?game=unknown&host=play.example.com",
     "?game=rust&host=https://play.example.com",
     "?game=rust&host=play.example.com&port=99999",
+    "?game=rust&host=play.example.com&port=abc",
   ])(
     "leaves the incomplete or invalid link %s for the person to submit",
     (search) => {
