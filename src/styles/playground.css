@@ -459,41 +459,6 @@
     visibility var(--duration-base);
 }
 
-.custom-select__menu input.custom-select__filter {
-  width: 100%;
-  height: 2.5rem;
-  padding: 0 var(--space-3);
-  border: 0;
-  border-bottom: 1px solid var(--line);
-  border-radius: 0;
-  outline: 0;
-  background: transparent;
-  color: var(--text-strong);
-  box-shadow: none;
-  font-size: var(--text-sm);
-}
-
-.custom-select__menu input.custom-select__filter:hover,
-.custom-select__menu input.custom-select__filter:focus {
-  background: color-mix(in srgb, var(--background) 40%, transparent);
-  box-shadow: none;
-}
-
-/* iOS zooms into inputs smaller than 16px on focus. */
-@media (hover: none) {
-  .custom-select__menu input.custom-select__filter {
-    font-size: var(--text-base);
-  }
-}
-
-.custom-select__menu input.custom-select__filter::placeholder {
-  color: var(--faint);
-}
-
-.custom-select__menu input.custom-select__filter::-webkit-search-cancel-button {
-  display: none;
-}
-
 /* The max height is deliberately not a whole number of rows: a half-visible
    last option, faded at the edge, shows the list continues. */
 .custom-select__list {
@@ -529,13 +494,6 @@
   );
 }
 
-.custom-select__empty {
-  margin: 0;
-  padding: var(--space-3);
-  color: var(--faint);
-  font-size: var(--text-sm);
-}
-
 .custom-select.is-open .custom-select__menu {
   opacity: 1;
   pointer-events: auto;
@@ -557,8 +515,7 @@
 }
 
 .custom-select__option:hover,
-.custom-select__option:focus-visible,
-.custom-select__option.is-default {
+.custom-select__option:focus-visible {
   outline: 0;
   background: var(--surface-subtle);
   color: var(--text-strong);

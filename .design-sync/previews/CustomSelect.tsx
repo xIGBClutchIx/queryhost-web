@@ -38,7 +38,6 @@ export function GamePicker(): ReactNode {
         id="preview-game"
         name="game"
         label="Game"
-        filterLabel="Filter games"
         options={GAMES}
         value={value}
         required
@@ -84,7 +83,6 @@ export function Open(): ReactNode {
           id="preview-open"
           name="game"
           label="Game"
-          filterLabel="Filter games"
           options={GAMES}
           value={value}
           onChange={setValue}

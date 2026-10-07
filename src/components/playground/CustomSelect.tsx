@@ -8,8 +8,6 @@ export interface SelectOption<V extends string> {
 }
 
 interface CustomSelectProps<V extends string> {
-  /** Accessible name and placeholder for a type-to-filter box; omit for short lists. */
-  readonly filterLabel?: string;
   readonly help?: string;
   readonly id: string;
   readonly label: string;
@@ -20,7 +18,7 @@ interface CustomSelectProps<V extends string> {
   readonly value: V;
 }
 
-type FocusTarget = "filter" | "first" | "last" | "selected";
+type FocusTarget = "first" | "last" | "selected";
 
 interface ScrollEdges {
   readonly above: boolean;
@@ -37,49 +35,10 @@ function scrollEdges(list: HTMLElement): ScrollEdges {
 }
 
 /**
- * Ranks a label against a filter: 0 for a prefix, 1 for a word prefix, 2 for any
- * other substring, undefined for no match. Enter picks the best-ranked option.
- */
-function matchRank(label: string, query: string): number | undefined {
-  const text = label.toLocaleLowerCase();
-  const needle = query.trim().toLocaleLowerCase();
-  const at = text.indexOf(needle);
-  if (at < 0) return undefined;
-  if (at === 0) return 0;
-  return text.split(/[^\p{L}\p{N}]+/u).some((word) => word.startsWith(needle))
-    ? 1
-    : 2;
-}
-
-function filterOptions<V extends string>(
-  options: readonly SelectOption<V>[],
-  query: string,
-): readonly SelectOption<V>[] {
-  return options
-    .flatMap((option) => {
-      const rank = matchRank(option.label, query);
-      return rank === undefined ? [] : [{ option, rank }];
-    })
-    .sort((a, b) => a.rank - b.rank)
-    .map(({ option }) => option);
-}
-
-function isTypingKey(event: KeyboardEvent): boolean {
-  return (
-    event.key.length === 1 &&
-    event.key !== " " &&
-    !event.altKey &&
-    !event.ctrlKey &&
-    !event.metaKey
-  );
-}
-
-/**
  * Styled listbox that keeps a hidden native select in the form, so form semantics and
  * autofill keep working while the visible control follows the keyboard listbox pattern.
  */
 export function CustomSelect<V extends string>({
-  filterLabel,
   help,
   id,
   label,
@@ -90,52 +49,35 @@ export function CustomSelect<V extends string>({
   value,
 }: CustomSelectProps<V>): ReactNode {
   const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState("");
   const [edges, setEdges] = useState<ScrollEdges>(NO_OVERFLOW);
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
-  const filterRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const optionRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const pendingFocus = useRef<FocusTarget | undefined>(undefined);
   const revealSelected = useRef(false);
-  const pointerType = useRef("");
-  const selected = options.find((option) => option.value === value);
+  const selectedIndex = options.findIndex((option) => option.value === value);
+  const selected = options[selectedIndex];
   if (selected === undefined) {
     throw new Error(`Custom select ${id} has no selected option.`);
   }
-
-  const filterable = filterLabel !== undefined;
-  const visible = filterable ? filterOptions(options, query) : options;
-  const selectedIndex = visible.findIndex((option) => option.value === value);
 
   const labelId = `${id}-label`;
   const valueId = `${id}-value`;
   const menuId = `${id}-menu`;
 
   function focusOption(target: FocusTarget): void {
-    if (target === "filter") {
-      filterRef.current?.focus();
-      return;
-    }
     const index =
       target === "first"
         ? 0
         : target === "last"
-          ? visible.length - 1
-          : Math.max(selectedIndex, 0);
+          ? options.length - 1
+          : selectedIndex;
     optionRefs.current[index]?.focus();
   }
 
-  // Options are inert while closed, so keyboard focus moves only after the menu opens.
-  useEffect(() => {
-    const target = pendingFocus.current;
-    pendingFocus.current = undefined;
-    if (open && target !== undefined) focusOption(target);
-  });
-
-  // Open on the selected option, so a long list shows where the current choice sits;
-  // later renders (filtering) keep the user's scroll position.
+  // Open on the selected option, so a long list shows where the current choice sits,
+  // then record which edges have more options past them for the fades.
   useLayoutEffect(() => {
     const list = listRef.current;
     if (!open || !revealSelected.current || list === null) return;
@@ -145,13 +87,15 @@ export function CustomSelect<V extends string>({
       list.scrollTop =
         option.offsetTop - (list.clientHeight - option.offsetHeight) / 2;
     }
-  });
+    setEdges(scrollEdges(list));
+  }, [open, selectedIndex]);
 
-  // The edge fades say whether more options sit above or below the visible rows.
-  useLayoutEffect(() => {
-    const list = listRef.current;
-    setEdges(open && list !== null ? scrollEdges(list) : NO_OVERFLOW);
-  }, [open, query]);
+  // Options are inert while closed, so keyboard focus moves only after the menu opens.
+  useEffect(() => {
+    const target = pendingFocus.current;
+    pendingFocus.current = undefined;
+    if (open && target !== undefined) focusOption(target);
+  });
 
   useEffect(() => {
     if (!open) return;
@@ -162,7 +106,6 @@ export function CustomSelect<V extends string>({
         rootRef.current?.contains(target) !== true
       ) {
         setOpen(false);
-        setQuery("");
       }
     }
     document.addEventListener("pointerdown", closeFromOutside);
@@ -170,11 +113,6 @@ export function CustomSelect<V extends string>({
       document.removeEventListener("pointerdown", closeFromOutside);
     };
   }, [open]);
-
-  function close(): void {
-    setOpen(false);
-    setQuery("");
-  }
 
   function openMenu(target: FocusTarget | undefined): void {
     pendingFocus.current = target;
@@ -188,26 +126,11 @@ export function CustomSelect<V extends string>({
   }
 
   function closeAndReturnFocus(): void {
-    close();
+    setOpen(false);
     triggerRef.current?.focus();
   }
 
-  function choose(option: SelectOption<V>): void {
-    onChange(option.value);
-    closeAndReturnFocus();
-  }
-
-  /** Starts or extends the filter from a key typed anywhere in the control. */
-  function typeIntoFilter(event: KeyboardEvent<HTMLElement>): boolean {
-    if (!filterable || !isTypingKey(event)) return false;
-    event.preventDefault();
-    setQuery((current) => (open ? current : "") + event.key);
-    openWithFocus("filter");
-    return true;
-  }
-
   function onTriggerKeyDown(event: KeyboardEvent<HTMLButtonElement>): void {
-    if (typeIntoFilter(event)) return;
     if (event.key !== "ArrowDown" && event.key !== "ArrowUp") {
       return;
     }
@@ -215,31 +138,10 @@ export function CustomSelect<V extends string>({
     openWithFocus(event.key === "ArrowDown" ? "selected" : "last");
   }
 
-  function onFilterKeyDown(event: KeyboardEvent<HTMLInputElement>): void {
-    if (event.key === "Escape") {
-      event.preventDefault();
-      if (query === "") closeAndReturnFocus();
-      else setQuery("");
-      return;
-    }
-    if (event.key === "Enter") {
-      // Enter picks the best match instead of submitting the surrounding form.
-      event.preventDefault();
-      const first = visible[0];
-      if (first !== undefined) choose(first);
-      return;
-    }
-    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
-      event.preventDefault();
-      focusOption(event.key === "ArrowDown" ? "first" : "last");
-    }
-  }
-
   function onOptionKeyDown(
     event: KeyboardEvent<HTMLButtonElement>,
     index: number,
   ): void {
-    if (typeIntoFilter(event)) return;
     if (event.key === "Escape") {
       event.preventDefault();
       closeAndReturnFocus();
@@ -254,12 +156,10 @@ export function CustomSelect<V extends string>({
       return;
     }
     event.preventDefault();
-    const next = index + (event.key === "ArrowDown" ? 1 : -1);
-    if (filterable && (next < 0 || next >= visible.length)) {
-      focusOption("filter");
-      return;
-    }
-    optionRefs.current[(next + visible.length) % visible.length]?.focus();
+    const direction = event.key === "ArrowDown" ? 1 : -1;
+    optionRefs.current[
+      (index + direction + options.length) % options.length
+    ]?.focus();
   }
 
   const listClasses = ["custom-select__list"];
@@ -275,7 +175,7 @@ export function CustomSelect<V extends string>({
         onBlur={(event) => {
           const next = event.relatedTarget;
           if (!(next instanceof Node) || !event.currentTarget.contains(next)) {
-            close();
+            setOpen(false);
           }
         }}
       >
@@ -308,46 +208,17 @@ export function CustomSelect<V extends string>({
           aria-expanded={open}
           aria-controls={menuId}
           aria-labelledby={`${labelId} ${valueId}`}
-          onPointerDown={(event) => {
-            pointerType.current = event.pointerType;
-          }}
           onClick={() => {
-            const touch =
-              pointerType.current === "touch" || pointerType.current === "pen";
-            pointerType.current = "";
-            if (open) {
-              close();
-              return;
-            }
-            // Mouse and keyboard opens land in the filter; touch skips it so the
-            // on-screen keyboard does not cover the list.
-            openMenu(filterable && !touch ? "filter" : undefined);
+            if (open) setOpen(false);
+            else openMenu(undefined);
           }}
           onKeyDown={onTriggerKeyDown}
         >
           <span id={valueId}>{selected.label}</span>
           <span className="custom-select__chevron" aria-hidden="true" />
         </button>
+        {/* The fades mask the inner list, so the menu's border stays intact. */}
         <div className="custom-select__menu" aria-hidden={!open} inert={!open}>
-          {filterable && (
-            <input
-              className="custom-select__filter"
-              ref={filterRef}
-              type="search"
-              enterKeyHint="go"
-              autoComplete="off"
-              autoCapitalize="none"
-              spellCheck={false}
-              placeholder={filterLabel}
-              aria-label={filterLabel}
-              aria-controls={menuId}
-              value={query}
-              onChange={(event) => {
-                setQuery(event.currentTarget.value);
-              }}
-              onKeyDown={onFilterKeyDown}
-            />
-          )}
           <div
             className={listClasses.join(" ")}
             id={menuId}
@@ -358,23 +229,19 @@ export function CustomSelect<V extends string>({
               setEdges(scrollEdges(event.currentTarget));
             }}
           >
-            {visible.map((option, index) => (
+            {options.map((option, index) => (
               <button
                 key={option.value}
                 ref={(element) => {
                   optionRefs.current[index] = element;
                 }}
-                className={
-                  // Marks the match that Enter in the filter picks.
-                  index === 0 && query.trim() !== ""
-                    ? "custom-select__option is-default"
-                    : "custom-select__option"
-                }
+                className="custom-select__option"
                 type="button"
                 role="option"
                 aria-selected={option.value === value}
                 onClick={() => {
-                  choose(option);
+                  onChange(option.value);
+                  closeAndReturnFocus();
                 }}
                 onKeyDown={(event) => {
                   onOptionKeyDown(event, index);
@@ -384,11 +251,6 @@ export function CustomSelect<V extends string>({
               </button>
             ))}
           </div>
-          {filterable && visible.length === 0 && (
-            <p className="custom-select__empty" role="status">
-              No matches for “{query.trim()}”
-            </p>
-          )}
         </div>
       </div>
       {help !== undefined && <small>{help}</small>}
