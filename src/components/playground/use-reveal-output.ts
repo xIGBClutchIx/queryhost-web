@@ -3,7 +3,7 @@ import type { RefObject } from "react";
 
 import type { OutputState } from "./use-playground-session.js";
 
-/** Output this close to its framed position is left alone instead of nudged. */
+/** Output this close to its framed position, either way, is left alone. */
 const FRAMED_SLACK_PX = 48;
 
 /**
@@ -27,11 +27,12 @@ export function useRevealOutput(
       getComputedStyle(target).scrollMarginTop,
     );
     // A short result is still framed: the page scrolls only as far as it can, so
-    // the result keeps breathing room above the bottom edge.
+    // the result keeps breathing room above the bottom edge. Output above its
+    // framed position, as after re-querying from the sticky form while scrolled
+    // down a long result, is brought back down to it.
     const { top } = target.getBoundingClientRect();
-    if (top - (Number.isFinite(framedTop) ? framedTop : 0) <= FRAMED_SLACK_PX) {
-      return;
-    }
+    const offset = top - (Number.isFinite(framedTop) ? framedTop : 0);
+    if (Math.abs(offset) <= FRAMED_SLACK_PX) return;
     // The default behavior follows the page's CSS: smooth, or instant when the
     // person prefers reduced motion.
     target.scrollIntoView({ block: "start" });

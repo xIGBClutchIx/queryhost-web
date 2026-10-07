@@ -470,6 +470,7 @@ describe("revealing finished output", () => {
   it.each([
     ["runs past the bottom", 480, 900],
     ["fits on screen", 480, 200],
+    ["starts above the viewport after a re-query", -600, 900],
   ])(
     "frames a result that %s below the sticky form on wider screens",
     async (_case, top, height) => {
