@@ -283,4 +283,124 @@ describe("query playground island", () => {
     expect(element<HTMLElement>("#query-query-port-field").hidden).toBe(true);
     expect(element("#query-mode-value").textContent).toBe("Full details");
   });
+  it("filters the game list from typed keys and picks the first match with Enter", () => {
+    const fetcher = vi.fn<typeof fetch>();
+    vi.stubGlobal("fetch", fetcher);
+    act(() => {
+      root.render(<QueryPlayground games={PLAYGROUND_GAMES} search="" />);
+    });
+    const trigger = element<HTMLButtonElement>(
+      "[aria-controls='query-game-menu']",
+    );
+    act(() => {
+      trigger.dispatchEvent(
+        new KeyboardEvent("keydown", { bubbles: true, key: "r" }),
+      );
+    });
+    const filter = element<HTMLInputElement>(".custom-select__filter");
+    expect(trigger.getAttribute("aria-expanded")).toBe("true");
+    expect(document.activeElement).toBe(filter);
+    expect(filter.value).toBe("r");
+
+    act(() => {
+      setInput(filter, "rus");
+    });
+    const labels = Array.from(
+      container.querySelectorAll("#query-game-menu [role='option']"),
+      (option) => option.textContent,
+    );
+    // Prefix matches rank first, so Enter picks Rust over "Icarus".
+    expect(labels).toEqual(["Rust", "Icarus"]);
+
+    act(() => {
+      filter.dispatchEvent(
+        new KeyboardEvent("keydown", { bubbles: true, key: "Enter" }),
+      );
+    });
+    expect(fetcher).not.toHaveBeenCalled();
+    expect(trigger.getAttribute("aria-expanded")).toBe("false");
+    expect(document.activeElement).toBe(trigger);
+    expect(element("#query-game-value").textContent).toBe("Rust");
+    expect(element<HTMLInputElement>(".custom-select__filter").value).toBe("");
+  });
+
+  it("clears the game filter on the first Escape and closes on the second", () => {
+    act(() => {
+      root.render(<QueryPlayground games={PLAYGROUND_GAMES} search="" />);
+    });
+    const trigger = element<HTMLButtonElement>(
+      "[aria-controls='query-game-menu']",
+    );
+    act(() => {
+      trigger.dispatchEvent(
+        new KeyboardEvent("keydown", { bubbles: true, key: "z" }),
+      );
+    });
+    const filter = element<HTMLInputElement>(".custom-select__filter");
+    act(() => {
+      setInput(filter, "zzz");
+    });
+    expect(
+      container.querySelectorAll("#query-game-menu [role='option']"),
+    ).toHaveLength(0);
+    expect(
+      element("#query-game-menu + .custom-select__empty").textContent,
+    ).toBe("No matches for “zzz”");
+
+    function escape(): void {
+      act(() => {
+        filter.dispatchEvent(
+          new KeyboardEvent("keydown", { bubbles: true, key: "Escape" }),
+        );
+      });
+    }
+    escape();
+    expect(filter.value).toBe("");
+    expect(trigger.getAttribute("aria-expanded")).toBe("true");
+    escape();
+    expect(trigger.getAttribute("aria-expanded")).toBe("false");
+    expect(document.activeElement).toBe(trigger);
+  });
+
+  it("marks the game list edges that have more options past them", () => {
+    act(() => {
+      root.render(<QueryPlayground games={PLAYGROUND_GAMES} search="" />);
+    });
+    const list = element<HTMLElement>("#query-game-menu");
+    Object.defineProperties(list, {
+      clientHeight: { value: 200 },
+      scrollHeight: { value: 900 },
+    });
+    act(() => {
+      list.scrollTop = 0;
+      list.dispatchEvent(new Event("scroll"));
+    });
+    expect(list.className).toBe("custom-select__list has-more-below");
+    act(() => {
+      list.scrollTop = 300;
+      list.dispatchEvent(new Event("scroll"));
+    });
+    expect(list.className).toBe(
+      "custom-select__list has-more-above has-more-below",
+    );
+    act(() => {
+      list.scrollTop = 700;
+      list.dispatchEvent(new Event("scroll"));
+    });
+    expect(list.className).toBe("custom-select__list has-more-above");
+  });
+
+  it("keeps short selects free of a filter box", () => {
+    act(() => {
+      root.render(<QueryPlayground games={PLAYGROUND_GAMES} search="" />);
+    });
+    expect(container.querySelectorAll(".custom-select__filter")).toHaveLength(
+      1,
+    );
+    expect(
+      element("#query-game")
+        .closest(".custom-select")
+        ?.querySelector(".custom-select__filter"),
+    ).not.toBeNull();
+  });
 });

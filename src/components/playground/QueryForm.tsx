@@ -74,6 +74,7 @@ export function QueryForm({
           id="query-game"
           name="game"
           label="Game"
+          filterLabel="Filter games"
           options={gameOptions}
           value={form.game}
           required
