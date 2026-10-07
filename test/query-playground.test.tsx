@@ -426,7 +426,8 @@ describe("revealing finished output", () => {
     vi.restoreAllMocks();
   });
 
-  function submitHost(response: Response): void {
+  /** `scrollMargin` stands in for the stylesheet's sticky-chrome offset. */
+  function submitHost(response: Response, scrollMargin = "0px"): void {
     vi.stubGlobal(
       "fetch",
       vi.fn<typeof fetch>(() => Promise.resolve(response)),
@@ -434,6 +435,7 @@ describe("revealing finished output", () => {
     act(() => {
       root.render(<QueryPlayground games={PLAYGROUND_GAMES} search="" />);
     });
+    element<HTMLElement>("#query-output").style.scrollMarginTop = scrollMargin;
     act(() => {
       setInput(element("#query-host"), "play.example.com");
     });
@@ -443,7 +445,7 @@ describe("revealing finished output", () => {
     });
   }
 
-  it("scrolls a result below the fold into view without moving focus", async () => {
+  it("scrolls a result below the fold up to the header without moving focus", async () => {
     submitHost(new Response(JSON.stringify(MINECRAFT_ONLINE)));
     expect(scrollIntoView).not.toHaveBeenCalled();
     await flush();
@@ -466,12 +468,23 @@ describe("revealing finished output", () => {
   });
 
   it.each([
-    ["starts above the lower third of the screen", 480, 900],
-    ["fits on screen", 500, 200],
-  ])("leaves a result that %s where it is", async (_case, top, height) => {
-    outputTop = top;
-    outputHeight = height;
-    submitHost(new Response(JSON.stringify(MINECRAFT_ONLINE)));
+    ["runs past the bottom", 480, 900],
+    ["fits on screen", 480, 200],
+  ])(
+    "frames a result that %s below the sticky form on wider screens",
+    async (_case, top, height) => {
+      outputTop = top;
+      outputHeight = height;
+      submitHost(new Response(JSON.stringify(MINECRAFT_ONLINE)), "200px");
+      await flush();
+
+      expect(scrollIntoView).toHaveBeenCalledOnce();
+    },
+  );
+
+  it("leaves a result that is already framed below the sticky form", async () => {
+    outputTop = 230;
+    submitHost(new Response(JSON.stringify(MINECRAFT_ONLINE)), "200px");
     await flush();
 
     expect(element("#query-result-name").textContent).toBe(
