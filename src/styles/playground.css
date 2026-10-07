@@ -176,6 +176,10 @@
     z-index: 1;
   }
 
+  .playground .query-output {
+    scroll-margin-top: calc(var(--header-height) + var(--query-dock-height));
+  }
+
   .playground .query-result {
     overflow: visible;
     border: 0;
@@ -571,6 +575,8 @@
 
 .query-output {
   margin-top: var(--space-4);
+  /* Revealed output lands below the sticky header. */
+  scroll-margin-top: calc(var(--header-height) + var(--space-4));
 }
 
 .query-request-error {

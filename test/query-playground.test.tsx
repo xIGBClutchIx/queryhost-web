@@ -398,3 +398,105 @@ describe("query playground island", () => {
     expect(list.className).toBe("custom-select__list has-more-above");
   });
 });
+
+describe("revealing finished output", () => {
+  let scrollIntoView: ReturnType<
+    typeof vi.fn<(options?: ScrollIntoViewOptions) => void>
+  >;
+  let outputTop: number;
+  let outputHeight: number;
+
+  beforeEach(() => {
+    // jsdom's viewport is 768px tall.
+    outputTop = 900;
+    outputHeight = 400;
+    scrollIntoView = vi.fn<(options?: ScrollIntoViewOptions) => void>();
+    // jsdom has no layout or scrolling, so place the output and record scrolls.
+    Object.defineProperty(Element.prototype, "scrollIntoView", {
+      configurable: true,
+      value: scrollIntoView,
+    });
+    vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(
+      () => new DOMRect(0, outputTop, 800, outputHeight),
+    );
+  });
+
+  afterEach(() => {
+    Reflect.deleteProperty(Element.prototype, "scrollIntoView");
+    vi.restoreAllMocks();
+  });
+
+  function submitHost(response: Response): void {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<typeof fetch>(() => Promise.resolve(response)),
+    );
+    act(() => {
+      root.render(<QueryPlayground games={PLAYGROUND_GAMES} search="" />);
+    });
+    act(() => {
+      setInput(element("#query-host"), "play.example.com");
+    });
+    element<HTMLButtonElement>("#query-submit").focus();
+    act(() => {
+      element<HTMLFormElement>("#query-form").requestSubmit();
+    });
+  }
+
+  it("scrolls a result below the fold into view without moving focus", async () => {
+    submitHost(new Response(JSON.stringify(MINECRAFT_ONLINE)));
+    expect(scrollIntoView).not.toHaveBeenCalled();
+    await flush();
+
+    expect(scrollIntoView).toHaveBeenCalledOnce();
+    expect(scrollIntoView.mock.contexts[0]).toBe(element("#query-output"));
+    // No explicit behavior, so the page's smooth or reduced-motion CSS decides.
+    expect(scrollIntoView).toHaveBeenCalledWith({ block: "start" });
+    expect(document.activeElement).toBe(element("#query-submit"));
+  });
+
+  it("scrolls a request error below the fold into view", async () => {
+    submitHost(new Response(JSON.stringify({ ok: true })));
+    await flush();
+
+    expect(element("#query-request-error").textContent).toContain(
+      "NETWORK_ERROR",
+    );
+    expect(scrollIntoView).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    ["starts in the top half of the screen", 300, 900],
+    ["fits on screen", 500, 200],
+  ])("leaves a result that %s where it is", async (_case, top, height) => {
+    outputTop = top;
+    outputHeight = height;
+    submitHost(new Response(JSON.stringify(MINECRAFT_ONLINE)));
+    await flush();
+
+    expect(element("#query-result-name").textContent).toBe(
+      "Blockhaven Survival",
+    );
+    expect(scrollIntoView).not.toHaveBeenCalled();
+  });
+
+  it("reveals the result of a shared link that runs on load", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<typeof fetch>(() =>
+        Promise.resolve(new Response(JSON.stringify(MINECRAFT_ONLINE))),
+      ),
+    );
+    const search = "?game=minecraft-java&host=play.example.com&mode=summary";
+    history.replaceState(null, "", `/${search}`);
+    act(() => {
+      root.render(<QueryPlayground games={PLAYGROUND_GAMES} search={search} />);
+    });
+    await flush();
+
+    expect(element("#query-result-name").textContent).toBe(
+      "Blockhaven Survival",
+    );
+    expect(scrollIntoView).toHaveBeenCalledOnce();
+  });
+});
