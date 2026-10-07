@@ -127,7 +127,9 @@ describe("public API", () => {
   });
 
   it("answers unknown API paths with a readable JSON 404", async () => {
-    const response = handlePublicApiNotFound();
+    const response = handlePublicApiNotFound(
+      new Request(`${API_URL}/typo`, { method: "POST" }),
+    );
 
     expect(response.status).toBe(404);
     expect(response.headers.get("access-control-allow-origin")).toBe("*");
@@ -135,6 +137,15 @@ describe("public API", () => {
     expect(await response.json()).toEqual({
       error: { code: "NOT_FOUND", message: "Unknown API route." },
     });
+
+    const preflight = handlePublicApiNotFound(
+      new Request(`${API_URL}/typo`, { method: "OPTIONS" }),
+    );
+    expect(preflight.status).toBe(204);
+    expect(preflight.headers.get("access-control-allow-origin")).toBe("*");
+    expect(preflight.headers.get("access-control-allow-headers")).toBe(
+      "Content-Type",
+    );
   });
 
   it("reads its caller budget under a separate prefix", () => {
