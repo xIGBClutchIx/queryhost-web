@@ -145,6 +145,21 @@ export function formStateFromSearch(
   };
 }
 
+/**
+ * A shared link names a complete query when it carries a known game and a host;
+ * the playground runs such a link once when the page loads.
+ */
+export function isCompleteSharedQuery(
+  search: string,
+  games: readonly PlaygroundGameDefinition[],
+): boolean {
+  const parameters = new URLSearchParams(search);
+  return (
+    findGame(games, parameters.get("game") ?? "") !== undefined &&
+    (parameters.get("host") ?? "").trim().length > 0
+  );
+}
+
 /** Mirrors an agent-started query into the visible form. */
 export function formStateFromQueryInput(
   input: PlaygroundQueryInput,

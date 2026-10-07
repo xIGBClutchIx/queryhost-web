@@ -235,6 +235,57 @@ describe("query playground island", () => {
     expect(element<HTMLElement>("#query-panel-overview").hidden).toBe(true);
   });
 
+  it("runs a complete shared link once when the page loads", async () => {
+    const fetcher = vi.fn<typeof fetch>(() =>
+      Promise.resolve(new Response(JSON.stringify(MINECRAFT_ONLINE))),
+    );
+    vi.stubGlobal("fetch", fetcher);
+    const search = "?game=minecraft-java&host=play.example.com&mode=summary";
+    history.replaceState(null, "", `/${search}`);
+    act(() => {
+      root.render(<QueryPlayground games={PLAYGROUND_GAMES} search={search} />);
+    });
+    await flush();
+    act(() => {
+      root.render(<QueryPlayground games={PLAYGROUND_GAMES} search={search} />);
+    });
+    await flush();
+
+    expect(fetcher).toHaveBeenCalledOnce();
+    const body = fetcher.mock.calls[0]?.[1]?.body;
+    expect(typeof body === "string" ? JSON.parse(body) : body).toEqual({
+      game: "minecraft-java",
+      host: "play.example.com",
+      mode: "summary",
+      port: 25_565,
+      timeoutMs: 5_000,
+    });
+    expect(element("#query-result-name").textContent).toBe(
+      "Blockhaven Survival",
+    );
+  });
+
+  it.each([
+    "?game=minecraft-java",
+    "?game=unknown&host=play.example.com",
+    "?game=rust&host=https://play.example.com",
+    "?game=rust&host=play.example.com&port=99999",
+  ])(
+    "leaves the incomplete or invalid link %s for the person to submit",
+    (search) => {
+      const fetcher = vi.fn<typeof fetch>();
+      vi.stubGlobal("fetch", fetcher);
+      act(() => {
+        root.render(
+          <QueryPlayground games={PLAYGROUND_GAMES} search={search} />,
+        );
+      });
+
+      expect(fetcher).not.toHaveBeenCalled();
+      expect(container.querySelector(".playground-examples")).not.toBeNull();
+    },
+  );
+
   it("explains a URL-shaped host without sending a request", () => {
     const fetcher = vi.fn<typeof fetch>();
     vi.stubGlobal("fetch", fetcher);

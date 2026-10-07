@@ -42,7 +42,7 @@ Local and preview hosts use `/` for the site and `/docs/` for documentation so e
 
 Astro ClientRouter handles same-origin HTML navigation, with its built-in link prefetching. Moving between `query.host` and `docs.query.host` requires a full document load because they are different origins. External links, downloads, modified clicks, and intentional full-page navigation retain their browser behavior.
 
-Every page is a React view rendered on the server; the `.astro` routes only read the request and pass it to a view. Documentation, policy, and error pages ship no React runtime. The playground is the single hydrated React island (`client:load`), and shared links (`/?game=…&host=…`) render prefilled on the server. Agent tooling and its schema library load as a separate chunk only in browsers that expose WebMCP. The island releases its requests and WebMCP registrations when Astro swaps the page or the browser hides it, and starts again on history restoration. Share URLs retain Astro's history state.
+Every page is a React view rendered on the server; the `.astro` routes only read the request and pass it to a view. Documentation, policy, and error pages ship no React runtime. The playground is the single hydrated React island (`client:load`), and shared links (`/?game=…&host=…`) render prefilled on the server and run once when the page loads. Agent tooling and its schema library load as a separate chunk only in browsers that expose WebMCP. The island releases its requests and WebMCP registrations when Astro swaps the page or the browser hides it, and starts again on history restoration. Share URLs retain Astro's history state.
 
 Run the complete gate before committing:
 

@@ -9,6 +9,7 @@ import {
   formStateFromSearch,
   gameFields,
   initialFormState,
+  isCompleteSharedQuery,
   minecraftSummary,
   selectGame,
   shareUrl,
@@ -100,6 +101,28 @@ describe("playground form state", () => {
       ),
     ).toEqual(initial);
     expect(formStateFromSearch("", PLAYGROUND_GAMES, initial)).toEqual(initial);
+  });
+
+  it("treats a shared link as complete only with a known game and a host", () => {
+    expect(
+      isCompleteSharedQuery(
+        "?game=rust&host=play.example.com",
+        PLAYGROUND_GAMES,
+      ),
+    ).toBe(true);
+    expect(isCompleteSharedQuery("?game=rust", PLAYGROUND_GAMES)).toBe(false);
+    expect(isCompleteSharedQuery("?game=rust&host=%20", PLAYGROUND_GAMES)).toBe(
+      false,
+    );
+    expect(
+      isCompleteSharedQuery("?host=play.example.com", PLAYGROUND_GAMES),
+    ).toBe(false);
+    expect(
+      isCompleteSharedQuery(
+        "?game=unknown&host=play.example.com",
+        PLAYGROUND_GAMES,
+      ),
+    ).toBe(false);
   });
 
   it("mirrors agent input without inventing omitted ports", () => {
