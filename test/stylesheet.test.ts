@@ -127,6 +127,15 @@ describe("stylesheet layout", () => {
     const rule = /\n  \.capability-table \{([^}]*)\}/.exec(phone)?.[1];
     expect(rule).toContain("display: table;");
   });
+
+  it("pins the mobile documentation menu below the header", () => {
+    const tablet = docs.slice(docs.indexOf("@media (max-width: 50rem)"));
+    const rule = /\n  \.docs-mobile-nav \{([^}]*)\}/.exec(tablet)?.[1];
+    expect(rule).toContain("position: sticky;");
+    expect(rule).toContain("top: var(--header-height);");
+    const menu = /\n  \.docs-mobile-nav nav \{([^}]*)\}/.exec(tablet)?.[1];
+    expect(menu).toContain("overflow-y: auto;");
+  });
 });
 
 describe("page stylesheets", () => {
