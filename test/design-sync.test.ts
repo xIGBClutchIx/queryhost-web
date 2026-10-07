@@ -1,4 +1,6 @@
 import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
@@ -96,9 +98,9 @@ function componentFunctions(
 
 /** Every exported component in src/components, with its resolved props. */
 function exportedComponents(): Map<string, ComponentSource> {
-  const root = new URL("../", import.meta.url).pathname;
+  const root = fileURLToPath(new URL("../", import.meta.url));
   const tsconfig = ts.parseJsonSourceFileConfigFileContent(
-    ts.readJsonConfigFile(`${root}tsconfig.json`, (path) =>
+    ts.readJsonConfigFile(join(root, "tsconfig.json"), (path) =>
       ts.sys.readFile(path),
     ),
     ts.sys,
@@ -106,13 +108,13 @@ function exportedComponents(): Map<string, ComponentSource> {
   );
   const paths = componentFiles("src/components");
   const program = ts.createProgram(
-    paths.map((path) => `${root}${path}`),
+    paths.map((path) => join(root, path)),
     { ...tsconfig.options, noEmit: true },
   );
   const checker = program.getTypeChecker();
   const components = new Map<string, ComponentSource>();
   for (const path of paths) {
-    const file = program.getSourceFile(`${root}${path}`);
+    const file = program.getSourceFile(join(root, path));
     if (file === undefined) throw new Error(`Missing ${path}`);
     for (const [name, parameter] of componentFunctions(file)) {
       if (!/^[A-Z]/.test(name)) continue;
