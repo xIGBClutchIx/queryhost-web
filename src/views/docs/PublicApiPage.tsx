@@ -16,11 +16,11 @@ export const metadata = {
     "Query game servers over HTTPS without installing the library. Version 1 needs no key and allows calls from any origin.",
 } as const satisfies DocsPageMetadata;
 
-const curlExample = `curl https://api.query.host/v1/query \\
+const curlExample = `curl https://query.host/api/v1/query \\
   -H 'Content-Type: application/json' \\
   -d '{"game":"minecraft","host":"mc.example.com","mode":"summary"}'`;
 
-const fetchExample = `const response = await fetch("https://api.query.host/v1/query", {
+const fetchExample = `const response = await fetch("https://query.host/api/v1/query", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({ game: "rust", host: "203.0.113.5", port: 28015 }),
@@ -41,15 +41,15 @@ export function PublicApiPage({ hostname }: PageProps): ReactNode {
     <DocsLayout {...metadata} hostname={hostname}>
       <h2 id="base-url">Base URL</h2>
       <p>
-        Every route lives under <code>https://api.query.host/v1</code>. Requests
+        Every route lives under <code>https://query.host/api/v1</code>. Requests
         and responses are JSON. There are no API keys, and callers are limited
         by IP address.
       </p>
       <h2 id="query">Query a server</h2>
       <p>
-        <code>POST /v1/query</code> runs one live query, using the hosted cache.
-        It accepts the same input as the library&apos;s <code>query()</code>{" "}
-        function, and no other fields.
+        <code>POST /api/v1/query</code> runs one live query, using the hosted
+        cache. It accepts the same input as the library&apos;s{" "}
+        <code>query()</code> function, and no other fields.
       </p>
       <table className="data-table">
         <thead>
@@ -129,7 +129,7 @@ export function PublicApiPage({ hostname }: PageProps): ReactNode {
       </p>
       <h2 id="games">List games</h2>
       <p>
-        <code>GET /v1/games</code> returns <code>{"{ games: [...] }"}</code>{" "}
+        <code>GET /api/v1/games</code> returns <code>{"{ games: [...] }"}</code>{" "}
         with every supported game&apos;s ID, aliases, default ports, and
         capabilities, straight from the library&apos;s registry.
       </p>

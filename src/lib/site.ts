@@ -1,6 +1,5 @@
 export type SiteExperience = "docs" | "site";
 
-export const API_HOSTNAME = "api.query.host";
 export const DOCS_HOSTNAME = "docs.query.host";
 export const BRAND_ICON_URL = "/favicon.svg?v=2";
 export const GITHUB_REPOSITORY_URL =
@@ -48,28 +47,6 @@ export function internalDocumentationPath(pathname: string): string {
   const cleanPath =
     pathname === "/" ? "/" : `/${pathname.replace(/^\/+|\/+$/g, "")}/`;
   return cleanPath === "/" ? "/docs/" : `/docs${cleanPath}`;
-}
-
-const PUBLIC_API_ROUTES: ReadonlySet<string> = new Set([
-  "/v1/games",
-  "/v1/query",
-]);
-
-/**
- * Maps a clean public API path on the API domain to its internal Astro route,
- * or returns `undefined` when the path is not part of the public API.
- */
-export function internalApiPath(pathname: string): string | undefined {
-  const cleanPath = pathname.replace(/\/+$/g, "");
-  return PUBLIC_API_ROUTES.has(cleanPath) ? `/api${cleanPath}` : undefined;
-}
-
-/** Reports whether a path is an internal public API route. */
-export function isInternalApiPath(pathname: string): boolean {
-  return (
-    pathname.startsWith("/api/") &&
-    PUBLIC_API_ROUTES.has(pathname.slice("/api".length))
-  );
 }
 
 /** Uses the docs domain in production and a same-origin route on every preview host. */

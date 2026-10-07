@@ -7,9 +7,7 @@ import {
   GITHUB_REPOSITORY_URL,
   documentationHref,
   experienceForHostname,
-  internalApiPath,
   internalDocumentationPath,
-  isInternalApiPath,
   isCanonicalHostname,
   normalizeHostname,
   requestHostname,
@@ -30,16 +28,6 @@ describe("hostname routing", () => {
     });
     expect(requestHostname(request)).toBe(DOCS_HOSTNAME);
     expect(experienceForHostname(requestHostname(request))).toBe("docs");
-  });
-
-  it("maps only versioned public API paths on the API domain", () => {
-    expect(internalApiPath("/v1/query")).toBe("/api/v1/query");
-    expect(internalApiPath("/v1/games/")).toBe("/api/v1/games");
-    expect(internalApiPath("/api/query")).toBeUndefined();
-    expect(internalApiPath("/mcp")).toBeUndefined();
-    expect(internalApiPath("/v2/query")).toBeUndefined();
-    expect(isInternalApiPath("/api/v1/query")).toBe(true);
-    expect(isInternalApiPath("/api/query")).toBe(false);
   });
 
   it("maps clean documentation paths to internal Astro routes", () => {
