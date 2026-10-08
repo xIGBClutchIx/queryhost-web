@@ -20,7 +20,17 @@ export function canonicalUrl(pathname: string): string {
   return new URL(pathname, `https://${SITE_HOSTNAME}`).href;
 }
 
+/**
+ * Cache policy for `GET /api/v1/games`. The list only changes on deploy, so
+ * clients may reuse it briefly and then revalidate with its ETag.
+ */
+export const PUBLIC_API_GAMES_CACHE_CONTROL = "public, max-age=300";
+
 export function cacheControlForPath(pathname: string): string {
+  if (pathname === "/api/v1/games") {
+    return PUBLIC_API_GAMES_CACHE_CONTROL;
+  }
+
   if (
     pathname === "/health" ||
     pathname === "/mcp" ||

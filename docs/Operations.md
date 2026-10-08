@@ -17,6 +17,16 @@ The web service receives `QUERYHOST_API_BASE_URL` and `QUERYHOST_API_ORIGIN_TOKE
 
 The Railway workspace uses a $5 compute email alert and a $10 compute hard limit. The hard limit intentionally stops workloads instead of allowing an open-ended bill. Recheck these workspace-wide values before placing unrelated projects in the same workspace.
 
+## Usage counters
+
+`GET /api/stats` reports aggregate counters since the web process started: for the playground (including MCP tool queries) and the public API separately, requests rejected as invalid, rate limited by gate bound (`active`, `window`, `caller`, `callers`), forwarded by upstream status and cache outcome, and unavailable; full versus `304` responses from `/api/v1/games`; and, under `api`, the private API's own `GET /stats` (`null` if it cannot be read). Every key comes from a closed set, so the report never contains targets, callers, or results, and it resets on restart.
+
+The route answers `404` unless `QUERYHOST_WEB_STATS_TOKEN` (32 to 256 characters, server-only) is set, and then requires `Authorization: Bearer <token>`:
+
+```bash
+curl -H "Authorization: Bearer $QUERYHOST_WEB_STATS_TOKEN" https://query.host/api/stats
+```
+
 ## Deployment verification
 
 After a deployment or infrastructure change:

@@ -16,8 +16,13 @@ export interface ProxyGateLease {
   release(): void;
 }
 
+/** Which bound rejected a caller: active work, the global window, the caller's own budget, or tracked-caller memory. */
+export type ProxyGateRejectionReason =
+  "active" | "window" | "caller" | "callers";
+
 export interface ProxyGateRejection {
   readonly accepted: false;
+  readonly reason: ProxyGateRejectionReason;
   readonly retryAfterSeconds: number;
 }
 
@@ -51,12 +56,13 @@ export class ProxyGate {
     this.#refresh(now);
 
     if (this.#active >= this.#policy.maxActive) {
-      return { accepted: false, retryAfterSeconds: 1 };
+      return { accepted: false, reason: "active", retryAfterSeconds: 1 };
     }
 
     if (this.#globalCount >= this.#policy.maxStartsPerWindow) {
       return {
         accepted: false,
+        reason: "window",
         retryAfterSeconds: retryAfterSeconds(now, this.#globalExpiresAt),
       };
     }
@@ -68,6 +74,7 @@ export class ProxyGate {
     ) {
       return {
         accepted: false,
+        reason: "caller",
         retryAfterSeconds: retryAfterSeconds(now, existing.expiresAt),
       };
     }
@@ -78,6 +85,7 @@ export class ProxyGate {
     ) {
       return {
         accepted: false,
+        reason: "callers",
         retryAfterSeconds: retryAfterSeconds(now, this.#globalExpiresAt),
       };
     }
