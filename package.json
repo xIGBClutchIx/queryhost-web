@@ -37,7 +37,7 @@
     "astro": "^7.2.4",
     "compression": "^1.8.2",
     "marked": "^18.0.10",
-    "queryhost": "1.5.0",
+    "queryhost": "1.5.1",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "shiki": "^4.4.3",
