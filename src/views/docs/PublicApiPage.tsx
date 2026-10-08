@@ -47,6 +47,12 @@ export function PublicApiPage(): ReactNode {
         queries are limited by IP address; <a href="#badges">status badges</a>{" "}
         return SVG and use their own shared budget instead.
       </p>
+      <p>
+        An <a href="/api/v1/openapi.json">OpenAPI 3.1 description</a> at{" "}
+        <code>/api/v1/openapi.json</code> covers every route, field, and error
+        code, with the game list taken from the library&apos;s registry. Load it
+        into Postman, Scalar, or a client generator, or hand it to an AI tool.
+      </p>
       <h2 id="query">Query a server</h2>
       <p>
         <code>POST /api/v1/query</code> runs one live query, using the hosted
@@ -132,7 +138,7 @@ export function PublicApiPage(): ReactNode {
       <h2 id="games">List games</h2>
       <p>
         <code>GET /api/v1/games</code> returns <code>{"{ games: [...] }"}</code>{" "}
-        with every supported game&apos;s ID, aliases, default ports, and
+        with every supported game&apos;s ID, name, default ports, and
         capabilities, straight from the library&apos;s registry. Responses carry
         an <code>ETag</code> and may be reused for 5 minutes; send it back in{" "}
         <code>If-None-Match</code> to get an empty <code>304</code> when the

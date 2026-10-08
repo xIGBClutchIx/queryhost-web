@@ -43,6 +43,9 @@ describe("cache policy", () => {
     expect(cacheControlForPath("/api/stats")).toBe("no-store");
     expect(cacheControlForPath("/api/v1/query")).toBe("no-store");
     expect(cacheControlForPath("/api/v1/games")).toBe("public, max-age=300");
+    expect(cacheControlForPath("/api/v1/openapi.json")).toBe(
+      "public, max-age=300",
+    );
     expect(cacheControlForPath("/mcp")).toBe("no-store");
     expect(cacheControlForPath("/_astro/app.123.css")).toContain("immutable");
     expect(cacheControlForPath("/docs/results/")).toBe(
