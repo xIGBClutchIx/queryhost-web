@@ -76,6 +76,7 @@ export type PlaygroundProxyErrorCode =
   | "NETWORK_ERROR"
   | "NOT_FOUND"
   | "RATE_LIMITED"
+  | "UNAUTHORIZED"
   | "UPSTREAM_INVALID"
   | "UPSTREAM_UNAVAILABLE";
 

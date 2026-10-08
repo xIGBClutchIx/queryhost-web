@@ -12,6 +12,7 @@ import {
 } from "../src/server/mcp-card-resource.js";
 import { WORKSPACE_URI } from "../src/server/mcp-workspace-resource.js";
 import { FULL_RESULT_KEY } from "../src/lib/mcp-workspace-contract.js";
+import { SurfaceUsage } from "../src/server/usage-stats.js";
 
 function setup(body?: string) {
   const calls: RequestInit[] = [];
@@ -53,6 +54,7 @@ function setup(body?: string) {
       );
     },
     queryRunner: () => Promise.reject(new Error("Must use private API.")),
+    usage: new SurfaceUsage(),
   };
   return { calls, dependencies: createMcpDependencies(queries) };
 }
