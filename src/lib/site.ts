@@ -6,7 +6,7 @@ export const SITE_HOSTNAME = "query.host";
 export const SHARE_IMAGE = {
   alt: "QueryHost: look up any game server. A game, host, and port form with a Query button.",
   height: 630,
-  path: "/share.png?v=1",
+  path: "/share.png?v=2",
   width: 1200,
 } as const;
 /** Homepage headline, shared by the visible hero and the page title. */
