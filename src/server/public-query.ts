@@ -55,6 +55,12 @@ export interface LocalQueryInput extends PlaygroundQueryInput {
 
 export type LocalQueryRunner = (input: LocalQueryInput) => Promise<QueryResult>;
 
+/** What running an admitted query needs, without the admission gate. */
+export type QueryTargetDependencies = Pick<
+  PublicQueryDependencies,
+  "config" | "fetcher" | "queryRunner"
+>;
+
 export interface PublicQueryDependencies {
   readonly config: PublicQueryConfig;
   readonly fetcher: ProxyFetcher;
@@ -62,7 +68,8 @@ export interface PublicQueryDependencies {
   readonly queryRunner: LocalQueryRunner;
 }
 
-class PublicQueryInputError extends Error {
+/** A caller-safe validation failure from {@link parseQueryFields}. */
+export class PublicQueryInputError extends Error {
   public constructor(message: string) {
     super(message);
     this.name = "PublicQueryInputError";
@@ -81,7 +88,8 @@ class PublicQueryBodyError extends Error {
   }
 }
 
-function integerEnvironment(
+/** Reads an optional bounded integer setting, failing fast on bad values. */
+export function integerEnvironment(
   environment: NodeJS.ProcessEnv,
   name: string,
   fallback: number,
@@ -370,7 +378,14 @@ function queryMode(value: JsonValue | undefined): QueryMode | undefined {
 }
 
 function parseInput(text: string): PlaygroundQueryInput {
-  const body = jsonObject(parseJson(text));
+  return parseQueryFields(jsonObject(parseJson(text)));
+}
+
+/**
+ * Validates query fields from any public surface into the input the query
+ * service accepts. Throws {@link PublicQueryInputError} with a caller-safe message.
+ */
+export function parseQueryFields(body: JsonObject): PlaygroundQueryInput {
   const extraField = Object.keys(body).find((key) => !ALLOWED_FIELDS.has(key));
   if (extraField !== undefined) {
     throw new PublicQueryInputError(
@@ -450,6 +465,61 @@ function localQueryResponse(result: QueryResult): Response {
   );
 }
 
+/**
+ * Runs one validated, already admitted query on the configured target. The
+ * deadline is bounded by the service's upstream timeout; transport failures
+ * become `UPSTREAM_UNAVAILABLE` instead of escaping.
+ */
+export async function forwardQuery(
+  input: PlaygroundQueryInput,
+  dependencies: QueryTargetDependencies,
+  callerSignal: AbortSignal,
+): Promise<Response> {
+  try {
+    const signal = AbortSignal.any([
+      callerSignal,
+      AbortSignal.timeout(dependencies.config.upstreamTimeoutMs),
+    ]);
+    if (dependencies.config.target.kind === "local") {
+      const result = await dependencies.queryRunner({ ...input, signal });
+      return localQueryResponse(result);
+    }
+
+    const target = dependencies.config.target;
+    const upstream = await dependencies.fetcher(`${target.apiBaseUrl}/query`, {
+      body: JSON.stringify(input),
+      headers: {
+        "Content-Type": "application/json",
+        [ORIGIN_TOKEN_HEADER]: target.apiOriginToken,
+      },
+      method: "POST",
+      redirect: "error",
+      signal,
+    });
+    const contentType = upstream.headers.get("content-type") ?? "";
+    if (!contentType.startsWith("application/json")) {
+      return jsonResponse(
+        502,
+        "UPSTREAM_INVALID",
+        "The query service returned an invalid response.",
+      );
+    }
+    return new Response(
+      await readBoundedText(upstream.body, 2_097_152, signal),
+      {
+        headers: forwardedHeaders(upstream),
+        status: upstream.status,
+      },
+    );
+  } catch {
+    return jsonResponse(
+      502,
+      "UPSTREAM_UNAVAILABLE",
+      "The query service is temporarily unavailable.",
+    );
+  }
+}
+
 /** Validates, admits, and forwards one playground or public API query. */
 export async function handlePublicQuery(
   request: Request,
@@ -501,47 +571,7 @@ export async function handlePublicQuery(
   }
 
   try {
-    const signal = AbortSignal.any([
-      request.signal,
-      AbortSignal.timeout(dependencies.config.upstreamTimeoutMs),
-    ]);
-    if (dependencies.config.target.kind === "local") {
-      const result = await dependencies.queryRunner({ ...input, signal });
-      return localQueryResponse(result);
-    }
-
-    const target = dependencies.config.target;
-    const upstream = await dependencies.fetcher(`${target.apiBaseUrl}/query`, {
-      body: JSON.stringify(input),
-      headers: {
-        "Content-Type": "application/json",
-        [ORIGIN_TOKEN_HEADER]: target.apiOriginToken,
-      },
-      method: "POST",
-      redirect: "error",
-      signal,
-    });
-    const contentType = upstream.headers.get("content-type") ?? "";
-    if (!contentType.startsWith("application/json")) {
-      return jsonResponse(
-        502,
-        "UPSTREAM_INVALID",
-        "The query service returned an invalid response.",
-      );
-    }
-    return new Response(
-      await readBoundedText(upstream.body, 2_097_152, signal),
-      {
-        headers: forwardedHeaders(upstream),
-        status: upstream.status,
-      },
-    );
-  } catch {
-    return jsonResponse(
-      502,
-      "UPSTREAM_UNAVAILABLE",
-      "The query service is temporarily unavailable.",
-    );
+    return await forwardQuery(input, dependencies, request.signal);
   } finally {
     admission.release();
   }

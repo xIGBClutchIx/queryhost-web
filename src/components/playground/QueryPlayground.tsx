@@ -156,7 +156,12 @@ export function QueryPlayground({
         )}
 
         {output.kind === "result" && (
-          <QueryResult key={output.id} games={games} result={output.result} />
+          <QueryResult
+            key={output.id}
+            games={games}
+            input={output.input}
+            result={output.result}
+          />
         )}
       </section>
     </section>

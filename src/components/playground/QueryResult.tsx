@@ -1,15 +1,21 @@
-import { memo, useState } from "react";
+import { memo, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 
+import { badgeMarkdown, badgeUrl } from "../../lib/badge-url.js";
 import type {
   PlaygroundGameDefinition,
+  PlaygroundQueryInput,
   PlaygroundQueryResponse,
 } from "../../lib/playground-contracts.js";
 import {
   minecraftEdition,
   stripMinecraftFormatting,
 } from "../../lib/minecraft-text.js";
-import { cacheLabel, milliseconds } from "../../lib/playground-form.js";
+import {
+  cacheLabel,
+  milliseconds,
+  shareUrl,
+} from "../../lib/playground-form.js";
 import { TabPanel, Tabs } from "../Tabs.js";
 import { DataPanel } from "./result/DataPanel.js";
 import { JsonPanel } from "./result/JsonPanel.js";
@@ -30,6 +36,8 @@ const TAB_PREFIX = "query";
 
 interface QueryResultProps {
   readonly games: readonly PlaygroundGameDefinition[];
+  /** The query that produced the result; enables the Copy badge action. */
+  readonly input?: PlaygroundQueryInput;
   readonly result: PlaygroundQueryResponse;
 }
 
@@ -39,9 +47,27 @@ interface QueryResultProps {
  */
 export const QueryResult = memo(function QueryResult({
   games,
+  input,
   result,
 }: QueryResultProps): ReactNode {
   const [activeTab, setActiveTab] = useState<ResultTab>("overview");
+  const badge = useMemo(() => {
+    if (input === undefined) return undefined;
+    const { origin } = window.location;
+    const target = {
+      game: input.game,
+      host: input.host,
+      ...(input.port === undefined ? {} : { port: input.port }),
+      ...(input.queryPort === undefined ? {} : { queryPort: input.queryPort }),
+    };
+    const gameName =
+      games.find((game) => game.id === input.game)?.name ?? input.game;
+    return badgeMarkdown(
+      gameName,
+      badgeUrl(origin, target),
+      shareUrl(`${origin}/`, target),
+    );
+  }, [games, input]);
 
   const status = result.ok
     ? result.partial
@@ -122,7 +148,7 @@ export const QueryResult = memo(function QueryResult({
         id="json"
         active={activeTab}
       >
-        <JsonPanel result={result} />
+        <JsonPanel badge={badge} result={result} />
       </TabPanel>
     </div>
   );

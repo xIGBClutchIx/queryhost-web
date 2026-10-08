@@ -1158,6 +1158,11 @@
   font-size: var(--text-2xs);
 }
 
+.query-json-toolbar__actions {
+  display: flex;
+  gap: var(--space-4);
+}
+
 .query-json-toolbar button {
   padding: 0;
   border: 0;
