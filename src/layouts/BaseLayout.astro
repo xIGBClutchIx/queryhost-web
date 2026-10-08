@@ -1,6 +1,6 @@
 ---
 import { ClientRouter } from "astro:transitions";
-import { BRAND_ICON_URL, canonicalUrl } from "../lib/site.js";
+import { BRAND_ICON_URL, canonicalUrl, SHARE_IMAGE } from "../lib/site.js";
 
 import "@fontsource-variable/geist";
 import "@fontsource-variable/geist-mono";
@@ -18,6 +18,8 @@ const pageTitle = title === "QueryHost" ? title : `${title} · QueryHost`;
 // Error pages render under the requested path, which is not a page to index.
 const canonical =
   Astro.response.status === 200 ? canonicalUrl(Astro.url.pathname) : undefined;
+// Link previews fetch the image from another origin, so it must be absolute.
+const shareImage = canonicalUrl(SHARE_IMAGE.path);
 ---
 
 <!doctype html>
@@ -34,7 +36,14 @@ const canonical =
     <meta property="og:title" content={pageTitle} />
     <meta property="og:description" content={description} />
     {canonical && <meta property="og:url" content={canonical} />}
-    <meta name="twitter:card" content="summary" />
+    <meta property="og:image" content={shareImage} />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content={String(SHARE_IMAGE.width)} />
+    <meta property="og:image:height" content={String(SHARE_IMAGE.height)} />
+    <meta property="og:image:alt" content={SHARE_IMAGE.alt} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content={shareImage} />
+    <meta name="twitter:image:alt" content={SHARE_IMAGE.alt} />
     <title>{pageTitle}</title>
     {clientRouter && <ClientRouter fallback="swap" />}
   </head>

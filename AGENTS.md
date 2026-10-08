@@ -8,6 +8,7 @@ This repository contains the public site and documentation service. It owns `que
 - Treat `queryhost` as the only game registry and generated API-reference source.
 - Keep the private API token and future query proxy entirely server-side.
 - Do not add accounts, billing, persistence, monitoring, or a separate documentation service.
+- Bounded, process-local usage counters are allowed when every key comes from a closed set, they never record hosts, callers, or results, and any report is token-gated. External monitoring services, collectors, and stored metrics are not.
 - Keep TypeScript strict and do not use explicit `any` or `unknown`.
 - Preserve the accessible dark theme and responsive keyboard-first behavior.
 

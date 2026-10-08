@@ -1,3 +1,4 @@
+import { publicApiGamesUsage } from "./public-api.js";
 import {
   BadgeService,
   DEFAULT_BADGE_CACHE_POLICY,
@@ -8,6 +9,12 @@ import {
   createDefaultPublicQueryDependencies,
   type PublicQueryDependencies,
 } from "./public-query.js";
+import {
+  loadUsageReportToken,
+  type UsageReportDependencies,
+} from "./usage-report.js";
+
+const startedAt = Date.now();
 
 let dependencies: PublicQueryDependencies | undefined;
 let apiDependencies: PublicQueryDependencies | undefined;
@@ -31,16 +38,36 @@ export function publicApiDependencies(): PublicQueryDependencies {
   return apiDependencies;
 }
 
+let reportDependencies: UsageReportDependencies | undefined;
+
+/** Operator usage report over both query surfaces and the games route. */
+export function usageReportDependencies(): UsageReportDependencies {
+  reportDependencies ??= {
+    token: loadUsageReportToken(),
+    startedAt,
+    playground: publicQueryDependencies(),
+    publicApi: publicApiDependencies(),
+    games: publicApiGamesUsage,
+  };
+  return reportDependencies;
+}
+
 /**
  * Badges reuse the public API's query target but have their own cache and a
  * global budget, so image traffic never spends a caller's API allowance.
  */
 export function badgeService(): BadgeService {
+  const api = publicApiDependencies();
   badges ??= new BadgeService({
     cache: DEFAULT_BADGE_CACHE_POLICY,
     gate: new ProxyGate(loadBadgeGatePolicy()),
     now: Date.now,
-    query: publicApiDependencies(),
+    // Badge queries are not public API calls, so they leave its usage alone.
+    query: {
+      config: api.config,
+      fetcher: api.fetcher,
+      queryRunner: api.queryRunner,
+    },
   });
   return badges;
 }

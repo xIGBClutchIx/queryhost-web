@@ -18,6 +18,7 @@ import type {
 } from "../lib/playground-contracts.js";
 import { ProxyGate, type ProxyGatePolicy } from "./proxy-gate.js";
 import { readBoundedText } from "./bounded-text.js";
+import { SurfaceUsage } from "./usage-stats.js";
 
 const ALLOWED_FIELDS: ReadonlySet<string> = new Set([
   "game",
@@ -55,17 +56,21 @@ export interface LocalQueryInput extends PlaygroundQueryInput {
 
 export type LocalQueryRunner = (input: LocalQueryInput) => Promise<QueryResult>;
 
-/** What running an admitted query needs, without the admission gate. */
+/**
+ * What running an admitted query needs, without the admission gate. Usage is
+ * optional so callers outside the two query surfaces stay out of their counts.
+ */
 export type QueryTargetDependencies = Pick<
   PublicQueryDependencies,
   "config" | "fetcher" | "queryRunner"
->;
+> & { readonly usage?: SurfaceUsage };
 
 export interface PublicQueryDependencies {
   readonly config: PublicQueryConfig;
   readonly fetcher: ProxyFetcher;
   readonly gate: ProxyGate;
   readonly queryRunner: LocalQueryRunner;
+  readonly usage: SurfaceUsage;
 }
 
 /** A caller-safe validation failure from {@link parseQueryFields}. */
@@ -482,6 +487,7 @@ export async function forwardQuery(
     ]);
     if (dependencies.config.target.kind === "local") {
       const result = await dependencies.queryRunner({ ...input, signal });
+      dependencies.usage?.recordForwarded(200, "miss");
       return localQueryResponse(result);
     }
 
@@ -498,20 +504,24 @@ export async function forwardQuery(
     });
     const contentType = upstream.headers.get("content-type") ?? "";
     if (!contentType.startsWith("application/json")) {
+      dependencies.usage?.recordUnavailable();
       return jsonResponse(
         502,
         "UPSTREAM_INVALID",
         "The query service returned an invalid response.",
       );
     }
-    return new Response(
-      await readBoundedText(upstream.body, 2_097_152, signal),
-      {
-        headers: forwardedHeaders(upstream),
-        status: upstream.status,
-      },
+    const body = await readBoundedText(upstream.body, 2_097_152, signal);
+    dependencies.usage?.recordForwarded(
+      upstream.status,
+      upstream.headers.get("x-queryhost-cache"),
     );
+    return new Response(body, {
+      headers: forwardedHeaders(upstream),
+      status: upstream.status,
+    });
   } catch {
+    dependencies.usage?.recordUnavailable();
     return jsonResponse(
       502,
       "UPSTREAM_UNAVAILABLE",
@@ -525,10 +535,13 @@ export async function handlePublicQuery(
   request: Request,
   dependencies: PublicQueryDependencies,
 ): Promise<Response> {
+  const usage = dependencies.usage;
   if (request.method !== "POST") {
+    usage.recordInvalid();
     return jsonResponse(405, "METHOD_NOT_ALLOWED", "Use POST for queries.");
   }
   if (!request.headers.get("content-type")?.startsWith("application/json")) {
+    usage.recordInvalid();
     return jsonResponse(
       415,
       "BAD_REQUEST",
@@ -541,6 +554,7 @@ export async function handlePublicQuery(
     text = await readBoundedBody(request, dependencies.config.maxBodyBytes);
   } catch (error) {
     if (error instanceof PublicQueryBodyError) {
+      usage.recordInvalid();
       return jsonResponse(
         error.code === "BODY_TOO_LARGE" ? 413 : 400,
         error.code,
@@ -555,6 +569,7 @@ export async function handlePublicQuery(
     input = parseInput(text);
   } catch (error) {
     if (error instanceof PublicQueryInputError) {
+      usage.recordInvalid();
       return jsonResponse(400, "BAD_REQUEST", error.message);
     }
     throw error;
@@ -562,6 +577,7 @@ export async function handlePublicQuery(
 
   const admission = dependencies.gate.admit(callerFingerprint(request));
   if (!admission.accepted) {
+    usage.recordRateLimited(admission.reason);
     return jsonResponse(
       429,
       "RATE_LIMITED",
@@ -586,5 +602,6 @@ export function createDefaultPublicQueryDependencies(
     fetcher: fetch,
     gate: new ProxyGate(loadProxyGatePolicy(environment, gatePrefix)),
     queryRunner: (input) => query(input),
+    usage: new SurfaceUsage(),
   };
 }

@@ -2,6 +2,13 @@ export const BRAND_ICON_URL = "/favicon.svg?v=2";
 export const GITHUB_REPOSITORY_URL =
   "https://github.com/xIGBClutchIx/queryhost";
 export const SITE_HOSTNAME = "query.host";
+/** Link-preview image, rendered from `scripts/share-image.html`; bump `v` when it changes. */
+export const SHARE_IMAGE = {
+  alt: "QueryHost: look up any game server. A game, host, and port form with a Query button.",
+  height: 630,
+  path: "/share.png?v=2",
+  width: 1200,
+} as const;
 /** Homepage headline, shared by the visible hero and the page title. */
 export const HOME_HEADLINE = "Look up any game server";
 /** Homepage subline, shared by the visible hero and the meta and Open Graph descriptions. */
@@ -20,7 +27,17 @@ export function canonicalUrl(pathname: string): string {
   return new URL(pathname, `https://${SITE_HOSTNAME}`).href;
 }
 
+/**
+ * Cache policy for `GET /api/v1/games`. The list only changes on deploy, so
+ * clients may reuse it briefly and then revalidate with its ETag.
+ */
+export const PUBLIC_API_GAMES_CACHE_CONTROL = "public, max-age=300";
+
 export function cacheControlForPath(pathname: string): string {
+  if (pathname === "/api/v1/games") {
+    return PUBLIC_API_GAMES_CACHE_CONTROL;
+  }
+
   if (
     pathname === "/health" ||
     pathname === "/mcp" ||
