@@ -36,7 +36,7 @@ QUERYHOST_API_BASE_URL=http://api.railway.internal:3000
 QUERYHOST_API_ORIGIN_TOKEN=<shared private token>
 ```
 
-The private origin and token must never use a `PUBLIC_` prefix. Optional `QUERYHOST_WEB_*` variables tune the bounded caller gate, request size, and upstream deadline; production defaults are documented on the Hosted service page. Setting `QUERYHOST_WEB_STATS_TOKEN` (32 to 256 characters) enables the operator usage report at `GET /api/stats`; see [Operations](docs/Operations.md#usage-counters).
+The private origin and token must never use a `PUBLIC_` prefix. Optional `QUERYHOST_WEB_*` variables tune the bounded caller gate, the global status-badge budget, request size, and upstream deadline; production defaults are documented on the Hosted service page. Setting `QUERYHOST_WEB_STATS_TOKEN` (32 to 256 characters) enables the operator usage report at `GET /api/stats`; see [Operations](docs/Operations.md#usage-counters).
 
 Every host uses `/` for the site and `/docs/` for documentation, so internal links always stay on the current origin.
 

@@ -25,7 +25,7 @@ const config = z
  * only render inside a synced component.
  */
 const INTERNAL_COMPONENTS = new Set([
-  "CopyJsonButton",
+  "CopyButton",
   "DataPanel",
   "DocsPager",
   "JsonPanel",

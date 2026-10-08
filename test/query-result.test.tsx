@@ -1,10 +1,13 @@
 // @vitest-environment jsdom
 import { act } from "react";
 import { createRoot } from "react-dom/client";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { QueryResult } from "../src/components/playground/QueryResult.js";
-import type { PlaygroundQueryResponse } from "../src/lib/playground-contracts.js";
+import type {
+  PlaygroundQueryInput,
+  PlaygroundQueryResponse,
+} from "../src/lib/playground-contracts.js";
 import { readableMinecraftColor } from "../src/lib/minecraft-text.js";
 import { PLAYGROUND_GAMES } from "../src/lib/playground-games.js";
 
@@ -37,10 +40,19 @@ const BEDROCK_ONLINE: PlaygroundQueryResponse = {
 
 let container: HTMLDivElement;
 
-function render(result: PlaygroundQueryResponse): () => void {
+function render(
+  result: PlaygroundQueryResponse,
+  input?: PlaygroundQueryInput,
+): () => void {
   const root = createRoot(container);
   act(() => {
-    root.render(<QueryResult games={PLAYGROUND_GAMES} result={result} />);
+    root.render(
+      <QueryResult
+        games={PLAYGROUND_GAMES}
+        result={result}
+        {...(input === undefined ? {} : { input })}
+      />,
+    );
   });
   return () => {
     act(() => {
@@ -111,6 +123,52 @@ describe("Minecraft text in query results", () => {
     expect(container.querySelector("#query-result-name")?.textContent).toBe(
       "Price §5 server",
     );
+    unmount();
+  });
+});
+
+describe("Copy badge", () => {
+  function buttons(): string[] {
+    return Array.from(
+      container.querySelectorAll(".query-json-toolbar button"),
+      (button) => button.textContent ?? "",
+    );
+  }
+
+  it("copies badge Markdown for the queried server", async () => {
+    const writeText = vi.fn(() => Promise.resolve());
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    });
+    const unmount = render(BEDROCK_ONLINE, {
+      game: "minecraft-bedrock",
+      host: "play.example.com",
+      mode: "summary",
+      port: 19132,
+      timeoutMs: 2_000,
+    });
+    click("#query-tab-json");
+    expect(buttons()).toEqual(["Copy badge", "Copy JSON"]);
+    const origin = window.location.origin;
+    await act(async () => {
+      container
+        .querySelector<HTMLButtonElement>(".query-json-toolbar button")
+        ?.click();
+      await Promise.resolve();
+    });
+    // Mode and timeout are playground preferences, not part of the badge.
+    expect(writeText).toHaveBeenCalledWith(
+      `[![Minecraft: Bedrock Edition server status](${origin}/api/v1/badge/minecraft-bedrock/play.example.com:19132.svg)](${origin}/?game=minecraft-bedrock&host=play.example.com&port=19132)`,
+    );
+    expect(buttons()[0]).toBe("Copied");
+    unmount();
+  });
+
+  it("is absent when the query input is unknown", () => {
+    const unmount = render(BEDROCK_ONLINE);
+    click("#query-tab-json");
+    expect(buttons()).toEqual(["Copy JSON"]);
     unmount();
   });
 });

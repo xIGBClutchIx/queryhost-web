@@ -24,6 +24,7 @@ export type OutputState =
     }
   | {
       readonly id: number;
+      readonly input: PlaygroundQueryInput;
       readonly kind: "result";
       readonly result: PlaygroundQueryResponse;
     };
@@ -89,6 +90,7 @@ export function usePlaygroundSession(
         resultSequence.current += 1;
         setOutput({
           id: resultSequence.current,
+          input,
           kind: "result",
           result: response.body,
         });

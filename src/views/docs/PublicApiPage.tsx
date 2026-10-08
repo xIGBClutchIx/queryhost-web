@@ -19,6 +19,8 @@ const curlExample = `curl https://query.host/api/v1/query \\
   -H 'Content-Type: application/json' \\
   -d '{"game":"minecraft","host":"mc.example.com","mode":"summary"}'`;
 
+const badgeExample = `[![Minecraft server status](https://query.host/api/v1/badge/minecraft/mc.example.com.svg)](https://query.host/?game=minecraft&host=mc.example.com)`;
+
 const fetchExample = `const response = await fetch("https://query.host/api/v1/query", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
@@ -40,9 +42,10 @@ export function PublicApiPage(): ReactNode {
     <DocsLayout {...metadata}>
       <h2 id="base-url">Base URL</h2>
       <p>
-        Every route lives under <code>https://query.host/api/v1</code>. Requests
-        and responses are JSON. There are no API keys, and callers are limited
-        by IP address.
+        Every route lives under <code>https://query.host/api/v1</code>. There
+        are no API keys. Query and games requests and responses are JSON, and
+        queries are limited by IP address; <a href="#badges">status badges</a>{" "}
+        return SVG and use their own shared budget instead.
       </p>
       <h2 id="query">Query a server</h2>
       <p>
@@ -134,6 +137,30 @@ export function PublicApiPage(): ReactNode {
         an <code>ETag</code> and may be reused for 5 minutes; send it back in{" "}
         <code>If-None-Match</code> to get an empty <code>304</code> when the
         list is unchanged.
+      </p>
+      <h2 id="badges">Status badges</h2>
+      <p>
+        <code>
+          GET /api/v1/badge/{"{game}"}/{"{host}"}.svg
+        </code>{" "}
+        returns an SVG badge with the game name and the server&apos;s player
+        count, or <code>offline</code>. Add <code>:port</code> after the host
+        for a non-default game port (bracket IPv6 addresses, as in{" "}
+        <code>[2001:db8::1]:27015</code>) and <code>?queryPort=</code> to
+        override the query port. The <strong>Copy badge</strong> button in a
+        query&apos;s JSON view writes this Markdown for you.
+      </p>
+      <CodeBlock
+        code={badgeExample}
+        label="Embed a badge"
+        language="Markdown"
+      />
+      <p>
+        Badges are cached for 60 seconds while online and 30 seconds while
+        offline, and every viewer of a server shares one cached query. Badge
+        views do not count toward your per-IP query limit; uncached badges share
+        their own budget, and when it is spent a badge shows its last known
+        state or <code>unavailable</code>.
       </p>
       <h2 id="limits">Limits</h2>
       <ul>
