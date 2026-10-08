@@ -12,6 +12,7 @@ import {
   type ProxyFetcher,
   type PublicQueryDependencies,
 } from "../src/server/public-query.js";
+import { GamesUsage, SurfaceUsage } from "../src/server/usage-stats.js";
 
 const API_URL = "https://query.host/api/v1";
 
@@ -35,6 +36,7 @@ function dependencies(fetcher: ProxyFetcher): PublicQueryDependencies {
       windowMs: 60_000,
     }),
     queryRunner: () => Promise.reject(new Error("unused")),
+    usage: new SurfaceUsage(),
   };
 }
 
@@ -124,6 +126,46 @@ describe("public API", () => {
         new Request(`${API_URL}/games`, { method: "DELETE" }),
       ).status,
     ).toBe(405);
+  });
+
+  it("lets clients revalidate the games list with a weak ETag", async () => {
+    const usage = new GamesUsage();
+    const first = handlePublicApiGames(new Request(`${API_URL}/games`), usage);
+    const etag = first.headers.get("etag");
+
+    expect(etag).toMatch(/^W\/"[\w-]{27}"$/u);
+    expect(first.headers.get("cache-control")).toBe("public, max-age=300");
+    expect(first.headers.get("access-control-expose-headers")).toContain(
+      "ETag",
+    );
+
+    for (const header of [etag ?? "", `"other", ${(etag ?? "").slice(2)}`]) {
+      const revalidated = handlePublicApiGames(
+        new Request(`${API_URL}/games`, {
+          headers: { "If-None-Match": header },
+        }),
+        usage,
+      );
+      expect(revalidated.status).toBe(304);
+      expect(revalidated.headers.get("etag")).toBe(etag);
+      expect(await revalidated.text()).toBe("");
+    }
+
+    const stale = handlePublicApiGames(
+      new Request(`${API_URL}/games`, {
+        headers: { "If-None-Match": 'W/"stale"' },
+      }),
+      usage,
+    );
+    expect(stale.status).toBe(200);
+    expect(usage.snapshot()).toEqual({ ok: 2, notModified: 2 });
+
+    const preflight = handlePublicApiGames(
+      new Request(`${API_URL}/games`, { method: "OPTIONS" }),
+    );
+    expect(preflight.headers.get("access-control-allow-headers")).toBe(
+      "Content-Type, If-None-Match",
+    );
   });
 
   it("answers unknown API paths with a readable JSON 404", async () => {

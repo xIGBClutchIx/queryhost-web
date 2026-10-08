@@ -40,6 +40,9 @@ describe("cache policy", () => {
   it("keeps health uncached and hashes immutable while pages remain short-lived", () => {
     expect(cacheControlForPath("/health")).toBe("no-store");
     expect(cacheControlForPath("/api/query")).toBe("no-store");
+    expect(cacheControlForPath("/api/stats")).toBe("no-store");
+    expect(cacheControlForPath("/api/v1/query")).toBe("no-store");
+    expect(cacheControlForPath("/api/v1/games")).toBe("public, max-age=300");
     expect(cacheControlForPath("/mcp")).toBe("no-store");
     expect(cacheControlForPath("/_astro/app.123.css")).toContain("immutable");
     expect(cacheControlForPath("/docs/results/")).toBe(

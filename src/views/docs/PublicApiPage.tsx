@@ -130,7 +130,10 @@ export function PublicApiPage(): ReactNode {
       <p>
         <code>GET /api/v1/games</code> returns <code>{"{ games: [...] }"}</code>{" "}
         with every supported game&apos;s ID, aliases, default ports, and
-        capabilities, straight from the library&apos;s registry.
+        capabilities, straight from the library&apos;s registry. Responses carry
+        an <code>ETag</code> and may be reused for 5 minutes; send it back in{" "}
+        <code>If-None-Match</code> to get an empty <code>304</code> when the
+        list is unchanged.
       </p>
       <h2 id="limits">Limits</h2>
       <ul>

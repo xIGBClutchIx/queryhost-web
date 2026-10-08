@@ -10,6 +10,7 @@ import {
   type ProxyFetcher,
   type PublicQueryDependencies,
 } from "../src/server/public-query.js";
+import { SurfaceUsage } from "../src/server/usage-stats.js";
 
 const TOKEN = "a".repeat(32);
 const POLICY: ProxyGatePolicy = {
@@ -45,6 +46,7 @@ function dependencies(
     fetcher,
     gate: new ProxyGate(policy),
     queryRunner: unusedQueryRunner,
+    usage: new SurfaceUsage(),
   };
 }
 
@@ -375,6 +377,7 @@ describe("public query proxy", () => {
         Promise.reject(new Error("The hosted API should not be called.")),
       gate: new ProxyGate(POLICY),
       queryRunner,
+      usage: new SurfaceUsage(),
     };
 
     const response = await handlePublicQuery(
@@ -435,5 +438,34 @@ describe("public query configuration", () => {
         QUERYHOST_WEB_MAX_STARTS_PER_WINDOW: "8",
       }),
     ).toThrow("cannot exceed");
+  });
+
+  it("counts outcomes by fixed category without recording callers or targets", async () => {
+    const deps = dependencies(
+      () =>
+        Promise.resolve(
+          new Response('{"ok":true}', {
+            headers: {
+              "Content-Type": "application/json",
+              "x-queryhost-cache": "hit",
+            },
+          }),
+        ),
+      { ...POLICY, maxStartsPerCaller: 1 },
+    );
+    const body = JSON.stringify({ game: "rust", host: "secret.example.com" });
+
+    await handlePublicQuery(queryRequest(body), deps);
+    await handlePublicQuery(queryRequest(body), deps);
+    await handlePublicQuery(queryRequest("{}"), deps);
+
+    const snapshot = deps.usage.snapshot();
+    expect(snapshot).toEqual({
+      requests: { invalid: 1, rateLimited: 1, forwarded: 1, unavailable: 0 },
+      rateLimited: { active: 0, window: 0, caller: 1, callers: 0 },
+      upstreamStatus: { "200": 1 },
+      cache: { hit: 1, miss: 0, coalesced: 0 },
+    });
+    expect(JSON.stringify(snapshot)).not.toContain("secret");
   });
 });

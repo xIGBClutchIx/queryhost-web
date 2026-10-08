@@ -28,7 +28,11 @@ describe("public proxy gate", () => {
       second.release();
     }
     const rejected = gate.admit("caller-a", 2);
-    expect(rejected).toEqual({ accepted: false, retryAfterSeconds: 1 });
+    expect(rejected).toEqual({
+      accepted: false,
+      reason: "caller",
+      retryAfterSeconds: 1,
+    });
   });
 
   it("bounds global starts, active work, and tracked caller memory", () => {
@@ -40,6 +44,7 @@ describe("public proxy gate", () => {
     expect(gate.trackedCallers).toBe(2);
     expect(gate.admit("caller-c", 0)).toEqual({
       accepted: false,
+      reason: "active",
       retryAfterSeconds: 1,
     });
 
@@ -56,7 +61,22 @@ describe("public proxy gate", () => {
     }
     expect(gate.admit("caller-b", 2)).toEqual({
       accepted: false,
+      reason: "window",
       retryAfterSeconds: 1,
+    });
+  });
+
+  it("names tracked-caller memory as the rejecting bound", () => {
+    const gate = new ProxyGate({ ...POLICY, maxStartsPerWindow: 10 });
+    for (const caller of ["caller-a", "caller-b"]) {
+      const lease = gate.admit(caller, 0);
+      if (lease.accepted) {
+        lease.release();
+      }
+    }
+    expect(gate.admit("caller-c", 0)).toMatchObject({
+      accepted: false,
+      reason: "callers",
     });
   });
 
