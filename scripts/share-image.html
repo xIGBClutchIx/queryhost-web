@@ -1,0 +1,223 @@
+<!doctype html>
+<!--
+  Source of public/share.png, the Open Graph and Twitter card image.
+  Colors and the glass card mirror src/styles/base.css and playground.css.
+  Regenerate after `npm ci` with Chromium's headless shell, which sizes the
+  viewport exactly (full Chromium subtracts window chrome):
+    chrome-headless-shell --hide-scrollbars --window-size=1200,630 \
+      --screenshot=public/share.png scripts/share-image.html
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>QueryHost share image</title>
+    <style>
+      @font-face {
+        font-family: "Geist Variable";
+        font-weight: 100 900;
+        src: url("../node_modules/@fontsource-variable/geist/files/geist-latin-wght-normal.woff2")
+          format("woff2");
+      }
+
+      @font-face {
+        font-family: "Geist Mono Variable";
+        font-weight: 100 900;
+        src: url("../node_modules/@fontsource-variable/geist-mono/files/geist-mono-latin-wght-normal.woff2")
+          format("woff2");
+      }
+
+      :root {
+        --background: #0b1215;
+        --surface-raised: #131e22;
+        --text: #dce7e4;
+        --text-strong: #f3f8f6;
+        --muted: #95a6a2;
+        --faint: #7f918c;
+        --accent: #55d7ba;
+        --accent-soft: #123b34;
+        --on-accent: #04201a;
+        --glass-fill: color-mix(
+          in srgb,
+          var(--surface-raised) 52%,
+          transparent
+        );
+        --glass-sheen: linear-gradient(
+          180deg,
+          color-mix(in srgb, var(--text-strong) 5%, transparent),
+          transparent 70%
+        );
+        --glass-edge: color-mix(in srgb, var(--text-strong) 11%, transparent);
+        --glass-inset: color-mix(in srgb, var(--background) 30%, transparent);
+        --glass-inset-edge: color-mix(
+          in srgb,
+          var(--text-strong) 6%,
+          transparent
+        );
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 1200px;
+        height: 630px;
+        margin: 0;
+        overflow: hidden;
+      }
+
+      body {
+        display: flex;
+        flex-direction: column;
+        padding: 56px 72px;
+        background:
+          radial-gradient(
+            circle at 50% 62%,
+            color-mix(in srgb, var(--accent-soft) 70%, transparent) 0,
+            transparent 640px
+          ),
+          var(--background);
+        color: var(--text);
+        font-family: "Geist Variable", sans-serif;
+        font-synthesis: none;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        font-size: 34px;
+        font-weight: 680;
+        letter-spacing: -0.04em;
+      }
+
+      .brand svg {
+        width: 44px;
+        height: 44px;
+      }
+
+      .brand__query {
+        color: var(--accent);
+      }
+
+      .brand__host {
+        color: var(--text-strong);
+      }
+
+      .heading {
+        margin-top: 64px;
+        text-align: center;
+      }
+
+      h1 {
+        margin: 0;
+        color: var(--text-strong);
+        font-size: 76px;
+        font-weight: 680;
+        letter-spacing: -0.055em;
+        line-height: 1;
+      }
+
+      .heading p {
+        margin: 18px 0 0;
+        color: var(--muted);
+        font-size: 26px;
+      }
+
+      .form {
+        display: grid;
+        grid-template-columns: 340px 1fr 132px 150px;
+        gap: 14px;
+        margin-top: 52px;
+        padding: 22px;
+        border: 1.5px solid var(--glass-edge);
+        border-radius: 18px;
+        background: var(--glass-sheen), var(--glass-fill);
+        box-shadow:
+          inset 0 1px 0 color-mix(in srgb, var(--text-strong) 7%, transparent),
+          0 40px 100px -44px color-mix(in srgb, var(--accent) 40%, transparent);
+      }
+
+      .field {
+        display: flex;
+        align-items: center;
+        height: 64px;
+        padding: 0 20px;
+        border: 1.5px solid var(--glass-inset-edge);
+        border-radius: 12px;
+        background: var(--glass-inset);
+        color: var(--text-strong);
+        font-size: 24px;
+        white-space: nowrap;
+      }
+
+      .field--select {
+        justify-content: space-between;
+      }
+
+      .field--select::after {
+        width: 10px;
+        height: 10px;
+        margin-top: -6px;
+        border-right: 2.5px solid var(--faint);
+        border-bottom: 2.5px solid var(--faint);
+        content: "";
+        transform: rotate(45deg);
+      }
+
+      .field--mono {
+        font-family: "Geist Mono Variable", monospace;
+        font-size: 23px;
+      }
+
+      .button {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        background: var(--accent);
+        color: var(--on-accent);
+        font-size: 24px;
+        font-weight: 680;
+      }
+
+      .footer {
+        margin-top: auto;
+        color: var(--faint);
+        font-family: "Geist Mono Variable", monospace;
+        font-size: 22px;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="brand">
+      <svg viewBox="0 0 64 64" aria-hidden="true">
+        <g fill="none" stroke="#55d7ba" stroke-linecap="round" stroke-width="5">
+          <circle cx="30" cy="30" r="18.5" />
+          <path d="m43 43 10 10" />
+          <path d="M23 26h14M23 34h14" />
+        </g>
+      </svg>
+      <span
+        ><span class="brand__query">Query</span
+        ><span class="brand__host">Host</span></span
+      >
+    </div>
+
+    <div class="heading">
+      <h1>Look up any game server</h1>
+      <p>Check its live status right in your browser.</p>
+    </div>
+
+    <div class="form">
+      <div class="field field--select">Minecraft: Java Edition</div>
+      <div class="field field--mono">play.example.com</div>
+      <div class="field field--mono">25565</div>
+      <div class="button">Query</div>
+    </div>
+
+    <div class="footer">query.host</div>
+  </body>
+</html>
