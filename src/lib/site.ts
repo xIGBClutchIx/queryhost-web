@@ -2,6 +2,13 @@ export const BRAND_ICON_URL = "/favicon.svg?v=2";
 export const GITHUB_REPOSITORY_URL =
   "https://github.com/xIGBClutchIx/queryhost";
 export const SITE_HOSTNAME = "query.host";
+/** Link-preview image, rendered from `scripts/share-image.html`; bump `v` when it changes. */
+export const SHARE_IMAGE = {
+  alt: "QueryHost: look up any game server. A game, host, and port form with a Query button.",
+  height: 630,
+  path: "/share.png?v=1",
+  width: 1200,
+} as const;
 /** Homepage headline, shared by the visible hero and the page title. */
 export const HOME_HEADLINE = "Look up any game server";
 /** Homepage subline, shared by the visible hero and the meta and Open Graph descriptions. */
