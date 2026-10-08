@@ -1,4 +1,5 @@
-import type { CSSProperties, ReactNode } from "react";
+import type { CSSProperties } from "preact";
+import type { ReactNode } from "react";
 
 import {
   minecraftTextSegments,

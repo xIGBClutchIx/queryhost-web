@@ -1,7 +1,6 @@
 // @vitest-environment jsdom
-import { act } from "react";
+import { act } from "preact/test-utils";
 import { createRoot } from "react-dom/client";
-import type { Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -10,12 +9,8 @@ import { PLAYGROUND_GAMES } from "../src/lib/playground-games.js";
 import { HOME_HEADLINE, HOME_SUMMARY } from "../src/lib/site.js";
 import { MINECRAFT_ONLINE } from "./fixtures/playground.js";
 
-declare global {
-  var IS_REACT_ACT_ENVIRONMENT: boolean;
-}
-
 let container: HTMLDivElement;
-let root: Root;
+let root: ReturnType<typeof createRoot>;
 
 function element<T extends Element>(selector: string): T {
   const found = container.querySelector<T>(selector);
@@ -24,19 +19,19 @@ function element<T extends Element>(selector: string): T {
 }
 
 function setInput(input: HTMLInputElement, value: string): void {
-  // React tracks the instance value, so update through the native prototype setter.
-  Reflect.set(HTMLInputElement.prototype, "value", value, input);
+  input.value = value;
   input.dispatchEvent(new Event("input", { bubbles: true }));
 }
 
+// A macrotask lets the stubbed fetch and its response body settle before
+// Preact flushes the resulting updates.
 async function flush(): Promise<void> {
   await act(async () => {
-    await Promise.resolve();
+    await new Promise((resolve) => setTimeout(resolve, 0));
   });
 }
 
 beforeEach(() => {
-  globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   vi.stubGlobal(
     "ResizeObserver",
     class {
@@ -50,7 +45,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  act(() => {
+  void act(() => {
     root.unmount();
   });
   container.remove();
@@ -84,14 +79,14 @@ describe("query playground island", () => {
       Promise.resolve(new Response(JSON.stringify(MINECRAFT_ONLINE))),
     );
     vi.stubGlobal("fetch", fetcher);
-    act(() => {
+    void act(() => {
       root.render(<QueryPlayground games={PLAYGROUND_GAMES} search="" />);
     });
 
-    act(() => {
+    void act(() => {
       setInput(element("#query-host"), "play.example.com");
     });
-    act(() => {
+    void act(() => {
       element<HTMLFormElement>("#query-form").requestSubmit();
     });
     expect(element("#query-submit").textContent).toBe("Querying…");
@@ -128,7 +123,7 @@ describe("query playground island", () => {
       Promise.resolve(new Response(JSON.stringify(MINECRAFT_ONLINE))),
     );
     vi.stubGlobal("fetch", fetcher);
-    act(() => {
+    void act(() => {
       root.render(<QueryPlayground games={PLAYGROUND_GAMES} search="" />);
     });
 
@@ -136,7 +131,7 @@ describe("query playground island", () => {
     expect(chip.getAttribute("href")).toBe(
       "/?game=minecraft-java&host=mc.hypixel.net",
     );
-    act(() => {
+    void act(() => {
       chip.click();
     });
     await flush();
@@ -156,7 +151,7 @@ describe("query playground island", () => {
   });
 
   it("focuses the host field on / unless another field is being edited", () => {
-    act(() => {
+    void act(() => {
       root.render(<QueryPlayground games={PLAYGROUND_GAMES} search="" />);
     });
     const host = element<HTMLInputElement>("#query-host");
@@ -192,13 +187,13 @@ describe("query playground island", () => {
         ),
       ),
     );
-    act(() => {
+    void act(() => {
       root.render(<QueryPlayground games={PLAYGROUND_GAMES} search="" />);
     });
-    act(() => {
+    void act(() => {
       setInput(element("#query-host"), "play.example.com");
     });
-    act(() => {
+    void act(() => {
       element<HTMLFormElement>("#query-form").requestSubmit();
     });
     await flush();
@@ -219,19 +214,19 @@ describe("query playground island", () => {
         Promise.resolve(new Response(JSON.stringify(MINECRAFT_ONLINE))),
       ),
     );
-    act(() => {
+    void act(() => {
       root.render(<QueryPlayground games={PLAYGROUND_GAMES} search="" />);
     });
-    act(() => {
+    void act(() => {
       setInput(element("#query-host"), "play.example.com");
     });
-    act(() => {
+    void act(() => {
       element<HTMLFormElement>("#query-form").requestSubmit();
     });
     await flush();
 
     const overview = element<HTMLButtonElement>("#query-tab-overview");
-    act(() => {
+    void act(() => {
       overview.dispatchEvent(
         new KeyboardEvent("keydown", { bubbles: true, key: "ArrowLeft" }),
       );
@@ -251,11 +246,11 @@ describe("query playground island", () => {
     vi.stubGlobal("fetch", fetcher);
     const search = "?game=minecraft-java&host=play.example.com&mode=summary";
     history.replaceState(null, "", `/${search}`);
-    act(() => {
+    void act(() => {
       root.render(<QueryPlayground games={PLAYGROUND_GAMES} search={search} />);
     });
     await flush();
-    act(() => {
+    void act(() => {
       root.render(<QueryPlayground games={PLAYGROUND_GAMES} search={search} />);
     });
     await flush();
@@ -285,7 +280,7 @@ describe("query playground island", () => {
     (search) => {
       const fetcher = vi.fn<typeof fetch>();
       vi.stubGlobal("fetch", fetcher);
-      act(() => {
+      void act(() => {
         root.render(
           <QueryPlayground games={PLAYGROUND_GAMES} search={search} />,
         );
@@ -299,13 +294,13 @@ describe("query playground island", () => {
   it("explains a URL-shaped host without sending a request", () => {
     const fetcher = vi.fn<typeof fetch>();
     vi.stubGlobal("fetch", fetcher);
-    act(() => {
+    void act(() => {
       root.render(<QueryPlayground games={PLAYGROUND_GAMES} search="" />);
     });
-    act(() => {
+    void act(() => {
       setInput(element("#query-host"), "https://play.example.com");
     });
-    act(() => {
+    void act(() => {
       element<HTMLFormElement>("#query-form").requestSubmit();
     });
 
@@ -315,13 +310,13 @@ describe("query playground island", () => {
   });
 
   it("picks a game from the keyboard listbox and applies its port rules", () => {
-    act(() => {
+    void act(() => {
       root.render(<QueryPlayground games={PLAYGROUND_GAMES} search="" />);
     });
     const trigger = element<HTMLButtonElement>(
       "[aria-controls='query-game-menu']",
     );
-    act(() => {
+    void act(() => {
       trigger.dispatchEvent(
         new KeyboardEvent("keydown", { bubbles: true, key: "ArrowUp" }),
       );
@@ -334,7 +329,7 @@ describe("query playground island", () => {
         "#query-game-menu [role='option']",
       ),
     ).find((option) => option.textContent === "Generic A2S");
-    act(() => {
+    void act(() => {
       a2s?.click();
     });
     expect(trigger.getAttribute("aria-expanded")).toBe("false");
@@ -345,7 +340,7 @@ describe("query playground island", () => {
     expect(element("#query-mode-value").textContent).toBe("Full details");
   });
   it("opens the game list scrolled to the selected game", () => {
-    act(() => {
+    void act(() => {
       root.render(<QueryPlayground games={PLAYGROUND_GAMES} search="" />);
     });
     const list = element<HTMLElement>("#query-game-menu");
@@ -360,7 +355,7 @@ describe("query playground island", () => {
       offsetHeight: { value: 36 },
       offsetTop: { value: 500 },
     });
-    act(() => {
+    void act(() => {
       element<HTMLButtonElement>("[aria-controls='query-game-menu']").click();
     });
     // Centred: 500 - (200 - 36) / 2.
@@ -371,7 +366,7 @@ describe("query playground island", () => {
   });
 
   it("marks the game list edges that have more options past them", () => {
-    act(() => {
+    void act(() => {
       root.render(<QueryPlayground games={PLAYGROUND_GAMES} search="" />);
     });
     const list = element<HTMLElement>("#query-game-menu");
@@ -379,19 +374,19 @@ describe("query playground island", () => {
       clientHeight: { value: 200 },
       scrollHeight: { value: 900 },
     });
-    act(() => {
+    void act(() => {
       list.scrollTop = 0;
       list.dispatchEvent(new Event("scroll"));
     });
     expect(list.className).toBe("custom-select__list has-more-below");
-    act(() => {
+    void act(() => {
       list.scrollTop = 300;
       list.dispatchEvent(new Event("scroll"));
     });
     expect(list.className).toBe(
       "custom-select__list has-more-above has-more-below",
     );
-    act(() => {
+    void act(() => {
       list.scrollTop = 700;
       list.dispatchEvent(new Event("scroll"));
     });
@@ -432,15 +427,15 @@ describe("revealing finished output", () => {
       "fetch",
       vi.fn<typeof fetch>(() => Promise.resolve(response)),
     );
-    act(() => {
+    void act(() => {
       root.render(<QueryPlayground games={PLAYGROUND_GAMES} search="" />);
     });
     element<HTMLElement>("#query-output").style.scrollMarginTop = scrollMargin;
-    act(() => {
+    void act(() => {
       setInput(element("#query-host"), "play.example.com");
     });
     element<HTMLButtonElement>("#query-submit").focus();
-    act(() => {
+    void act(() => {
       element<HTMLFormElement>("#query-form").requestSubmit();
     });
   }
@@ -503,7 +498,7 @@ describe("revealing finished output", () => {
     );
     const search = "?game=minecraft-java&host=play.example.com&mode=summary";
     history.replaceState(null, "", `/${search}`);
-    act(() => {
+    void act(() => {
       root.render(<QueryPlayground games={PLAYGROUND_GAMES} search={search} />);
     });
     await flush();

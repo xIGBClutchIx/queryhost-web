@@ -1,15 +1,11 @@
 // @vitest-environment jsdom
-import { act, useState } from "react";
+import { useState } from "react";
+import { act } from "preact/test-utils";
 import type { ReactNode } from "react";
 import { createRoot } from "react-dom/client";
-import type { Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { TabPanel, Tabs } from "../src/components/Tabs.js";
-
-declare global {
-  var IS_REACT_ACT_ENVIRONMENT: boolean;
-}
 
 const TABS = [
   { id: "one", label: "One" },
@@ -40,20 +36,19 @@ function Harness(): ReactNode {
 }
 
 let container: HTMLDivElement;
-let root: Root;
+let root: ReturnType<typeof createRoot>;
 
 beforeEach(() => {
-  globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   container = document.createElement("div");
   document.body.append(container);
   root = createRoot(container);
-  act(() => {
+  void act(() => {
     root.render(<Harness />);
   });
 });
 
 afterEach(() => {
-  act(() => {
+  void act(() => {
     root.unmount();
   });
   container.remove();
@@ -68,7 +63,7 @@ function tab(id: TabId): HTMLButtonElement {
 }
 
 function press(target: HTMLElement, key: string): void {
-  act(() => {
+  void act(() => {
     target.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key }));
   });
 }
@@ -112,7 +107,7 @@ describe("Tabs", () => {
   });
 
   it("shows only the active panel", () => {
-    act(() => {
+    void act(() => {
       tab("two").click();
     });
     const hidden = Array.from(

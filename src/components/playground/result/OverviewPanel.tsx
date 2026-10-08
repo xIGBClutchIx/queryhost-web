@@ -1,4 +1,5 @@
-import type { CSSProperties, ReactNode } from "react";
+import type { CSSProperties } from "preact";
+import type { ReactNode } from "react";
 
 import type {
   PlaygroundGameDefinition,
@@ -83,13 +84,7 @@ function QueryPath({
       <span className="query-path__label" id="query-path-label">
         Query path
       </span>
-      <ol
-        style={
-          {
-            "--query-path-count": String(pathItems.length),
-          } as CSSProperties
-        }
-      >
+      <ol style={{ "--query-path-count": String(pathItems.length) }}>
         {pathItems.map((item) => (
           <li
             key={item.source}

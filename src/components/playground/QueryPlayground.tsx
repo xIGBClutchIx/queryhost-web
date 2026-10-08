@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { ReactNode, SubmitEvent } from "react";
+import type { TargetedSubmitEvent } from "preact";
+import type { ReactNode } from "react";
 
 import type {
   PlaygroundGameDefinition,
@@ -63,7 +64,7 @@ export function QueryPlayground({
     runQuery(parsed.input).catch(() => undefined);
   }
 
-  function onSubmit(event: SubmitEvent<HTMLFormElement>): void {
+  function onSubmit(event: TargetedSubmitEvent<HTMLFormElement>): void {
     event.preventDefault();
     setFormError(undefined);
     if (formRef.current?.reportValidity() === false) return;

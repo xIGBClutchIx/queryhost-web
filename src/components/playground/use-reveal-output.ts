@@ -12,9 +12,7 @@ const FRAMED_SLACK_PX = 48;
  * Focus stays where it was; the output region's live announcement reports the
  * outcome.
  */
-export function useRevealOutput(
-  output: OutputState,
-): RefObject<HTMLElement | null> {
+export function useRevealOutput(output: OutputState): RefObject<HTMLElement> {
   const outputRef = useRef<HTMLElement>(null);
 
   useEffect(() => {

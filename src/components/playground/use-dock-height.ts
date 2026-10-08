@@ -2,8 +2,8 @@ import { useLayoutEffect, useRef } from "react";
 import type { RefObject } from "react";
 
 export interface DockHeightRefs {
-  readonly dockRef: RefObject<HTMLDivElement | null>;
-  readonly playgroundRef: RefObject<HTMLElement | null>;
+  readonly dockRef: RefObject<HTMLDivElement>;
+  readonly playgroundRef: RefObject<HTMLElement>;
 }
 
 /**
