@@ -42,9 +42,10 @@ export function PublicApiPage(): ReactNode {
     <DocsLayout {...metadata}>
       <h2 id="base-url">Base URL</h2>
       <p>
-        Every route lives under <code>https://query.host/api/v1</code>. Requests
-        and responses are JSON. There are no API keys, and callers are limited
-        by IP address.
+        Every route lives under <code>https://query.host/api/v1</code>. There
+        are no API keys. Query and games requests and responses are JSON, and
+        queries are limited by IP address; <a href="#badges">status badges</a>{" "}
+        return SVG and use their own shared budget instead.
       </p>
       <h2 id="query">Query a server</h2>
       <p>
