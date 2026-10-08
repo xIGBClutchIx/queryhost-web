@@ -28,14 +28,20 @@ export function canonicalUrl(pathname: string): string {
 }
 
 /**
- * Cache policy for `GET /api/v1/games`. The list only changes on deploy, so
- * clients may reuse it briefly and then revalidate with its ETag.
+ * Cache policy for `GET /api/v1/games` and `/api/v1/openapi.json`. Both only
+ * change on deploy, so clients may reuse them briefly and then revalidate
+ * with their ETag.
  */
-export const PUBLIC_API_GAMES_CACHE_CONTROL = "public, max-age=300";
+export const PUBLIC_API_STATIC_CACHE_CONTROL = "public, max-age=300";
+
+const PUBLIC_API_STATIC_PATHS: ReadonlySet<string> = new Set([
+  "/api/v1/games",
+  "/api/v1/openapi.json",
+]);
 
 export function cacheControlForPath(pathname: string): string {
-  if (pathname === "/api/v1/games") {
-    return PUBLIC_API_GAMES_CACHE_CONTROL;
+  if (PUBLIC_API_STATIC_PATHS.has(pathname)) {
+    return PUBLIC_API_STATIC_CACHE_CONTROL;
   }
 
   if (
