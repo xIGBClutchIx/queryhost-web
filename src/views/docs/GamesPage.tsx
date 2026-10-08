@@ -58,7 +58,7 @@ export function GamesPage(): ReactNode {
           type="search"
           placeholder="Name, ID, or alias"
           autoComplete="off"
-          spellCheck={false}
+          spellcheck={false}
           aria-describedby="capability-filter-status"
         />
         <span

@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import type { KeyboardEvent, ReactNode } from "react";
+import type { TargetedKeyboardEvent } from "preact";
+import type { ReactNode } from "react";
 import "../../styles/playground.css";
 
 export interface SelectOption<V extends string> {
@@ -130,7 +131,9 @@ export function CustomSelect<V extends string>({
     triggerRef.current?.focus();
   }
 
-  function onTriggerKeyDown(event: KeyboardEvent<HTMLButtonElement>): void {
+  function onTriggerKeyDown(
+    event: TargetedKeyboardEvent<HTMLButtonElement>,
+  ): void {
     if (event.key !== "ArrowDown" && event.key !== "ArrowUp") {
       return;
     }
@@ -139,7 +142,7 @@ export function CustomSelect<V extends string>({
   }
 
   function onOptionKeyDown(
-    event: KeyboardEvent<HTMLButtonElement>,
+    event: TargetedKeyboardEvent<HTMLButtonElement>,
     index: number,
   ): void {
     if (event.key === "Escape") {

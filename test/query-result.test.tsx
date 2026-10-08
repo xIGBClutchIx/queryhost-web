@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act } from "react";
+import { act } from "preact/test-utils";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -10,10 +10,6 @@ import type {
 } from "../src/lib/playground-contracts.js";
 import { readableMinecraftColor } from "../src/lib/minecraft-text.js";
 import { PLAYGROUND_GAMES } from "../src/lib/playground-games.js";
-
-declare global {
-  var IS_REACT_ACT_ENVIRONMENT: boolean;
-}
 
 const RAW_NAME = "§f§f§f§f§fHALLOWEEN EVENT, HUNT + MAPS";
 
@@ -45,7 +41,7 @@ function render(
   input?: PlaygroundQueryInput,
 ): () => void {
   const root = createRoot(container);
-  act(() => {
+  void act(() => {
     root.render(
       <QueryResult
         games={PLAYGROUND_GAMES}
@@ -55,7 +51,7 @@ function render(
     );
   });
   return () => {
-    act(() => {
+    void act(() => {
       root.unmount();
     });
   };
@@ -64,13 +60,12 @@ function render(
 function click(selector: string): void {
   const tab = container.querySelector<HTMLElement>(selector);
   if (tab === null) throw new Error(`Missing ${selector}`);
-  act(() => {
+  void act(() => {
     tab.click();
   });
 }
 
 beforeEach(() => {
-  globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   container = document.createElement("div");
   document.body.append(container);
 });

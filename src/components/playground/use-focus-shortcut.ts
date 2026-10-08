@@ -15,9 +15,7 @@ function isEditable(target: EventTarget | null): boolean {
  * Focuses `inputRef` when `/` is pressed outside an editable control, the
  * search-field convention. Shift stays allowed for layouts that need it for `/`.
  */
-export function useFocusShortcut(
-  inputRef: RefObject<HTMLInputElement | null>,
-): void {
+export function useFocusShortcut(inputRef: RefObject<HTMLInputElement>): void {
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent): void {
       if (

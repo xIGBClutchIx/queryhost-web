@@ -1,5 +1,6 @@
 import { useRef } from "react";
-import type { KeyboardEvent, ReactNode } from "react";
+import type { TargetedKeyboardEvent } from "preact";
+import type { ReactNode } from "react";
 
 export interface TabDefinition<Id extends string> {
   readonly id: Id;
@@ -49,7 +50,7 @@ export function Tabs<Id extends string>({
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   function onKeyDown(
-    event: KeyboardEvent<HTMLButtonElement>,
+    event: TargetedKeyboardEvent<HTMLButtonElement>,
     index: number,
   ): void {
     const nextIndex = targetIndex(event.key, index, tabs.length);

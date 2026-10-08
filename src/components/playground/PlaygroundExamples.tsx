@@ -1,4 +1,5 @@
-import type { MouseEvent, ReactNode } from "react";
+import type { TargetedMouseEvent } from "preact";
+import type { ReactNode } from "react";
 
 import type { PlaygroundExample } from "../../lib/playground-examples.js";
 import { shareUrl } from "../../lib/playground-form.js";
@@ -14,7 +15,10 @@ export function PlaygroundExamples({
   examples,
   onSelect,
 }: PlaygroundExamplesProps): ReactNode {
-  function onClick(event: MouseEvent<HTMLAnchorElement>, search: string): void {
+  function onClick(
+    event: TargetedMouseEvent<HTMLAnchorElement>,
+    search: string,
+  ): void {
     if (
       event.button !== 0 ||
       event.metaKey ||

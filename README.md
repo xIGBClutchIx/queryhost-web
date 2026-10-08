@@ -1,6 +1,6 @@
 # QueryHost Web
 
-The public QueryHost website, query playground, and documentation service. One portable Astro/Node.js application with a React interface serves `query.host`, with documentation under `query.host/docs/`.
+The public QueryHost website, query playground, and documentation service. One portable Astro/Node.js application with a Preact interface serves `query.host`, with documentation under `query.host/docs/`.
 
 The browser sends non-secret query inputs to the same-origin `POST /api/query` route. That server route validates and throttles callers before forwarding production requests to the private QueryHost API over Railway networking. During local development, the same route calls the installed `queryhost` package directly, without duplicating any game protocol implementation.
 
@@ -42,7 +42,7 @@ Every host uses `/` for the site and `/docs/` for documentation, so internal lin
 
 Astro ClientRouter handles same-origin HTML navigation, including between the site and documentation, with its built-in link prefetching. External links, downloads, modified clicks, and intentional full-page navigation retain their browser behavior.
 
-Every page is a React view rendered on the server; the `.astro` routes only read the request and pass it to a view. Documentation, policy, and error pages ship no React runtime. The playground is the single hydrated React island (`client:load`), and shared links (`/?game=…&host=…`) render prefilled on the server and run once when the page loads. Agent tooling and its schema library load as a separate chunk only in browsers that expose WebMCP. The island releases its requests and WebMCP registrations when Astro swaps the page or the browser hides it, and starts again on history restoration. Share URLs retain Astro's history state.
+Every page is a Preact view rendered on the server; the `.astro` routes only read the request and pass it to a view. Components keep React-style imports, which `preact/compat` serves through the Astro integration's aliases and matching TypeScript `paths`. Documentation, policy, and error pages ship no Preact runtime. The playground is the single hydrated Preact island (`client:load`), and shared links (`/?game=…&host=…`) render prefilled on the server and run once when the page loads. Agent tooling and its schema library load as a separate chunk only in browsers that expose WebMCP. The island releases its requests and WebMCP registrations when Astro swaps the page or the browser hides it, and starts again on history restoration. Share URLs retain Astro's history state.
 
 Run the complete gate before committing:
 

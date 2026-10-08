@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { VNode } from "preact";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
@@ -35,7 +35,7 @@ const DOCS_VIEWS = [
   [webMcp.metadata, webMcp.WebMcpPage],
 ] as const;
 
-function render(view: ReactNode): string {
+function render(view: VNode): string {
   return renderToStaticMarkup(view);
 }
 
@@ -90,7 +90,7 @@ describe("server-rendered documentation views", () => {
   it("reserves a contents column only on pages with several sections", () => {
     const querying_ = render(<querying.QueryingPage />);
     expect(querying_).toContain('class="docs-shell docs-shell--contents"');
-    expect(querying_).toContain('data-doc-toc=""');
+    expect(querying_).toContain("data-doc-toc");
     for (const html of [
       render(<games.GamesPage />),
       render(<referenceIndex.ReferenceIndexPage />),
@@ -103,7 +103,7 @@ describe("server-rendered documentation views", () => {
 
   it("gives every game row filter text with its ID and aliases", () => {
     const html = render(<games.GamesPage />);
-    expect(html).toContain('data-game-filter-control=""');
+    expect(html).toContain("data-game-filter-control");
     expect(html).toMatch(
       /data-game-filter="counter-strike 2 counter-strike-2[^"]*cs2/,
     );
@@ -112,7 +112,7 @@ describe("server-rendered documentation views", () => {
   it("hides code copy buttons until the page script enables them", () => {
     const html = render(<gettingStarted.GettingStartedPage />);
     expect(html).toContain(
-      '<button class="code-block__copy" type="button" data-code-copy="" aria-label="Copy Terminal code" hidden="">Copy</button>',
+      '<button class="code-block__copy" type="button" data-code-copy aria-label="Copy Terminal code" hidden>Copy</button>',
     );
   });
 

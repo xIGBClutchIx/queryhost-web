@@ -1,10 +1,5 @@
-import type {
-  Dispatch,
-  ReactNode,
-  RefObject,
-  SetStateAction,
-  SubmitEvent,
-} from "react";
+import type { TargetedSubmitEvent } from "preact";
+import type { Dispatch, ReactNode, RefObject, SetStateAction } from "react";
 
 import type { PlaygroundGameDefinition } from "../../lib/playground-contracts.js";
 import { findGame, gameFields, selectGame } from "../../lib/playground-form.js";
@@ -28,13 +23,13 @@ const TIMEOUT_OPTIONS: readonly SelectOption<PlaygroundTimeout>[] = [
 interface QueryFormProps {
   readonly error: string | undefined;
   readonly form: PlaygroundFormState;
-  readonly formRef: RefObject<HTMLFormElement | null>;
+  readonly formRef: RefObject<HTMLFormElement>;
   readonly games: readonly PlaygroundGameDefinition[];
   /** Receives focus when the address fails validation. */
-  readonly hostRef: RefObject<HTMLInputElement | null>;
+  readonly hostRef: RefObject<HTMLInputElement>;
   readonly loading: boolean;
   readonly onFormChange: Dispatch<SetStateAction<PlaygroundFormState>>;
-  readonly onSubmit: (event: SubmitEvent<HTMLFormElement>) => void;
+  readonly onSubmit: (event: TargetedSubmitEvent<HTMLFormElement>) => void;
 }
 
 /** The playground's controlled query form; parsing and submission stay with the caller. */
@@ -98,7 +93,7 @@ export function QueryForm({
             maxLength={253}
             autoComplete="off"
             autoCapitalize="none"
-            spellCheck={false}
+            spellcheck={false}
             placeholder="play.example.com"
             aria-keyshortcuts="/"
             value={form.host}
