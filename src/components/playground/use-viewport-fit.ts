@@ -32,14 +32,18 @@ export function useViewportFit(
         Number.parseFloat(getComputedStyle(last).marginBottom || "0");
       playground.toggleAttribute("data-fits", contentHeight <= minHeight);
     }
-    // The playground resizes with the viewport; children resize as the form
-    // and result change, which moves the content's bottom inside a fixed box.
+    // Children resize as the form and result change, which moves the content's
+    // bottom inside a fixed box. The viewport is watched directly: an overflowing
+    // playground is sized by its content, so a taller window can bring the
+    // content within reach without resizing anything observed.
     const observer = new ResizeObserver(syncFit);
     observer.observe(playground);
     for (const child of playground.children) observer.observe(child);
+    window.addEventListener("resize", syncFit);
     syncFit();
     return () => {
       observer.disconnect();
+      window.removeEventListener("resize", syncFit);
     };
   }, [playgroundRef, layoutKey]);
 }

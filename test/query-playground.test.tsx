@@ -563,4 +563,17 @@ describe("query playground viewport fit", () => {
     await flush();
     expect(playground.hasAttribute("data-fits")).toBe(false);
   });
+
+  it("re-measures when only the viewport grows", async () => {
+    contentBottom = 701;
+    const playground = renderPlayground();
+    await flush();
+    expect(playground.hasAttribute("data-fits")).toBe(false);
+
+    // A taller window raises the minimum height without resizing anything an
+    // overflowing playground's observers watch.
+    playground.style.minHeight = "720px";
+    window.dispatchEvent(new Event("resize"));
+    expect(playground.hasAttribute("data-fits")).toBe(true);
+  });
 });
