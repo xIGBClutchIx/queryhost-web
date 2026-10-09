@@ -42,6 +42,12 @@
   padding: clamp(3rem, calc(32dvh - 8rem), 16rem) 0 clamp(6rem, 16vh, 10rem);
 }
 
+/* Bottom room only matters when the page scrolls; content that already fits the
+   viewport drops it so the page has no scroll at all. */
+.playground[data-fits] {
+  padding-bottom: 0;
+}
+
 @keyframes playground-enter {
   from {
     opacity: 0;
@@ -446,7 +452,10 @@
   top: calc(100% + var(--space-1-5));
   left: 0;
   z-index: 5;
-  display: grid;
+  /* Closed, the menu leaves layout entirely: a hidden but laid-out menu still
+     counts toward the page's scrollable height and adds scroll on short screens.
+     The discrete display transition keeps the fade out where it is supported. */
+  display: none;
   width: 100%;
   overflow: hidden;
   border: 1px solid var(--line-strong);
@@ -456,11 +465,10 @@
   opacity: 0;
   pointer-events: none;
   transform: translateY(-0.35rem);
-  visibility: hidden;
   transition:
     opacity var(--duration-base) ease,
     transform var(--duration-base) cubic-bezier(0.16, 1, 0.3, 1),
-    visibility var(--duration-base);
+    display var(--duration-base) allow-discrete;
 }
 
 /* The max height is deliberately not a whole number of rows: a half-visible
@@ -499,10 +507,17 @@
 }
 
 .custom-select.is-open .custom-select__menu {
+  display: grid;
   opacity: 1;
   pointer-events: auto;
   transform: translateY(0);
-  visibility: visible;
+}
+
+@starting-style {
+  .custom-select.is-open .custom-select__menu {
+    opacity: 0;
+    transform: translateY(-0.35rem);
+  }
 }
 
 .custom-select__option {

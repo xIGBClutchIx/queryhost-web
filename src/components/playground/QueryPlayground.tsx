@@ -23,6 +23,7 @@ import { useDockHeight } from "./use-dock-height.js";
 import { useFocusShortcut } from "./use-focus-shortcut.js";
 import { usePlaygroundSession } from "./use-playground-session.js";
 import { useRevealOutput } from "./use-reveal-output.js";
+import { useViewportFit } from "./use-viewport-fit.js";
 import "../../styles/playground.css";
 
 interface QueryPlaygroundProps {
@@ -52,6 +53,7 @@ export function QueryPlayground({
   }, []);
   const { output, runQuery } = usePlaygroundSession(games, onAgentQuery);
   const outputRef = useRevealOutput(output);
+  useViewportFit(playgroundRef, output.kind);
 
   function submit(next: PlaygroundFormState): void {
     setFormError(undefined);

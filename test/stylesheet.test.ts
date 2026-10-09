@@ -136,6 +136,24 @@ describe("stylesheet layout", () => {
     const menu = /\n  \.docs-mobile-nav nav \{([^}]*)\}/.exec(tablet)?.[1];
     expect(menu).toContain("overflow-y: auto;");
   });
+
+  it("drops the playground's bottom room only while its content fits", () => {
+    const rule = /\n\.playground\[data-fits\] \{([^}]*)\}/.exec(
+      playground,
+    )?.[1];
+    expect(rule).toContain("padding-bottom: 0;");
+  });
+
+  it("takes the closed game menu out of layout so it adds no scroll", () => {
+    const closed = /\n\.custom-select__menu \{([^}]*)\}/.exec(playground)?.[1];
+    expect(closed).toContain("display: none;");
+    expect(closed).toContain("display var(--duration-base) allow-discrete");
+    const open =
+      /\n\.custom-select\.is-open \.custom-select__menu \{([^}]*)\}/.exec(
+        playground,
+      )?.[1];
+    expect(open).toContain("display: grid;");
+  });
 });
 
 describe("page stylesheets", () => {

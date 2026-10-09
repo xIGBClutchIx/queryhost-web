@@ -509,3 +509,58 @@ describe("revealing finished output", () => {
     expect(scrollIntoView).toHaveBeenCalledOnce();
   });
 });
+
+describe("query playground viewport fit", () => {
+  let contentBottom: number;
+
+  beforeEach(() => {
+    contentBottom = 600;
+    // jsdom has no layout: the playground starts at 0 and its last child, the
+    // output, ends at `contentBottom`.
+    vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(
+      function (this: Element) {
+        const bottom = this.id === "query-output" ? contentBottom : 0;
+        return new DOMRect(0, 0, 800, bottom);
+      },
+    );
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  function renderPlayground(): HTMLElement {
+    void act(() => {
+      root.render(<QueryPlayground games={PLAYGROUND_GAMES} search="" />);
+    });
+    const playground = element<HTMLElement>(".playground");
+    playground.style.minHeight = "700px";
+    // Switching to a result swaps the examples for output, re-measuring the fit.
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<typeof fetch>(() =>
+        Promise.resolve(new Response(JSON.stringify(MINECRAFT_ONLINE))),
+      ),
+    );
+    void act(() => {
+      setInput(element("#query-host"), "play.example.com");
+    });
+    void act(() => {
+      element<HTMLFormElement>("#query-form").requestSubmit();
+    });
+    return playground;
+  }
+
+  it("marks content that fits the viewport-tall playground", async () => {
+    const playground = renderPlayground();
+    await flush();
+    expect(playground.hasAttribute("data-fits")).toBe(true);
+  });
+
+  it("keeps the bottom room for content taller than the playground", async () => {
+    contentBottom = 701;
+    const playground = renderPlayground();
+    await flush();
+    expect(playground.hasAttribute("data-fits")).toBe(false);
+  });
+});
