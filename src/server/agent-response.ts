@@ -1,27 +1,30 @@
+import type { QuerySourceName } from "queryhost";
 import { z } from "zod";
 import type {
   PlaygroundProxyErrorResponse,
   PlaygroundQueryResponse,
 } from "../lib/playground-contracts.js";
 
-const sourceName = z.enum([
-  "a2s-info",
-  "a2s-player",
-  "a2s-rules",
-  "minecraft-srv",
-  "minecraft-slp",
-  "minecraft-query",
-  "minecraft-bedrock-raknet",
-  "fivem-info",
-  "fivem-dynamic",
-  "fivem-players",
-  "redm-info",
-  "redm-dynamic",
-  "redm-players",
-  "satisfactory-lightweight",
-  "satisfactory-health",
-  "vintage-story-query",
-]);
+// The mapped type makes a source name added to `queryhost` fail typecheck until it is listed here.
+const sourceName = z.enum({
+  "a2s-info": "a2s-info",
+  "a2s-player": "a2s-player",
+  "a2s-rules": "a2s-rules",
+  "minecraft-srv": "minecraft-srv",
+  "minecraft-slp": "minecraft-slp",
+  "minecraft-query": "minecraft-query",
+  "minecraft-bedrock-raknet": "minecraft-bedrock-raknet",
+  "fivem-info": "fivem-info",
+  "fivem-dynamic": "fivem-dynamic",
+  "fivem-players": "fivem-players",
+  "redm-info": "redm-info",
+  "redm-dynamic": "redm-dynamic",
+  "redm-players": "redm-players",
+  "satisfactory-lightweight": "satisfactory-lightweight",
+  "satisfactory-health": "satisfactory-health",
+  "vintage-story-query": "vintage-story-query",
+  "eco-frontpage": "eco-frontpage",
+} satisfies { readonly [Name in QuerySourceName]: Name });
 const source = z.object({
   source: sourceName,
   status: z.enum([

@@ -12,6 +12,7 @@ describe("compact query path", () => {
         { source: "satisfactory-lightweight", status: "ok" },
         { source: "satisfactory-health", status: "timeout" },
         { source: "vintage-story-query", status: "ok" },
+        { source: "eco-frontpage", status: "ok" },
       ]).map(({ label }) => label),
     ).toEqual([
       "Server info",
@@ -20,6 +21,7 @@ describe("compact query path", () => {
       "Server state",
       "Health",
       "Server query",
+      "Status page",
     ]);
   });
 

@@ -78,6 +78,7 @@ const QUERY_SOURCE_NAMES: Readonly<Record<QuerySourceName, true>> = {
   "satisfactory-lightweight": true,
   "satisfactory-health": true,
   "vintage-story-query": true,
+  "eco-frontpage": true,
 };
 const QUERY_SOURCE_STATUSES: Readonly<Record<QuerySourceStatus, true>> = {
   ok: true,

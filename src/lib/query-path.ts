@@ -19,6 +19,7 @@ const SOURCE_LABELS = {
   "satisfactory-lightweight": "Server state",
   "satisfactory-health": "Health",
   "vintage-story-query": "Server query",
+  "eco-frontpage": "Status page",
   "minecraft-bedrock-raknet": "Bedrock ping",
   "minecraft-query": "Query",
   "minecraft-slp": "Status",
