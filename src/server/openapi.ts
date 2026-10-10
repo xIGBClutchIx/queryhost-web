@@ -8,6 +8,7 @@ import {
   GAME_ALIASES,
   GAME_IDS,
   type GameCapability,
+  type GameProtocol,
   type SupportLevel,
 } from "queryhost/registry";
 
@@ -60,6 +61,16 @@ const QUERY_WARNING_CODES: Readonly<Record<QueryWarningCode, true>> = {
   SOURCE_FAILED: true,
   SOURCE_MALFORMED: true,
   SOURCE_TIMEOUT: true,
+};
+const GAME_PROTOCOLS: Readonly<Record<GameProtocol, true>> = {
+  a2s: true,
+  "a2s-unreal": true,
+  "minecraft-java": true,
+  "minecraft-bedrock": true,
+  cfx: true,
+  satisfactory: true,
+  "vintage-story": true,
+  eco: true,
 };
 const QUERY_SOURCE_NAMES: Readonly<Record<QuerySourceName, true>> = {
   "a2s-info": true,
@@ -211,14 +222,23 @@ function buildSchemas(): JsonObject {
         ),
         id: ref("GameId"),
         name: { type: "string" },
+        protocol: openEnum(
+          Object.keys(GAME_PROTOCOLS),
+          "Query protocol family the game's profile uses.",
+        ),
         queryPortStrategy: {
           description:
             "Whether a custom game port shifts the query port (`offset`) or leaves it fixed.",
           enum: ["offset", "fixed"],
           type: "string",
         },
+        steamAppId: {
+          ...integer(1),
+          description:
+            "Steam App ID a named A2S game advertises, which tells A2S games apart.",
+        },
       },
-      required: ["id", "name", "capabilities"],
+      required: ["id", "name", "protocol", "capabilities"],
       type: "object",
     },
     GameId: openEnum(GAME_IDS, "Canonical game ID."),
