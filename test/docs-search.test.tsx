@@ -2,6 +2,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
+import { enhanceGameFilter } from "../src/lib/page-enhancements.js";
 import { GAMES } from "../src/lib/queryhost.js";
 import {
   connectDocsSearch,
@@ -342,6 +343,37 @@ describe("connectDocsSearch", () => {
       expect(document.querySelectorAll("[role=option]")).toHaveLength(3);
     });
     expect(load).toHaveBeenCalledTimes(2);
+  });
+
+  it("clears the games filter when a result targets a row it hid", async () => {
+    document.body.innerHTML = renderToStaticMarkup(<GamesPage />);
+    window.history.replaceState(null, "", "/docs/games/");
+    enhanceGameFilter(document, new AbortController().signal);
+    const filter = query(
+      "[data-game-filter-control] input",
+    ) as HTMLInputElement;
+    type(filter, "minecraft");
+    const row = query(`#${gameAnchor("rust")}`);
+    expect(row.hidden).toBe(true);
+
+    const rust = {
+      ...entry("game", "Rust", "Supported games", "rust"),
+      href: `/docs/games/#${gameAnchor("rust")}`,
+    };
+    const controller = connectDocsSearch(
+      document,
+      () => Promise.resolve([rust]),
+      new AbortController().signal,
+    );
+    controller?.open();
+    const input = query("[data-docs-search-input]") as HTMLInputElement;
+    await vi.waitFor(() => {
+      expect(query("[data-docs-search-status]").textContent).toMatch(/^Type/);
+    });
+    type(input, "rust");
+    keydown({ key: "Enter" }, input);
+    expect(filter.value).toBe("");
+    expect(row.hidden).toBe(false);
   });
 
   it("does nothing on pages without the dialog", () => {

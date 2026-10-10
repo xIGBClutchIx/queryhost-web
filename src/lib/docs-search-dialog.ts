@@ -84,6 +84,24 @@ function resultOption(
 }
 
 /**
+ * A result on the current page can point at a games table row the page filter hid; a
+ * fragment change neither re-renders the page nor resets that filter, so clear it first.
+ */
+function revealTarget(document: Document, link: HTMLAnchorElement): void {
+  if (link.pathname !== document.location.pathname || link.hash === "") return;
+  const target = document.getElementById(
+    decodeURIComponent(link.hash.slice(1)),
+  );
+  if (target === null || target.closest("[hidden]") === null) return;
+  const filter = document.querySelector<HTMLInputElement>(
+    "[data-game-filter-control] input",
+  );
+  if (filter === null || filter.value === "") return;
+  filter.value = "";
+  filter.dispatchEvent(new Event("input"));
+}
+
+/**
  * Connects the search dialog, its header trigger, and its results list. Returns
  * undefined on pages without the dialog. Listeners end when `signal` aborts.
  */
@@ -232,9 +250,13 @@ export function connectDocsSearch(
   list.addEventListener(
     "click",
     (event) => {
-      if (event.target instanceof Element && event.target.closest("a")) {
-        close();
-      }
+      const link =
+        event.target instanceof Element
+          ? event.target.closest<HTMLAnchorElement>("a")
+          : null;
+      if (link === null) return;
+      revealTarget(document, link);
+      close();
     },
     { signal },
   );
