@@ -5,7 +5,9 @@ import type {
   PlaygroundProxyErrorResponse,
   PlaygroundQueryResponse,
 } from "../src/lib/playground-contracts.js";
+import { PLAYGROUND_GAMES } from "../src/lib/playground-games.js";
 import {
+  requestPlaygroundDetect,
   requestPlaygroundQuery,
   type PlaygroundFetcher,
 } from "../src/lib/playground-query.js";
@@ -132,6 +134,39 @@ describe("playground query client", () => {
     controller.abort();
 
     await expect(pending).rejects.toMatchObject({ name: "AbortError" });
+  });
+
+  it("rejects detections whose game or query the page cannot render", async () => {
+    const query = {
+      durationMs: 12,
+      error: { code: "TIMEOUT", message: "Timed out" },
+      game: "rust",
+      ok: false,
+      sources: [],
+      warnings: [],
+    };
+    for (const body of [
+      { ok: true, game: "rust", probes: [], result: query, evidence: "port" },
+      { ok: true, game: "not-a-game", probes: [], result: query },
+      { ok: true, game: "valheim", probes: [], result: query },
+      { ok: true, game: "rust", probes: [], result: { ok: true } },
+      { ok: false, error: { code: "NOT_DETECTED" }, probes: [] },
+    ]) {
+      const request = requestPlaygroundDetect(
+        { host: "play.example.com" },
+        PLAYGROUND_GAMES,
+        new AbortController().signal,
+        () => Promise.resolve(new Response(JSON.stringify(body))),
+      );
+      if (body.game === "rust" && body.result === query) {
+        await expect(request).resolves.toMatchObject({
+          body: { cache: { status: "miss" }, game: "rust" },
+          kind: "detected",
+        });
+      } else {
+        await expect(request).rejects.toThrow("unexpected response");
+      }
+    }
   });
 
   describe("streamed queries", () => {

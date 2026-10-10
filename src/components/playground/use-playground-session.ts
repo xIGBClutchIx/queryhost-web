@@ -1,13 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import type {
+  PlaygroundDetectInput,
   PlaygroundGameDefinition,
   PlaygroundProxyErrorResponse,
   PlaygroundQueryInput,
   PlaygroundQueryResponse,
 } from "../../lib/playground-contracts.js";
-import { shareUrl } from "../../lib/playground-form.js";
-import { requestPlaygroundQuery } from "../../lib/playground-query.js";
+import { detectedQueryInput, shareUrl } from "../../lib/playground-form.js";
+import {
+  requestPlaygroundDetect,
+  requestPlaygroundQuery,
+} from "../../lib/playground-query.js";
 import {
   applySourceEvent,
   type SourceProgressEntry,
@@ -22,11 +26,15 @@ export type OutputState =
   | { readonly kind: "idle" }
   | {
       readonly kind: "loading";
+      /** Whether the game is still being detected rather than queried. */
+      readonly detecting: boolean;
       /** Sources the running query has reported so far. */
       readonly progress: readonly SourceProgressEntry[];
     }
   | {
       readonly code: string;
+      /** Replaces the default heading, as when no game was detected. */
+      readonly heading?: string;
       readonly kind: "error";
       readonly message: string;
     }
@@ -54,6 +62,13 @@ export interface PlaygroundSessionControls {
     input: PlaygroundQueryInput,
     executionSignal?: AbortSignal,
   ) => Promise<QueryOutcome>;
+  /**
+   * Detects the game, then shows its query like `runQuery`. Resolves with the
+   * detected game's query input, or `undefined` when no game was identified.
+   */
+  readonly runDetect: (
+    input: PlaygroundDetectInput,
+  ) => Promise<PlaygroundQueryInput | undefined>;
 }
 
 /**
@@ -84,7 +99,7 @@ export function usePlaygroundSession(
         "",
         shareUrl(window.location.href, input, games),
       );
-      setOutput({ kind: "loading", progress: [] });
+      setOutput({ detecting: false, kind: "loading", progress: [] });
 
       try {
         const response = await requestPlaygroundQuery(
@@ -96,7 +111,7 @@ export function usePlaygroundSession(
             setOutput((current) =>
               current.kind === "loading"
                 ? {
-                    kind: "loading",
+                    ...current,
                     progress: applySourceEvent(current.progress, event),
                   }
                 : current,
@@ -137,6 +152,87 @@ export function usePlaygroundSession(
         };
         setOutput({ kind: "error", ...failure.error });
         return failure;
+      }
+    },
+    [games],
+  );
+
+  const runDetect = useCallback(
+    async (
+      input: PlaygroundDetectInput,
+    ): Promise<PlaygroundQueryInput | undefined> => {
+      const session = sessionRef.current;
+      if (session === undefined) {
+        throw abortError("The playground is not active.");
+      }
+      const request = session.coordinator.start();
+      // Until a game is found there is no result to link to, so an earlier
+      // result page must not stay in the address bar for this new target.
+      history.replaceState(
+        history.state,
+        "",
+        new URL("/", window.location.href),
+      );
+      setOutput({ detecting: true, kind: "loading", progress: [] });
+
+      try {
+        const response = await requestPlaygroundDetect(
+          input,
+          games,
+          request.signal,
+        );
+        if (!request.isCurrent()) {
+          throw abortError("The detection was superseded.");
+        }
+        if (response.kind === "proxy-error") {
+          setOutput({ kind: "error", ...response.body.error });
+          return undefined;
+        }
+        if (response.kind === "undetected") {
+          setOutput({
+            code: response.code,
+            heading: "No supported game was detected.",
+            kind: "error",
+            message: response.message,
+          });
+          return undefined;
+        }
+        const detected = detectedQueryInput(
+          input,
+          response.game,
+          response.matchedPort,
+        );
+        // Auto has no share URL of its own; the link names the detected game.
+        history.replaceState(
+          history.state,
+          "",
+          shareUrl(window.location.href, detected, games),
+        );
+        resultSequence.current += 1;
+        setOutput({
+          id: resultSequence.current,
+          input: detected,
+          kind: "result",
+          result: response.body,
+        });
+        return detected;
+      } catch (error) {
+        if (!request.isCurrent()) {
+          throw abortError("The detection was cancelled.");
+        }
+        if (request.signal.aborted) {
+          setOutput({ kind: "idle" });
+          throw abortError("The detection was cancelled.");
+        }
+        setOutput({
+          code: "NETWORK_ERROR",
+          kind: "error",
+          message:
+            error instanceof Error
+              ? error.message
+              : "The browser could not reach the QueryHost web service.",
+        });
+        return undefined;
       }
     },
     [games],
@@ -200,5 +296,5 @@ export function usePlaygroundSession(
     };
   }, [games, onAgentQuery, runQuery]);
 
-  return { output, runQuery };
+  return { output, runDetect, runQuery };
 }

@@ -2,7 +2,7 @@
 
 The public QueryHost website, query playground, and documentation service. One portable Astro/Node.js application with a Preact interface serves `query.host`, with documentation under `query.host/docs/`.
 
-The browser sends non-secret query inputs to the same-origin `POST /api/query` route. That server route validates and throttles callers before forwarding production requests to the private QueryHost API over Railway networking. During local development, the same route calls the installed `queryhost` package directly, without duplicating any game protocol implementation.
+The browser sends non-secret query inputs to the same-origin `POST /api/query` route, or to `POST /api/detect` when the game picker is set to Auto. That server route validates and throttles callers before forwarding production requests to the private QueryHost API over Railway networking. During local development, the same route calls the installed `queryhost` package directly, without duplicating any game protocol implementation.
 
 ## WebMCP
 

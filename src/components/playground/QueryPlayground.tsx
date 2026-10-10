@@ -8,6 +8,8 @@ import type {
 } from "../../lib/playground-contracts.js";
 import { PLAYGROUND_EXAMPLES } from "../../lib/playground-examples.js";
 import {
+  detectedFormState,
+  findGame,
   formQueryInput,
   formStateFromQueryInput,
   formStateFromSearch,
@@ -58,7 +60,10 @@ export function QueryPlayground({
     setFormError(undefined);
     setForm(formStateFromQueryInput(input));
   }, []);
-  const { output, runQuery } = usePlaygroundSession(games, onAgentQuery);
+  const { output, runDetect, runQuery } = usePlaygroundSession(
+    games,
+    onAgentQuery,
+  );
   const outputRef = useRevealOutput(output);
   useViewportFit(playgroundRef, output.kind);
 
@@ -68,6 +73,28 @@ export function QueryPlayground({
     if (parsed.kind === "invalid") {
       setFormError(parsed.error);
       hostRef.current?.focus();
+      return;
+    }
+    if (parsed.kind === "detect") {
+      runDetect(parsed.input).then(
+        (detected) => {
+          const game =
+            detected === undefined ? undefined : findGame(games, detected.game);
+          if (detected === undefined || game === undefined) return;
+          // The picker shows what was found, unless the person edited the
+          // detection's target or choices while it ran.
+          setForm((current) =>
+            current.game === "auto" &&
+            current.host === next.host &&
+            current.port === next.port &&
+            current.mode === next.mode &&
+            current.timeoutMs === next.timeoutMs
+              ? detectedFormState(current, detected, game)
+              : current,
+          );
+        },
+        () => undefined,
+      );
       return;
     }
     runQuery(parsed.input).catch(() => undefined);
@@ -156,6 +183,7 @@ export function QueryPlayground({
             <span />
           </div>
           <QueryProgress
+            detecting={output.kind === "loading" && output.detecting}
             progress={output.kind === "loading" ? output.progress : []}
           />
         </div>
@@ -163,7 +191,7 @@ export function QueryPlayground({
         {output.kind === "error" && (
           <div className="query-request-error" id="query-request-error">
             <p className="eyebrow">{output.code}</p>
-            <h2>The query could not be sent.</h2>
+            <h2>{output.heading ?? "The query could not be sent."}</h2>
             <p>{output.message}</p>
           </div>
         )}
@@ -183,13 +211,21 @@ export function QueryPlayground({
 
 /** A quiet line naming each source as the running query reports it. */
 function QueryProgress({
+  detecting,
   progress,
 }: {
+  readonly detecting: boolean;
   readonly progress: readonly SourceProgressEntry[];
 }): ReactNode {
   const items = sourceProgressItems(progress);
   if (items.length === 0) {
-    return <p>Contacting the server through the selected game profile…</p>;
+    return (
+      <p>
+        {detecting
+          ? "Trying each supported game protocol…"
+          : "Contacting the server through the selected game profile…"}
+      </p>
+    );
   }
   return (
     <ol className="query-loading__sources" aria-label="Query progress">

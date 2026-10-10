@@ -52,14 +52,22 @@ export class ProxyGate {
     return this.#callers.size;
   }
 
-  public admit(caller: string, now: number = Date.now()): ProxyGateResult {
+  /**
+   * Admits one request that counts as `cost` starts in both windows, such as a
+   * detection that may probe several protocols.
+   */
+  public admit(
+    caller: string,
+    now: number = Date.now(),
+    cost = 1,
+  ): ProxyGateResult {
     this.#refresh(now);
 
     if (this.#active >= this.#policy.maxActive) {
       return { accepted: false, reason: "active", retryAfterSeconds: 1 };
     }
 
-    if (this.#globalCount >= this.#policy.maxStartsPerWindow) {
+    if (this.#globalCount + cost > this.#policy.maxStartsPerWindow) {
       return {
         accepted: false,
         reason: "window",
@@ -70,7 +78,7 @@ export class ProxyGate {
     const existing = this.#callers.get(caller);
     if (
       existing !== undefined &&
-      existing.count >= this.#policy.maxStartsPerCaller
+      existing.count + cost > this.#policy.maxStartsPerCaller
     ) {
       return {
         accepted: false,
@@ -90,15 +98,23 @@ export class ProxyGate {
       };
     }
 
+    if (existing === undefined && cost > this.#policy.maxStartsPerCaller) {
+      return {
+        accepted: false,
+        reason: "caller",
+        retryAfterSeconds: retryAfterSeconds(now, this.#globalExpiresAt),
+      };
+    }
+
     if (existing === undefined) {
       this.#callers.set(caller, {
-        count: 1,
+        count: cost,
         expiresAt: this.#globalExpiresAt,
       });
     } else {
-      existing.count += 1;
+      existing.count += cost;
     }
-    this.#globalCount += 1;
+    this.#globalCount += cost;
     this.#active += 1;
 
     let released = false;

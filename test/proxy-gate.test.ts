@@ -92,4 +92,22 @@ describe("public proxy gate", () => {
     expect(nextWindow.accepted).toBe(true);
     expect(gate.trackedCallers).toBe(1);
   });
+
+  it("charges weighted requests against caller and global budgets", () => {
+    const gate = new ProxyGate({
+      ...POLICY,
+      maxStartsPerCaller: 4,
+      maxStartsPerWindow: 5,
+    });
+    const detection = gate.admit("caller-a", 0, 4);
+    expect(detection.accepted).toBe(true);
+    if (detection.accepted) detection.release();
+    expect(gate.admit("caller-a", 1)).toMatchObject({ reason: "caller" });
+    expect(gate.admit("caller-b", 1, 2)).toMatchObject({ reason: "window" });
+    expect(gate.admit("caller-c", 1, 5)).toMatchObject({ reason: "window" });
+    expect(gate.admit("caller-b", 1).accepted).toBe(true);
+    expect(gate.admit("caller-d", 1_000, 5)).toMatchObject({
+      reason: "caller",
+    });
+  });
 });

@@ -38,6 +38,17 @@ export interface PlaygroundQueryInput {
   readonly timeoutMs?: number;
 }
 
+/** The game picker's choice: a registry game, or `auto` to detect the game first. */
+export type PlaygroundGameChoice = GameId | "auto";
+
+/** Non-secret fields accepted by the playground's detection route. */
+export interface PlaygroundDetectInput {
+  readonly host: string;
+  readonly port?: number;
+  readonly mode?: QueryMode;
+  readonly timeoutMs?: number;
+}
+
 export type HostedCacheStatus = "coalesced" | "hit" | "miss";
 
 export interface HostedCacheMetadata {

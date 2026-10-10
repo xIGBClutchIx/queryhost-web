@@ -235,6 +235,172 @@ describe("query playground island", () => {
     expect(fromField.defaultPrevented).toBe(false);
   });
 
+  it("detects the game from Auto, then shows it in the picker and the link", async () => {
+    const { cache: _cache, ...result } = MINECRAFT_ONLINE;
+    const fetcher = vi.fn<typeof fetch>(() =>
+      Promise.resolve(
+        new Response(
+          JSON.stringify({
+            durationMs: 60,
+            evidence: "protocol",
+            game: "minecraft-java",
+            ok: true,
+            probes: [
+              { port: 25_565, protocol: "minecraft-java", status: "matched" },
+              { port: 27_015, protocol: "a2s", status: "cancelled" },
+            ],
+            result,
+          }),
+        ),
+      ),
+    );
+    vi.stubGlobal("fetch", fetcher);
+    void act(() => {
+      root.render(<QueryPlayground games={PLAYGROUND_GAMES} search="" />);
+    });
+
+    const auto = Array.from(
+      container.querySelectorAll<HTMLButtonElement>(
+        "#query-game-menu [role='option']",
+      ),
+    ).find((option) => option.textContent === "Auto");
+    void act(() => {
+      auto?.click();
+    });
+    expect(element("#query-port-label").textContent).toBe("Port");
+    expect(element<HTMLInputElement>("#query-port").value).toBe("");
+    void act(() => {
+      setInput(element("#query-host"), "play.example.com");
+    });
+    void act(() => {
+      element<HTMLFormElement>("#query-form").requestSubmit();
+    });
+    expect(element(".query-loading p").textContent).toBe(
+      "Trying each supported game protocol…",
+    );
+    await flush();
+
+    expect(fetcher.mock.calls[0]?.[0]).toBe("/api/detect");
+    const body = fetcher.mock.calls[0]?.[1]?.body;
+    expect(typeof body === "string" ? JSON.parse(body) : body).toEqual({
+      host: "play.example.com",
+      mode: "summary",
+      timeoutMs: 5_000,
+    });
+    expect(element("#query-result-name").textContent).toBe(
+      "Blockhaven Survival",
+    );
+    expect(element("#query-game-value").textContent).toBe(
+      "Minecraft: Java Edition",
+    );
+    expect(element<HTMLInputElement>("#query-port").value).toBe("25565");
+    expect(window.location.pathname).toBe("/minecraft-java/play.example.com");
+  });
+
+  it("keeps Auto selected and explains when no game is detected", async () => {
+    history.replaceState(null, "", "/rust/old.example.com");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<typeof fetch>(() =>
+        Promise.resolve(
+          new Response(
+            JSON.stringify({
+              durationMs: 5_000,
+              error: {
+                code: "NOT_DETECTED",
+                message: "No probe identified a supported game.",
+              },
+              ok: false,
+              probes: [],
+            }),
+          ),
+        ),
+      ),
+    );
+    void act(() => {
+      root.render(<QueryPlayground games={PLAYGROUND_GAMES} search="" />);
+    });
+    const auto = Array.from(
+      container.querySelectorAll<HTMLButtonElement>(
+        "#query-game-menu [role='option']",
+      ),
+    ).find((option) => option.textContent === "Auto");
+    void act(() => {
+      auto?.click();
+    });
+    void act(() => {
+      setInput(element("#query-host"), "play.example.com");
+    });
+    void act(() => {
+      element<HTMLFormElement>("#query-form").requestSubmit();
+    });
+    await flush();
+
+    const error = element("#query-request-error").textContent;
+    expect(error).toContain("NOT_DETECTED");
+    expect(error).toContain("No supported game was detected.");
+    expect(element("#query-game-value").textContent).toBe("Auto");
+    expect(window.location.pathname).toBe("/");
+  });
+
+  it("leaves the form alone when its target was edited during detection", async () => {
+    const { cache: _cache, ...result } = MINECRAFT_ONLINE;
+    let respond: ((response: Response) => void) | undefined;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<typeof fetch>(
+        () =>
+          new Promise<Response>((resolve) => {
+            respond = resolve;
+          }),
+      ),
+    );
+    void act(() => {
+      root.render(<QueryPlayground games={PLAYGROUND_GAMES} search="" />);
+    });
+    const auto = Array.from(
+      container.querySelectorAll<HTMLButtonElement>(
+        "#query-game-menu [role='option']",
+      ),
+    ).find((option) => option.textContent === "Auto");
+    void act(() => {
+      auto?.click();
+    });
+    void act(() => {
+      setInput(element("#query-host"), "play.example.com");
+    });
+    void act(() => {
+      element<HTMLFormElement>("#query-form").requestSubmit();
+    });
+    void act(() => {
+      setInput(element("#query-host"), "other.example.com");
+    });
+    respond?.(
+      new Response(
+        JSON.stringify({
+          durationMs: 60,
+          evidence: "protocol",
+          game: "minecraft-java",
+          ok: true,
+          probes: [
+            { port: 25_565, protocol: "minecraft-java", status: "matched" },
+          ],
+          result,
+        }),
+      ),
+    );
+    await flush();
+
+    expect(element("#query-result-name").textContent).toBe(
+      "Blockhaven Survival",
+    );
+    expect(element("#query-game-value").textContent).toBe("Auto");
+    expect(element<HTMLInputElement>("#query-host").value).toBe(
+      "other.example.com",
+    );
+    expect(element<HTMLInputElement>("#query-port").value).toBe("");
+  });
+
   it("reports a malformed successful response instead of failing to render", async () => {
     vi.stubGlobal(
       "fetch",

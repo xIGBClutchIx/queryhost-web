@@ -38,6 +38,10 @@ export function HostedServicePage(): ReactNode {
         <li>At most 8 query starts per caller each minute.</li>
         <li>At most 60 query starts globally each minute per web instance.</li>
         <li>At most 8 forwarded queries active at once per web instance.</li>
+        <li>
+          An Auto detection through <code>POST /api/detect</code> counts as 4
+          query starts, since it may probe several protocols.
+        </li>
         <li>At most 2,048 caller counters retained in memory.</li>
         <li>Request bodies are capped at 2 KiB.</li>
         <li>The private API response deadline is capped at 7 seconds.</li>
@@ -51,6 +55,10 @@ export function HostedServicePage(): ReactNode {
       <ul>
         <li>
           <code>POST /query</code> performs a hosted query.
+        </li>
+        <li>
+          <code>POST /detect</code> identifies the game, probing at most four
+          protocol and port pairs, and returns its query.
         </li>
         <li>
           <code>GET /games</code> returns the package-exported registry.

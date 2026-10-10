@@ -4,6 +4,8 @@ import type {
   HostedCacheMetadata,
   JsonObject,
   JsonValue,
+  PlaygroundDetectInput,
+  PlaygroundGameChoice,
   PlaygroundGameDefinition,
   PlaygroundQueryInput,
 } from "./playground-contracts.js";
@@ -15,7 +17,7 @@ export type PlaygroundTimeout = "3000" | "5000";
 /** Every playground control as the browser edits it; ports stay text until submission. */
 export interface PlaygroundFormState {
   readonly advancedOpen: boolean;
-  readonly game: GameId;
+  readonly game: PlaygroundGameChoice;
   readonly host: string;
   readonly mode: QueryMode;
   readonly port: string;
@@ -47,10 +49,22 @@ function portText(port: number | undefined): string {
   return port === undefined ? "" : String(port);
 }
 
+/** Auto detection takes one optional port and tries it as both a game and a query port. */
+const AUTO_FIELDS: PlaygroundGameFields = {
+  portLabel: "Port",
+  portRequired: false,
+  queryPortAvailable: false,
+  queryPortHelp: "Detection tries the port as both a game and a query port.",
+  queryPortPlaceholder: "Automatic",
+};
+
 /** Generic A2S takes the query destination as its only port. */
 export function gameFields(
-  game: PlaygroundGameDefinition,
+  game: PlaygroundGameDefinition | "auto",
 ): PlaygroundGameFields {
+  if (game === "auto") {
+    return AUTO_FIELDS;
+  }
   const genericA2s = game.id === "a2s";
   return {
     portLabel: genericA2s ? "Query port" : "Game port",
@@ -95,12 +109,22 @@ export function initialFormState(
 export function selectGame(
   state: PlaygroundFormState,
   previous: PlaygroundGameDefinition | undefined,
-  next: PlaygroundGameDefinition,
+  next: PlaygroundGameDefinition | "auto",
 ): PlaygroundFormState {
+  // Auto has no default port, so any port typed while it was selected was the person's own.
   const keepPort =
     state.port.length > 0 &&
-    previous?.defaultPort !== undefined &&
-    Number(state.port) !== previous.defaultPort;
+    (state.game === "auto" ||
+      (previous?.defaultPort !== undefined &&
+        Number(state.port) !== previous.defaultPort));
+  if (next === "auto") {
+    return {
+      ...state,
+      game: "auto",
+      port: keepPort ? state.port : "",
+      queryPort: "",
+    };
+  }
   return {
     ...state,
     game: next.id,
@@ -200,6 +224,7 @@ function numericValue(value: string): number | undefined {
 
 export type FormQueryInputResult =
   | { readonly error: string; readonly kind: "invalid" }
+  | { readonly input: PlaygroundDetectInput; readonly kind: "detect" }
   | { readonly input: PlaygroundQueryInput; readonly kind: "valid" };
 
 /** Converts natively validated controls into the non-secret public query input. */
@@ -219,6 +244,17 @@ export function formQueryInput(
     };
   }
   const port = numericValue(state.port);
+  if (state.game === "auto") {
+    return {
+      input: {
+        host,
+        ...(port === undefined ? {} : { port }),
+        mode: state.mode,
+        timeoutMs: Number(state.timeoutMs),
+      },
+      kind: "detect",
+    };
+  }
   const queryPort =
     state.game === "a2s" ? undefined : numericValue(state.queryPort);
   return {
@@ -231,6 +267,71 @@ export function formQueryInput(
       timeoutMs: Number(state.timeoutMs),
     },
     kind: "valid",
+  };
+}
+
+/** The query port a profile derives from a game port when none is given. */
+function conventionalQueryPort(
+  game: PlaygroundGameDefinition,
+  port: number,
+): number {
+  if (game.defaultPort === undefined || game.defaultQueryPort === undefined) {
+    return port;
+  }
+  if (game.queryPortStrategy === "fixed") {
+    return game.defaultQueryPort;
+  }
+  return port + game.defaultQueryPort - game.defaultPort;
+}
+
+/**
+ * The query a detection settled on, rebuilt for the share URL and the form.
+ * `matchedPort` is the port the deciding probe reached; it becomes an explicit
+ * query port only when the profile would not derive it from the game port.
+ * Minecraft: Java Edition keeps SRV discovery, so it never pins one.
+ */
+export function detectedQueryInput(
+  detection: PlaygroundDetectInput,
+  game: PlaygroundGameDefinition,
+  matchedPort: number | undefined,
+): PlaygroundQueryInput {
+  const base = {
+    game: game.id,
+    host: detection.host,
+    ...(detection.mode === undefined ? {} : { mode: detection.mode }),
+    ...(detection.timeoutMs === undefined
+      ? {}
+      : { timeoutMs: detection.timeoutMs }),
+  };
+  if (game.id === "a2s") {
+    const port = matchedPort ?? detection.port;
+    return port === undefined ? base : { ...base, port };
+  }
+  const withPort =
+    detection.port === undefined ? base : { ...base, port: detection.port };
+  const gamePort = detection.port ?? game.defaultPort;
+  if (
+    game.id === "minecraft-java" ||
+    matchedPort === undefined ||
+    gamePort === undefined ||
+    conventionalQueryPort(game, gamePort) === matchedPort
+  ) {
+    return withPort;
+  }
+  return { ...withPort, queryPort: matchedPort };
+}
+
+/** Moves the form from Auto to the detected game, keeping the person's other choices. */
+export function detectedFormState(
+  state: PlaygroundFormState,
+  input: PlaygroundQueryInput,
+  game: PlaygroundGameDefinition,
+): PlaygroundFormState {
+  return {
+    ...state,
+    game: input.game,
+    port: portText(input.port ?? game.defaultPort),
+    queryPort: portText(input.queryPort),
   };
 }
 

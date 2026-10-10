@@ -1,7 +1,10 @@
 import type { TargetedSubmitEvent } from "preact";
 import type { Dispatch, ReactNode, RefObject, SetStateAction } from "react";
 
-import type { PlaygroundGameDefinition } from "../../lib/playground-contracts.js";
+import type {
+  PlaygroundGameChoice,
+  PlaygroundGameDefinition,
+} from "../../lib/playground-contracts.js";
 import { findGame, gameFields, selectGame } from "../../lib/playground-form.js";
 import type {
   PlaygroundFormState,
@@ -43,15 +46,18 @@ export function QueryForm({
   onFormChange,
   onSubmit,
 }: QueryFormProps): ReactNode {
-  const game = findGame(games, form.game);
+  const game = form.game === "auto" ? "auto" : findGame(games, form.game);
   if (game === undefined) {
     throw new Error("The selected game is not in the package registry.");
   }
   const fields = gameFields(game);
-  const gameOptions = games.map((candidate) => ({
-    label: candidate.name,
-    value: candidate.id,
-  }));
+  const gameOptions: readonly SelectOption<PlaygroundGameChoice>[] = [
+    { label: "Auto", value: "auto" },
+    ...games.map((candidate) => ({
+      label: candidate.name,
+      value: candidate.id,
+    })),
+  ];
 
   function update(changes: Partial<PlaygroundFormState>): void {
     onFormChange((current) => ({ ...current, ...changes }));
@@ -73,7 +79,7 @@ export function QueryForm({
           value={form.game}
           required
           onChange={(id) => {
-            const next = findGame(games, id);
+            const next = id === "auto" ? "auto" : findGame(games, id);
             if (next !== undefined) {
               onFormChange((current) =>
                 selectGame(current, findGame(games, current.game), next),
