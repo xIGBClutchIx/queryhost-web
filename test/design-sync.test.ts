@@ -33,6 +33,7 @@ const INTERNAL_COMPONENTS = new Set([
   "OverviewPanel",
   "PlaygroundExamples",
   "QueryForm",
+  "ShareLinkButton",
   "SourcesPanel",
 ]);
 

@@ -10,16 +10,27 @@ interface Props {
   readonly bodyClass?: string;
   readonly clientRouter?: boolean;
   readonly description: string;
+  /** A per-page link preview with the site image's dimensions. */
+  readonly image?: { readonly alt: string; readonly path: string };
+  /** Keeps the page out of search results, as for per-server result pages. */
+  readonly noindex?: boolean;
   readonly title: string;
 }
 
-const { bodyClass, clientRouter = true, description, title } = Astro.props;
+const {
+  bodyClass,
+  clientRouter = true,
+  description,
+  image = SHARE_IMAGE,
+  noindex = false,
+  title,
+} = Astro.props;
 const pageTitle = title === "QueryHost" ? title : `${title} · QueryHost`;
 // Error pages render under the requested path, which is not a page to index.
 const canonical =
   Astro.response.status === 200 ? canonicalUrl(Astro.url.pathname) : undefined;
 // Link previews fetch the image from another origin, so it must be absolute.
-const shareImage = canonicalUrl(SHARE_IMAGE.path);
+const shareImage = canonicalUrl(image.path);
 ---
 
 <!doctype html>
@@ -28,6 +39,7 @@ const shareImage = canonicalUrl(SHARE_IMAGE.path);
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content={description} />
+    {noindex && <meta name="robots" content="noindex" />}
     <meta name="theme-color" content="#0c1215" />
     <link rel="icon" type="image/svg+xml" href={BRAND_ICON_URL} />
     {canonical && <link rel="canonical" href={canonical} />}
@@ -40,10 +52,10 @@ const shareImage = canonicalUrl(SHARE_IMAGE.path);
     <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content={String(SHARE_IMAGE.width)} />
     <meta property="og:image:height" content={String(SHARE_IMAGE.height)} />
-    <meta property="og:image:alt" content={SHARE_IMAGE.alt} />
+    <meta property="og:image:alt" content={image.alt} />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:image" content={shareImage} />
-    <meta name="twitter:image:alt" content={SHARE_IMAGE.alt} />
+    <meta name="twitter:image:alt" content={image.alt} />
     <title>{pageTitle}</title>
     {clientRouter && <ClientRouter fallback="swap" />}
   </head>

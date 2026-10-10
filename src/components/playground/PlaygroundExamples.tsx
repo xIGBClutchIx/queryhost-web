@@ -1,11 +1,14 @@
 import type { TargetedMouseEvent } from "preact";
 import type { ReactNode } from "react";
 
+import type { PlaygroundGameDefinition } from "../../lib/playground-contracts.js";
 import type { PlaygroundExample } from "../../lib/playground-examples.js";
-import { shareUrl } from "../../lib/playground-form.js";
+import { findGame } from "../../lib/playground-form.js";
+import { resultFormSearch, resultPath } from "../../lib/result-url.js";
 
 interface PlaygroundExamplesProps {
   readonly examples: readonly PlaygroundExample[];
+  readonly games: readonly PlaygroundGameDefinition[];
   /** Runs the example in place; the link remains the no-script fallback. */
   readonly onSelect: (search: string) => void;
 }
@@ -13,6 +16,7 @@ interface PlaygroundExamplesProps {
 /** One-click queries against well-known public servers for first-time visitors. */
 export function PlaygroundExamples({
   examples,
+  games,
   onSelect,
 }: PlaygroundExamplesProps): ReactNode {
   function onClick(
@@ -37,15 +41,20 @@ export function PlaygroundExamples({
       <span className="playground-examples__label">Try an example</span>
       <ul>
         {examples.map((example) => {
-          const url = shareUrl("https://query.host/", example.input);
-          const href = `/${url.search}`;
+          const { game, host } = example.input;
+          const href = resultPath(example.input, findGame(games, game));
+          const search = resultFormSearch(
+            game,
+            { host },
+            new URLSearchParams(),
+          );
           return (
             <li key={href}>
               <a
                 className="playground-examples__chip"
                 href={href}
                 onClick={(event) => {
-                  onClick(event, url.search);
+                  onClick(event, search);
                 }}
               >
                 <span>{example.label}</span> <code>{example.input.host}</code>

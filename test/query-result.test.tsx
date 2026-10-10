@@ -154,7 +154,7 @@ describe("Copy badge", () => {
     });
     // Mode and timeout are playground preferences, not part of the badge.
     expect(writeText).toHaveBeenCalledWith(
-      `[![Minecraft: Bedrock Edition server status](${origin}/api/v1/badge/minecraft-bedrock/play.example.com:19132.svg)](${origin}/?game=minecraft-bedrock&host=play.example.com&port=19132)`,
+      `[![Minecraft: Bedrock Edition server status](${origin}/api/v1/badge/minecraft-bedrock/play.example.com:19132.svg)](${origin}/minecraft-bedrock/play.example.com)`,
     );
     expect(buttons()[0]).toBe("Copied");
     unmount();
@@ -164,6 +164,37 @@ describe("Copy badge", () => {
     const unmount = render(BEDROCK_ONLINE);
     click("#query-tab-json");
     expect(buttons()).toEqual(["Copy JSON"]);
+    expect(container.querySelector("#query-result-share")).toBeNull();
+    unmount();
+  });
+});
+
+describe("Copy link", () => {
+  it("copies the result's shareable URL, keeping non-default options", async () => {
+    const writeText = vi.fn(() => Promise.resolve());
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    });
+    const unmount = render(BEDROCK_ONLINE, {
+      game: "minecraft-bedrock",
+      host: "play.example.com",
+      mode: "summary",
+      port: 19133,
+      timeoutMs: 3_000,
+    });
+    const share = container.querySelector<HTMLButtonElement>(
+      "#query-result-share",
+    );
+    expect(share?.getAttribute("aria-label")).toBe("Copy link to this result");
+    await act(async () => {
+      share?.click();
+      await Promise.resolve();
+    });
+    expect(writeText).toHaveBeenCalledWith(
+      `${window.location.origin}/minecraft-bedrock/play.example.com:19133?mode=summary&timeoutMs=3000`,
+    );
+    expect(share?.getAttribute("aria-label")).toBe("Link copied");
     unmount();
   });
 });

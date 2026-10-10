@@ -4,6 +4,12 @@ import {
   DEFAULT_BADGE_CACHE_POLICY,
   loadBadgeGatePolicy,
 } from "./badge.js";
+import { PLAYGROUND_GAMES } from "../lib/playground-games.js";
+import {
+  loadPreviewGatePolicy,
+  PreviewService,
+  rasterizePreview,
+} from "./preview.js";
 import { ProxyGate } from "./proxy-gate.js";
 import {
   createDefaultPublicQueryDependencies,
@@ -19,6 +25,7 @@ const startedAt = Date.now();
 let dependencies: PublicQueryDependencies | undefined;
 let apiDependencies: PublicQueryDependencies | undefined;
 let badges: BadgeService | undefined;
+let previews: PreviewService | undefined;
 
 /** Browser and MCP calls share one process-local admission gate. */
 export function publicQueryDependencies(): PublicQueryDependencies {
@@ -70,4 +77,20 @@ export function badgeService(): BadgeService {
     },
   });
   return badges;
+}
+
+/**
+ * Result previews read badge state, so a link preview never spends more of the
+ * query budget than the server's badge would, and drawing has its own budget.
+ */
+export function previewService(): PreviewService {
+  previews ??= new PreviewService({
+    badges: badgeService(),
+    games: PLAYGROUND_GAMES,
+    gate: new ProxyGate(loadPreviewGatePolicy()),
+    maxEntries: 256,
+    now: Date.now,
+    rasterize: rasterizePreview,
+  });
+  return previews;
 }

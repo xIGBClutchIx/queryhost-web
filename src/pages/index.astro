@@ -4,6 +4,13 @@ import { QueryPlayground } from "../components/playground/QueryPlayground.tsx";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { PLAYGROUND_GAMES } from "../lib/playground-games.js";
 import { HOME_HEADLINE, HOME_SUMMARY } from "../lib/site.js";
+import { legacyResultLocation } from "../server/result-page.js";
+
+const search = Astro.url.search;
+const location = legacyResultLocation(search, PLAYGROUND_GAMES);
+if (location !== undefined) {
+  return Astro.redirect(location, 301);
+}
 ---
 
 <BaseLayout
@@ -13,10 +20,6 @@ import { HOME_HEADLINE, HOME_SUMMARY } from "../lib/site.js";
 >
   <Header active="site" />
   <main class="site-main" id="main-content">
-    <QueryPlayground
-      client:load
-      games={PLAYGROUND_GAMES}
-      search={Astro.url.search}
-    />
+    <QueryPlayground client:load games={PLAYGROUND_GAMES} search={search} />
   </main>
 </BaseLayout>

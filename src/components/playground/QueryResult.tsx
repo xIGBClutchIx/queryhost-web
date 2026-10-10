@@ -20,6 +20,7 @@ import { TabPanel, Tabs } from "../Tabs.js";
 import { DataPanel } from "./result/DataPanel.js";
 import { JsonPanel } from "./result/JsonPanel.js";
 import { OverviewPanel } from "./result/OverviewPanel.js";
+import { ShareLinkButton } from "./result/ShareLinkButton.js";
 import { SourcesPanel } from "./result/SourcesPanel.js";
 import "../../styles/playground.css";
 
@@ -36,7 +37,7 @@ const TAB_PREFIX = "query";
 
 interface QueryResultProps {
   readonly games: readonly PlaygroundGameDefinition[];
-  /** The query that produced the result; enables the Copy badge action. */
+  /** The query that produced the result; enables the share link and badge. */
   readonly input?: PlaygroundQueryInput;
   readonly result: PlaygroundQueryResponse;
 }
@@ -51,7 +52,7 @@ export const QueryResult = memo(function QueryResult({
   result,
 }: QueryResultProps): ReactNode {
   const [activeTab, setActiveTab] = useState<ResultTab>("overview");
-  const badge = useMemo(() => {
+  const links = useMemo(() => {
     if (input === undefined) return undefined;
     const { origin } = window.location;
     const target = {
@@ -62,11 +63,14 @@ export const QueryResult = memo(function QueryResult({
     };
     const gameName =
       games.find((game) => game.id === input.game)?.name ?? input.game;
-    return badgeMarkdown(
-      gameName,
-      badgeUrl(origin, target),
-      shareUrl(`${origin}/`, target),
-    );
+    return {
+      badge: badgeMarkdown(
+        gameName,
+        badgeUrl(origin, target),
+        shareUrl(origin, target, games),
+      ),
+      result: shareUrl(origin, input, games).href,
+    };
   }, [games, input]);
 
   const status = result.ok
@@ -99,6 +103,7 @@ export const QueryResult = memo(function QueryResult({
             <p id="query-result-status">{status}</p>
             <h2 id="query-result-name">{name}</h2>
           </div>
+          {links !== undefined && <ShareLinkButton url={links.result} />}
         </div>
 
         <Tabs
@@ -148,7 +153,7 @@ export const QueryResult = memo(function QueryResult({
         id="json"
         active={activeTab}
       >
-        <JsonPanel badge={badge} result={result} />
+        <JsonPanel badge={links?.badge} result={result} />
       </TabPanel>
     </div>
   );

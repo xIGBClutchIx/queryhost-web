@@ -761,6 +761,44 @@
   white-space: nowrap;
 }
 
+/* A quiet cue: the icon stays faint until hovered or focused. */
+.query-result__share {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: var(--space-8);
+  height: var(--space-8);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--faint);
+  cursor: pointer;
+  transition:
+    color var(--duration-fast),
+    background var(--duration-fast);
+}
+
+.query-result__share:hover,
+.query-result__share:focus-visible {
+  background: var(--surface-subtle);
+  color: var(--accent-strong);
+}
+
+.query-result__share[data-state="copied"] {
+  color: var(--accent);
+}
+
+.query-result__share svg {
+  width: var(--space-4);
+  height: var(--space-4);
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
 .query-result__timing {
   display: grid;
   flex: none;

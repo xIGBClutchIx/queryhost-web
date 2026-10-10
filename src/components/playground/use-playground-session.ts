@@ -74,7 +74,7 @@ export function usePlaygroundSession(
       history.replaceState(
         history.state,
         "",
-        shareUrl(window.location.href, input),
+        shareUrl(window.location.href, input, games),
       );
       setOutput({ kind: "loading" });
 
@@ -116,7 +116,7 @@ export function usePlaygroundSession(
         return failure;
       }
     },
-    [],
+    [games],
   );
 
   useEffect(() => {
