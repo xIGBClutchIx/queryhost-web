@@ -25,6 +25,49 @@ type DocsLayoutProps = DocsPageMetadata & {
     | { readonly children?: never; readonly html: string }
   );
 
+/** Search dialog the header trigger, `/`, and Ctrl/Cmd+K open; results come from script. */
+function DocsSearchDialog(): ReactNode {
+  return (
+    <dialog
+      className="docs-search"
+      data-docs-search=""
+      aria-label="Search documentation"
+    >
+      <div className="docs-search__field">
+        <svg viewBox="0 0 16 16" aria-hidden="true">
+          <circle cx="7" cy="7" r="4.25" />
+          <path d="m10.25 10.25 3.25 3.25" />
+        </svg>
+        <input
+          type="search"
+          role="combobox"
+          placeholder="Search pages, games, and API reference"
+          autoComplete="off"
+          spellcheck={false}
+          aria-label="Search documentation"
+          aria-autocomplete="list"
+          aria-controls="docs-search-results"
+          aria-expanded="false"
+          data-docs-search-input=""
+        />
+        <kbd className="docs-search__escape">Esc</kbd>
+      </div>
+      <ul
+        className="docs-search__results"
+        id="docs-search-results"
+        role="listbox"
+        aria-label="Search results"
+        data-docs-search-results=""
+      />
+      <p
+        className="docs-search__status"
+        role="status"
+        data-docs-search-status=""
+      />
+    </dialog>
+  );
+}
+
 export function DocsLayout({
   activeHref,
   children,
@@ -39,6 +82,7 @@ export function DocsLayout({
   return (
     <>
       <Header active="docs" />
+      <DocsSearchDialog />
       <DocsMobileNavigation
         activeHref={activeHref}
 
