@@ -16,6 +16,12 @@ updates:
       # @astrojs/preact only supports Preact 10.
       - dependency-name: preact
         update-types: [version-update:semver-major]
+      # @types/node tracks the Node.js 24 runtime; bump it with the engines field.
+      - dependency-name: "@types/node"
+        update-types: [version-update:semver-major]
+      # ext-apps 2 requires the MCP SDK 2 split packages; migrate the MCP stack together.
+      - dependency-name: "@modelcontextprotocol/ext-apps"
+        update-types: [version-update:semver-major]
 
   - package-ecosystem: github-actions
     directory: /

@@ -60,7 +60,9 @@ const shareImage = canonicalUrl(image.path);
     {clientRouter && <ClientRouter fallback="swap" />}
   </head>
   <body class={bodyClass}>
-    <a class="skip-link" href="#main-content">Skip to content</a>
+    <a class="skip-link" href="#main-content">
+      Skip to content
+    </a>
     <slot />
     <script>
       import "../scripts/navigation.ts";
