@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 
 import { DocsLayout } from "../../components/DocsLayout.js";
 import type { DocsPageMetadata } from "../../components/DocsLayout.js";
+import { gameAnchor } from "../../lib/docs-search.js";
 import {
   aliasesForGame,
   CAPABILITY_LABELS,
@@ -109,7 +110,11 @@ export function GamesPage(): ReactNode {
           </thead>
           <tbody>
             {GAMES.map((game) => (
-              <tr key={game.id} data-game-filter={filterText(game)}>
+              <tr
+                key={game.id}
+                id={gameAnchor(game.id)}
+                data-game-filter={filterText(game)}
+              >
                 <th scope="row" className="capability-table__game">
                   <strong>{game.name}</strong> <code>{game.id}</code>
                 </th>

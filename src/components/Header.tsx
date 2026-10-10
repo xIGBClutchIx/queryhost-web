@@ -38,6 +38,27 @@ export function Header({
           </span>
         </a>
 
+        {active === "docs" && (
+          // Revealed by the docs search script; the dialog it opens needs script anyway.
+          <button
+            type="button"
+            className="docs-search-trigger"
+            data-docs-search-open=""
+            aria-haspopup="dialog"
+            aria-keyshortcuts="/ Control+K Meta+K"
+            hidden
+          >
+            <svg viewBox="0 0 16 16" aria-hidden="true">
+              <circle cx="7" cy="7" r="4.25" />
+              <path d="m10.25 10.25 3.25 3.25" />
+            </svg>
+            <span className="docs-search-trigger__label">Search docs</span>
+            <kbd className="docs-search-trigger__key" aria-hidden="true">
+              /
+            </kbd>
+          </button>
+        )}
+
         <nav className="primary-nav" aria-label="Primary navigation">
           <a
             className={
