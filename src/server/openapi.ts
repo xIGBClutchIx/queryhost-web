@@ -68,6 +68,7 @@ const QUERY_SOURCE_NAMES: Readonly<Record<QuerySourceName, true>> = {
   "eco-frontpage": true,
   "minecraft-srv": true,
   "minecraft-slp": true,
+  "minecraft-legacy-ping": true,
   "minecraft-query": true,
   "minecraft-bedrock-raknet": true,
   "fivem-info": true,

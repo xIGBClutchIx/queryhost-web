@@ -11,6 +11,7 @@ const sourceName = z.enum([
   "eco-frontpage",
   "minecraft-srv",
   "minecraft-slp",
+  "minecraft-legacy-ping",
   "minecraft-query",
   "minecraft-bedrock-raknet",
   "fivem-info",
