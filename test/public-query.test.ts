@@ -666,6 +666,31 @@ describe("public query configuration", () => {
       expect(gate.active).toBe(0);
     });
 
+    it("aborts a local query and releases admission when the caller cancels", async () => {
+      let querySignal: AbortSignal | undefined;
+      const gate = new ProxyGate(POLICY);
+      const response = await handlePublicQuery(streamRequest(), {
+        config: {
+          maxBodyBytes: 2_048,
+          target: { kind: "local" },
+          upstreamTimeoutMs: 7_000,
+        },
+        fetcher: () =>
+          Promise.reject(new Error("The hosted API should not be called.")),
+        gate,
+        queryRunner: (input) => {
+          querySignal = input.signal;
+          return new Promise(() => undefined);
+        },
+        usage: new SurfaceUsage(),
+      });
+      expect(gate.active).toBe(1);
+
+      await response.body?.cancel();
+      expect(querySignal?.aborted).toBe(true);
+      expect(gate.active).toBe(0);
+    });
+
     it("answers JSON when NDJSON is refused", () => {
       expect(
         acceptsQueryStream(new Headers({ Accept: "application/x-ndjson;q=0" })),

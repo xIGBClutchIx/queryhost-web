@@ -591,9 +591,21 @@ function localQueryStream(
   signal: AbortSignal,
   finish: () => void,
 ): Response {
+  // A caller that stops reading cancels the query and frees its admission slot at once.
+  const cancelled = new AbortController();
+  let finished = false;
+  const end = (): void => {
+    if (finished) return;
+    finished = true;
+    finish();
+  };
   const body = new ReadableStream<Uint8Array>({
+    cancel: () => {
+      cancelled.abort();
+      end();
+    },
     start: (controller) => {
-      // A cancelled stream rejects further writes; the query still settles and finishes.
+      // A cancelled stream rejects further writes.
       const write = (line: LocalQueryStreamLine): void => {
         try {
           controller.enqueue(encodeLine(line));
@@ -602,7 +614,11 @@ function localQueryStream(
         }
       };
       void dependencies
-        .queryRunner({ ...input, onSource: write, signal })
+        .queryRunner({
+          ...input,
+          onSource: write,
+          signal: AbortSignal.any([signal, cancelled.signal]),
+        })
         .then(
           (result) => {
             dependencies.usage?.recordForwarded(200, "miss");
@@ -628,7 +644,7 @@ function localQueryStream(
             }
           },
         )
-        .finally(finish);
+        .finally(end);
     },
   });
   return new Response(body, { headers: streamHeaders(), status: 200 });
