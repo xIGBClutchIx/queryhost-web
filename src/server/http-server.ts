@@ -20,18 +20,22 @@ export interface SiteServerOptions {
   readonly port: number;
 }
 
-// Server-sent events must reach the client as each event is written, so they
-// stay uncompressed even though their media type is compressible.
+// Server-sent events and streamed query progress must reach the client as each
+// line is written, so they stay uncompressed even though their media types are
+// compressible.
 function shouldCompress(
   request: IncomingMessage,
   response: ServerResponse,
 ): boolean {
   const contentType = response.getHeader("Content-Type");
-  if (
-    typeof contentType === "string" &&
-    contentType.toLowerCase().startsWith("text/event-stream")
-  ) {
-    return false;
+  if (typeof contentType === "string") {
+    const mediaType = contentType.toLowerCase();
+    if (
+      mediaType.startsWith("text/event-stream") ||
+      mediaType.startsWith("application/x-ndjson")
+    ) {
+      return false;
+    }
   }
 
   return compression.filter(request, response);

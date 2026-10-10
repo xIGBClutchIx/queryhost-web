@@ -1,10 +1,16 @@
+import type { QuerySourceEvent } from "queryhost";
+
 import type {
   JsonObject,
   JsonValue,
   PlaygroundProxyErrorResponse,
   PlaygroundQueryInput,
   PlaygroundQueryResponse,
+  PlaygroundQueryStreamLine,
 } from "./playground-contracts.js";
+
+/** Media type of a streamed query response: one JSON object per line. */
+export const QUERY_STREAM_MEDIA_TYPE = "application/x-ndjson";
 
 export type PlaygroundRequestResult =
   | {
@@ -110,6 +116,53 @@ export function isPlaygroundQueryResponse(
   );
 }
 
+/**
+ * Validates one line of a streamed query response. Throws when the line is not a source event
+ * or a renderable result.
+ */
+export function parseQueryStreamLine(line: string): PlaygroundQueryStreamLine {
+  const value = JSON.parse(line) as JsonValue;
+  if (isObject(value)) {
+    if (value.type === "started" && typeof value.source === "string") {
+      return value as JsonObject & PlaygroundQueryStreamLine;
+    }
+    if (
+      value.type === "completed" &&
+      value.report !== undefined &&
+      isSource(value.report)
+    ) {
+      return value as JsonObject & PlaygroundQueryStreamLine;
+    }
+    if (
+      value.type === "result" &&
+      value.result !== undefined &&
+      isPlaygroundQueryResponse(value.result)
+    ) {
+      return { result: value.result, type: "result" };
+    }
+  }
+  throw new Error("The query stream contained an unexpected line.");
+}
+
+/** Splits NDJSON bytes into complete, non-empty lines across chunk boundaries. */
+export class QueryStreamLineSplitter {
+  readonly #decoder = new TextDecoder();
+  #pending = "";
+
+  public push(chunk: Uint8Array): readonly string[] {
+    this.#pending += this.#decoder.decode(chunk, { stream: true });
+    const lines = this.#pending.split("\n");
+    this.#pending = lines.pop() ?? "";
+    return lines.filter((line) => line.trim().length > 0);
+  }
+
+  public flush(): readonly string[] {
+    const rest = this.#pending + this.#decoder.decode();
+    this.#pending = "";
+    return rest.trim().length > 0 ? [rest] : [];
+  }
+}
+
 export function isPlaygroundProxyErrorResponse(
   value: JsonValue,
 ): value is JsonObject & PlaygroundProxyErrorResponse {
@@ -119,18 +172,79 @@ export function isPlaygroundProxyErrorResponse(
 const UNEXPECTED_RESPONSE =
   "The QueryHost web service returned an unexpected response.";
 
-/** Sends one browser query through the public same-origin boundary. */
+/** Reports the progress lines of a streamed query until its single result line. */
+async function readQueryStream(
+  body: ReadableStream<Uint8Array>,
+  onProgress: (event: QuerySourceEvent) => void,
+): Promise<PlaygroundQueryResponse> {
+  const reader = body.getReader();
+  const splitter = new QueryStreamLineSplitter();
+  let result: PlaygroundQueryResponse | undefined;
+  const handle = (lines: readonly string[]): void => {
+    for (const line of lines) {
+      if (result !== undefined) throw new Error(UNEXPECTED_RESPONSE);
+      const parsed = parseQueryStreamLine(line);
+      if (parsed.type === "result") {
+        result = parsed.result;
+      } else {
+        onProgress(parsed);
+      }
+    }
+  };
+  try {
+    for (
+      let chunk = await reader.read();
+      !chunk.done;
+      chunk = await reader.read()
+    ) {
+      handle(splitter.push(chunk.value));
+    }
+    handle(splitter.flush());
+  } finally {
+    reader.releaseLock();
+  }
+  if (result === undefined) throw new Error(UNEXPECTED_RESPONSE);
+  return result;
+}
+
+/**
+ * Sends one browser query through the public same-origin boundary. With `onProgress`, the
+ * query streams and each source's progress is reported before the result returns.
+ */
 export async function requestPlaygroundQuery(
   input: PlaygroundQueryInput,
   signal: AbortSignal,
   fetcher: PlaygroundFetcher = fetch,
+  onProgress?: (event: QuerySourceEvent) => void,
 ): Promise<PlaygroundRequestResult> {
   const response = await fetcher("/api/query", {
     body: JSON.stringify(input),
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      ...(onProgress === undefined
+        ? {}
+        : { Accept: `${QUERY_STREAM_MEDIA_TYPE}, application/json` }),
+      "Content-Type": "application/json",
+    },
     method: "POST",
     signal,
   });
+  if (
+    onProgress !== undefined &&
+    response.ok &&
+    response.body !== null &&
+    response.headers.get("content-type")?.startsWith(QUERY_STREAM_MEDIA_TYPE)
+  ) {
+    try {
+      return {
+        body: await readQueryStream(response.body, onProgress),
+        kind: "query",
+      };
+    } catch (error) {
+      // Cancellation keeps its own error; anything else is a malformed stream.
+      if (signal.aborted) throw error;
+      throw new Error(UNEXPECTED_RESPONSE);
+    }
+  }
   const body = JSON.parse(await response.text()) as JsonValue;
   if (!response.ok) {
     if (!isPlaygroundProxyErrorResponse(body)) {

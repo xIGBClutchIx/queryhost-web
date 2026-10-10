@@ -7,15 +7,23 @@ import {
   type GameId,
   type QueryMode,
   type QueryResult,
+  type QuerySourceEvent,
 } from "queryhost";
 
 import type {
+  HostedCacheMetadata,
   JsonObject,
   JsonValue,
   PlaygroundProxyErrorCode,
   PlaygroundProxyErrorResponse,
   PlaygroundQueryInput,
+  PlaygroundQueryStreamLine,
 } from "../lib/playground-contracts.js";
+import {
+  parseQueryStreamLine,
+  QUERY_STREAM_MEDIA_TYPE,
+  QueryStreamLineSplitter,
+} from "../lib/playground-query.js";
 import { ProxyGate, type ProxyGatePolicy } from "./proxy-gate.js";
 import { readBoundedText } from "./bounded-text.js";
 import { SurfaceUsage } from "./usage-stats.js";
@@ -30,6 +38,7 @@ const ALLOWED_FIELDS: ReadonlySet<string> = new Set([
 ]);
 const ORIGIN_TOKEN_HEADER = "x-queryhost-origin-token";
 const MAX_HOST_LENGTH = 253;
+const MAX_UPSTREAM_BYTES = 2_097_152;
 
 export type PublicQueryTarget =
   | {
@@ -52,6 +61,7 @@ export type ProxyFetcher = (
 
 export interface LocalQueryInput extends PlaygroundQueryInput {
   readonly signal: AbortSignal;
+  readonly onSource?: (event: QuerySourceEvent) => void;
 }
 
 export type LocalQueryRunner = (input: LocalQueryInput) => Promise<QueryResult>;
@@ -511,7 +521,11 @@ export async function forwardQuery(
         "The query service returned an invalid response.",
       );
     }
-    const body = await readBoundedText(upstream.body, 2_097_152, signal);
+    const body = await readBoundedText(
+      upstream.body,
+      MAX_UPSTREAM_BYTES,
+      signal,
+    );
     dependencies.usage?.recordForwarded(
       upstream.status,
       upstream.headers.get("x-queryhost-cache"),
@@ -527,6 +541,261 @@ export async function forwardQuery(
       "UPSTREAM_UNAVAILABLE",
       "The query service is temporarily unavailable.",
     );
+  }
+}
+
+/** True when `Accept` lists NDJSON without refusing it through `q=0`. */
+export function acceptsQueryStream(headers: Headers): boolean {
+  const accept = headers.get("accept");
+  if (accept === null) {
+    return false;
+  }
+  return accept.split(",").some((range) => {
+    const [type = "", ...parameters] = range.split(";");
+    return (
+      type.trim().toLowerCase() === QUERY_STREAM_MEDIA_TYPE &&
+      !parameters.some((parameter) =>
+        /^\s*q\s*=\s*0(?:\.0{0,3})?\s*$/iu.test(parameter),
+      )
+    );
+  });
+}
+
+function streamHeaders(): Headers {
+  return new Headers({
+    "Cache-Control": "no-store",
+    "Content-Type": `${QUERY_STREAM_MEDIA_TYPE}; charset=utf-8`,
+    // Proxies that buffer by default must pass each progress line through as written.
+    "X-Accel-Buffering": "no",
+  });
+}
+
+/** A local result has the library's own typed data rather than the relayed JSON shape. */
+type LocalQueryStreamLine =
+  | QuerySourceEvent
+  | {
+      readonly type: "result";
+      readonly result: QueryResult & { readonly cache: HostedCacheMetadata };
+    };
+
+function encodeLine(
+  line: LocalQueryStreamLine | PlaygroundQueryStreamLine,
+): Uint8Array {
+  return new TextEncoder().encode(`${JSON.stringify(line)}\n`);
+}
+
+/** Streams a local library query, used when no hosted API is configured. */
+function localQueryStream(
+  input: PlaygroundQueryInput,
+  dependencies: QueryTargetDependencies,
+  signal: AbortSignal,
+  finish: () => void,
+): Response {
+  // A caller that stops reading cancels the query and frees its admission slot at once.
+  const cancelled = new AbortController();
+  let finished = false;
+  const end = (): void => {
+    if (finished) return;
+    finished = true;
+    finish();
+  };
+  const body = new ReadableStream<Uint8Array>({
+    cancel: () => {
+      cancelled.abort();
+      end();
+    },
+    start: (controller) => {
+      // A cancelled stream rejects further writes.
+      const write = (line: LocalQueryStreamLine): void => {
+        try {
+          controller.enqueue(encodeLine(line));
+        } catch {
+          // The caller has gone.
+        }
+      };
+      void dependencies
+        .queryRunner({
+          ...input,
+          onSource: write,
+          signal: AbortSignal.any([signal, cancelled.signal]),
+        })
+        .then(
+          (result) => {
+            dependencies.usage?.recordForwarded(200, "miss");
+            write({
+              result: {
+                ...result,
+                cache: { ageMs: 0, status: "miss", ttlMs: 0 },
+              },
+              type: "result",
+            });
+            try {
+              controller.close();
+            } catch {
+              // Already cancelled.
+            }
+          },
+          () => {
+            dependencies.usage?.recordUnavailable();
+            try {
+              controller.error(new Error("The local query failed."));
+            } catch {
+              // Already cancelled.
+            }
+          },
+        )
+        .finally(end);
+    },
+  });
+  return new Response(body, { headers: streamHeaders(), status: 200 });
+}
+
+/**
+ * Relays an upstream NDJSON query stream line by line. Only validated lines pass, the total is
+ * bounded, and `finish` runs once when the relay ends, fails, is cancelled, or times out.
+ */
+function relayQueryStream(
+  upstream: ReadableStream<Uint8Array>,
+  dependencies: QueryTargetDependencies,
+  signal: AbortSignal,
+  finish: () => void,
+): ReadableStream<Uint8Array> {
+  const reader = upstream.getReader();
+  const splitter = new QueryStreamLineSplitter();
+  let totalBytes = 0;
+  let sawResult = false;
+  let finished = false;
+  const end = (failed: boolean): void => {
+    if (finished) return;
+    finished = true;
+    signal.removeEventListener("abort", onAbort);
+    if (failed) dependencies.usage?.recordUnavailable();
+    reader.cancel().catch(() => undefined);
+    finish();
+  };
+  const onAbort = (): void => {
+    end(!sawResult);
+  };
+  signal.addEventListener("abort", onAbort, { once: true });
+
+  const relay = (
+    controller: ReadableStreamDefaultController<Uint8Array>,
+    lines: readonly string[],
+  ): void => {
+    for (const text of lines) {
+      if (sawResult) throw new Error("A line followed the result.");
+      const line = parseQueryStreamLine(text);
+      if (line.type === "result") {
+        sawResult = true;
+        dependencies.usage?.recordForwarded(200, line.result.cache.status);
+      }
+      controller.enqueue(encodeLine(line));
+    }
+  };
+
+  return new ReadableStream<Uint8Array>({
+    cancel: () => {
+      end(!sawResult);
+    },
+    pull: async (controller) => {
+      try {
+        const chunk = await reader.read();
+        if (chunk.done) {
+          relay(controller, splitter.flush());
+          if (!sawResult) throw new Error("The stream ended without a result.");
+          end(false);
+          controller.close();
+          return;
+        }
+        totalBytes += chunk.value.byteLength;
+        if (totalBytes > MAX_UPSTREAM_BYTES) {
+          throw new Error("The stream is too large.");
+        }
+        relay(controller, splitter.push(chunk.value));
+      } catch {
+        end(!sawResult);
+        controller.error(new Error("The query stream failed."));
+      }
+    },
+  });
+}
+
+/**
+ * Like {@link forwardQuery}, but asks for source progress as an NDJSON stream. Refusals and
+ * failures before the stream starts stay ordinary JSON responses. `finish` runs exactly once,
+ * after the stream ends or immediately when no stream is returned.
+ */
+export async function forwardQueryStream(
+  input: PlaygroundQueryInput,
+  dependencies: QueryTargetDependencies,
+  callerSignal: AbortSignal,
+  finish: () => void,
+): Promise<Response> {
+  const signal = AbortSignal.any([
+    callerSignal,
+    AbortSignal.timeout(dependencies.config.upstreamTimeoutMs),
+  ]);
+  if (dependencies.config.target.kind === "local") {
+    return localQueryStream(input, dependencies, signal, finish);
+  }
+
+  let streaming = false;
+  try {
+    const target = dependencies.config.target;
+    const upstream = await dependencies.fetcher(`${target.apiBaseUrl}/query`, {
+      body: JSON.stringify(input),
+      headers: {
+        Accept: `${QUERY_STREAM_MEDIA_TYPE}, application/json`,
+        "Content-Type": "application/json",
+        [ORIGIN_TOKEN_HEADER]: target.apiOriginToken,
+      },
+      method: "POST",
+      redirect: "error",
+      signal,
+    });
+    const contentType = upstream.headers.get("content-type") ?? "";
+    if (
+      upstream.status === 200 &&
+      upstream.body !== null &&
+      contentType.startsWith(QUERY_STREAM_MEDIA_TYPE)
+    ) {
+      streaming = true;
+      return new Response(
+        relayQueryStream(upstream.body, dependencies, signal, finish),
+        { headers: streamHeaders(), status: 200 },
+      );
+    }
+    if (!contentType.startsWith("application/json")) {
+      dependencies.usage?.recordUnavailable();
+      return jsonResponse(
+        502,
+        "UPSTREAM_INVALID",
+        "The query service returned an invalid response.",
+      );
+    }
+    // Errors such as an overloaded query service, or an API without streaming, answer in JSON.
+    const body = await readBoundedText(
+      upstream.body,
+      MAX_UPSTREAM_BYTES,
+      signal,
+    );
+    dependencies.usage?.recordForwarded(
+      upstream.status,
+      upstream.headers.get("x-queryhost-cache"),
+    );
+    return new Response(body, {
+      headers: forwardedHeaders(upstream),
+      status: upstream.status,
+    });
+  } catch {
+    dependencies.usage?.recordUnavailable();
+    return jsonResponse(
+      502,
+      "UPSTREAM_UNAVAILABLE",
+      "The query service is temporarily unavailable.",
+    );
+  } finally {
+    if (!streaming) finish();
   }
 }
 
@@ -586,6 +855,12 @@ export async function handlePublicQuery(
     );
   }
 
+  if (acceptsQueryStream(request.headers)) {
+    // A stream holds its admission slot until the last line is written.
+    return forwardQueryStream(input, dependencies, request.signal, () => {
+      admission.release();
+    });
+  }
   try {
     return await forwardQuery(input, dependencies, request.signal);
   } finally {

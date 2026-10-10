@@ -37,6 +37,37 @@ if (result.ok) {
   console.log(result.data.players.online);
 }`;
 
+const streamExample = `const response = await fetch("https://query.host/api/v1/query", {
+  method: "POST",
+  headers: {
+    Accept: "application/x-ndjson",
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({ game: "rust", host: "203.0.113.5", port: 28015 }),
+});
+
+// Refusals such as 429 stay ordinary JSON.
+if (response.headers.get("Content-Type")?.startsWith("application/x-ndjson")) {
+  const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
+  let pending = "";
+  for (let chunk = await reader.read(); !chunk.done; chunk = await reader.read()) {
+    const lines = (pending + chunk.value).split("\\n");
+    pending = lines.pop();
+    for (const line of lines.filter(Boolean)) {
+      const event = JSON.parse(line);
+      if (event.type === "started") console.log("querying", event.source);
+      if (event.type === "completed") console.log(event.report);
+      if (event.type === "result") console.log(event.result.ok);
+    }
+  }
+}`;
+
+const streamLines = `{"type":"started","source":"a2s-info"}
+{"type":"completed","report":{"source":"a2s-info","status":"ok","rttMs":31}}
+{"type":"started","source":"a2s-player"}
+{"type":"completed","report":{"source":"a2s-player","status":"ok","rttMs":29}}
+{"type":"result","result":{"ok":true,"game":"rust","cache":{"status":"miss"},...}}`;
+
 export function PublicApiPage(): ReactNode {
   return (
     <DocsLayout {...metadata}>
@@ -134,6 +165,29 @@ export function PublicApiPage(): ReactNode {
         say whether the result was live (<code>miss</code>), shared with an
         identical request (<code>coalesced</code>), or reused (<code>hit</code>
         ).
+      </p>
+      <h2 id="streaming">Stream progress</h2>
+      <p>
+        Send <code>Accept: application/x-ndjson</code> to watch a query run. The
+        response is newline-delimited JSON: a <code>started</code> line as each
+        source begins, a <code>completed</code> line with the same report that
+        appears in the result&apos;s <code>sources</code>, then one final{" "}
+        <code>result</code> line with the body a JSON request would get.
+      </p>
+      <CodeBlock code={streamLines} label="Stream lines" language="JSON" />
+      <CodeBlock
+        code={streamExample}
+        label="Read the stream"
+        language="TypeScript"
+      />
+      <p>
+        Cached and shared queries count the same as JSON ones. A cache hit
+        streams only its <code>result</code> line, and a request sharing a
+        running query first receives the lines it missed. Streams carry no{" "}
+        <code>Age</code> or <code>x-queryhost-cache</code> header, so read{" "}
+        <code>cache</code> from the result. Validation errors and{" "}
+        <code>429</code> refusals are sent before the stream starts and stay
+        ordinary JSON.
       </p>
       <h2 id="games">List games</h2>
       <p>
