@@ -56,6 +56,18 @@ describe("compact query path", () => {
     ]);
   });
 
+  it("labels the Minecraft legacy ping fallback", () => {
+    expect(
+      queryPathItems([
+        { source: "minecraft-slp", status: "malformed" },
+        { source: "minecraft-legacy-ping", status: "ok", rttMs: 8 },
+      ]).map(({ detail, label }) => ({ detail, label })),
+    ).toEqual([
+      { detail: "Malformed", label: "Status" },
+      { detail: "8 ms", label: "Legacy ping" },
+    ]);
+  });
+
   it("keeps game-specific source names readable", () => {
     expect(
       queryPathItems([
