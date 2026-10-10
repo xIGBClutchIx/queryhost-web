@@ -65,6 +65,7 @@ const QUERY_SOURCE_NAMES: Readonly<Record<QuerySourceName, true>> = {
   "a2s-info": true,
   "a2s-player": true,
   "a2s-rules": true,
+  "eco-frontpage": true,
   "minecraft-srv": true,
   "minecraft-slp": true,
   "minecraft-query": true,
