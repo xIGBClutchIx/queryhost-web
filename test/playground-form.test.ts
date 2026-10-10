@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import type { PlaygroundGameDefinition } from "../src/lib/playground-contracts.js";
 import {
   cacheLabel,
+  detectedFormState,
+  detectedQueryInput,
   findGame,
   formQueryInput,
   formStateFromQueryInput,
@@ -255,6 +257,91 @@ describe("playground query input", () => {
     expect(
       formQueryInput(formStateFromSearch(search, PLAYGROUND_GAMES, initial)),
     ).toEqual({ input, kind: "valid" });
+  });
+});
+
+describe("auto detection form", () => {
+  it("takes one optional port and keeps a typed port across the switch", () => {
+    const auto = selectGame(initial, game("minecraft-java"), "auto");
+    expect(auto).toMatchObject({ game: "auto", port: "", queryPort: "" });
+    expect(gameFields("auto")).toMatchObject({
+      portLabel: "Port",
+      portRequired: false,
+      queryPortAvailable: false,
+    });
+    const typed = selectGame(
+      { ...initial, port: "30000" },
+      game("minecraft-java"),
+      "auto",
+    );
+    expect(typed.port).toBe("30000");
+    expect(selectGame(typed, undefined, game("rust")).port).toBe("30000");
+    expect(selectGame(auto, undefined, game("rust")).port).toBe("28015");
+  });
+
+  it("sends a detection instead of a query, without a game or query port", () => {
+    expect(
+      formQueryInput({
+        ...initial,
+        game: "auto",
+        host: " play.example.com ",
+        port: "",
+        queryPort: "27015",
+      }),
+    ).toEqual({
+      input: { host: "play.example.com", mode: "summary", timeoutMs: 5_000 },
+      kind: "detect",
+    });
+    expect(
+      formQueryInput({ ...initial, game: "auto", host: "a/b" }),
+    ).toMatchObject({ kind: "invalid" });
+  });
+
+  it("pins a query port only when the profile would not derive it", () => {
+    const detection = { host: "play.example.com", mode: "full" } as const;
+    expect(detectedQueryInput(detection, game("rust"), 28_017)).toEqual({
+      game: "rust",
+      host: "play.example.com",
+      mode: "full",
+    });
+    expect(
+      detectedQueryInput({ ...detection, port: 28_017 }, game("rust"), 28_017),
+    ).toEqual({
+      game: "rust",
+      host: "play.example.com",
+      mode: "full",
+      port: 28_017,
+      queryPort: 28_017,
+    });
+    expect(
+      detectedQueryInput({ ...detection, port: 2_456 }, game("valheim"), 2_457),
+    ).toMatchObject({ port: 2_456 });
+    expect(
+      detectedQueryInput({ ...detection, port: 27_016 }, game("a2s"), 27_016),
+    ).toEqual({
+      game: "a2s",
+      host: "play.example.com",
+      mode: "full",
+      port: 27_016,
+    });
+    expect(
+      detectedQueryInput(detection, game("minecraft-java"), 25_565),
+    ).not.toHaveProperty("queryPort");
+  });
+
+  it("moves the form to the detected game and keeps other choices", () => {
+    const state = { ...initial, advancedOpen: true, game: "auto" as const };
+    const input = detectedQueryInput(
+      { host: "play.example.com", mode: "summary" },
+      game("rust"),
+      28_017,
+    );
+    expect(detectedFormState(state, input, game("rust"))).toEqual({
+      ...state,
+      game: "rust",
+      port: "28015",
+      queryPort: "",
+    });
   });
 });
 

@@ -228,7 +228,7 @@ export function loadProxyGatePolicy(
   };
 }
 
-function jsonResponse(
+export function jsonResponse(
   status: number,
   code: PlaygroundProxyErrorCode,
   message: string,
@@ -245,7 +245,7 @@ function jsonResponse(
   return new Response(JSON.stringify(body), { headers, status });
 }
 
-function parseJson(text: string): JsonValue {
+export function parseJson(text: string): JsonValue {
   try {
     return JSON.parse(text) as JsonValue;
   } catch {
@@ -253,7 +253,7 @@ function parseJson(text: string): JsonValue {
   }
 }
 
-function jsonObject(value: JsonValue): JsonObject {
+export function jsonObject(value: JsonValue): JsonObject {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     throw new PublicQueryInputError("The request body must be a JSON object.");
   }
@@ -327,7 +327,7 @@ async function readBoundedBody(
   return new TextDecoder().decode(bytes);
 }
 
-function optionalInteger(
+export function optionalInteger(
   value: JsonValue | undefined,
   name: string,
   minimum: number,
@@ -349,7 +349,7 @@ function optionalInteger(
   return value;
 }
 
-function normalizedHost(value: JsonValue | undefined): string {
+export function normalizedHost(value: JsonValue | undefined): string {
   if (typeof value !== "string") {
     throw new PublicQueryInputError(
       "host must be a hostname or IP literal string.",
@@ -372,7 +372,7 @@ function normalizedHost(value: JsonValue | undefined): string {
   return host.toLowerCase();
 }
 
-function queryMode(value: JsonValue | undefined): QueryMode | undefined {
+export function queryMode(value: JsonValue | undefined): QueryMode | undefined {
   if (value === undefined) {
     return undefined;
   }
@@ -530,28 +530,31 @@ export async function forwardQuery(
   }
 }
 
-/** Validates, admits, and forwards one playground or public API query. */
-export async function handlePublicQuery(
+/**
+ * Applies the method, media-type, and body-size checks every public JSON route
+ * shares. Returns the body text, or the error response already counted as invalid.
+ */
+export async function readJsonRequest(
   request: Request,
-  dependencies: PublicQueryDependencies,
-): Promise<Response> {
-  const usage = dependencies.usage;
+  maxBodyBytes: number,
+  usage: SurfaceUsage,
+  noun: string,
+): Promise<string | Response> {
   if (request.method !== "POST") {
     usage.recordInvalid();
-    return jsonResponse(405, "METHOD_NOT_ALLOWED", "Use POST for queries.");
+    return jsonResponse(405, "METHOD_NOT_ALLOWED", `Use POST for ${noun}.`);
   }
   if (!request.headers.get("content-type")?.startsWith("application/json")) {
     usage.recordInvalid();
     return jsonResponse(
       415,
       "BAD_REQUEST",
-      "Queries require application/json.",
+      `${noun.charAt(0).toUpperCase()}${noun.slice(1)} require application/json.`,
     );
   }
 
-  let text: string;
   try {
-    text = await readBoundedBody(request, dependencies.config.maxBodyBytes);
+    return await readBoundedBody(request, maxBodyBytes);
   } catch (error) {
     if (error instanceof PublicQueryBodyError) {
       usage.recordInvalid();
@@ -562,6 +565,23 @@ export async function handlePublicQuery(
       );
     }
     throw error;
+  }
+}
+
+/** Validates, admits, and forwards one playground or public API query. */
+export async function handlePublicQuery(
+  request: Request,
+  dependencies: PublicQueryDependencies,
+): Promise<Response> {
+  const usage = dependencies.usage;
+  const text = await readJsonRequest(
+    request,
+    dependencies.config.maxBodyBytes,
+    usage,
+    "queries",
+  );
+  if (typeof text !== "string") {
+    return text;
   }
 
   let input: PlaygroundQueryInput;

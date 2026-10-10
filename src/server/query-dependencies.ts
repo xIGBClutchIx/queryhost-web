@@ -11,6 +11,7 @@ import {
   rasterizePreview,
 } from "./preview.js";
 import { ProxyGate } from "./proxy-gate.js";
+import { localDetect, type PublicDetectDependencies } from "./public-detect.js";
 import {
   createDefaultPublicQueryDependencies,
   type PublicQueryDependencies,
@@ -23,6 +24,7 @@ import {
 const startedAt = Date.now();
 
 let dependencies: PublicQueryDependencies | undefined;
+let detectDependencies: PublicDetectDependencies | undefined;
 let apiDependencies: PublicQueryDependencies | undefined;
 let badges: BadgeService | undefined;
 let previews: PreviewService | undefined;
@@ -31,6 +33,15 @@ let previews: PreviewService | undefined;
 export function publicQueryDependencies(): PublicQueryDependencies {
   dependencies ??= createDefaultPublicQueryDependencies();
   return dependencies;
+}
+
+/** Playground detections spend the same per-caller budget as its queries. */
+export function publicDetectDependencies(): PublicDetectDependencies {
+  detectDependencies ??= {
+    ...publicQueryDependencies(),
+    detectRunner: localDetect,
+  };
+  return detectDependencies;
 }
 
 /**

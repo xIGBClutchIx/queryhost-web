@@ -8,6 +8,8 @@ import type {
 } from "../../lib/playground-contracts.js";
 import { PLAYGROUND_EXAMPLES } from "../../lib/playground-examples.js";
 import {
+  detectedFormState,
+  findGame,
   formQueryInput,
   formStateFromQueryInput,
   formStateFromSearch,
@@ -54,7 +56,10 @@ export function QueryPlayground({
     setFormError(undefined);
     setForm(formStateFromQueryInput(input));
   }, []);
-  const { output, runQuery } = usePlaygroundSession(games, onAgentQuery);
+  const { output, runDetect, runQuery } = usePlaygroundSession(
+    games,
+    onAgentQuery,
+  );
   const outputRef = useRevealOutput(output);
   useViewportFit(playgroundRef, output.kind);
 
@@ -64,6 +69,23 @@ export function QueryPlayground({
     if (parsed.kind === "invalid") {
       setFormError(parsed.error);
       hostRef.current?.focus();
+      return;
+    }
+    if (parsed.kind === "detect") {
+      runDetect(parsed.input).then(
+        (detected) => {
+          const game =
+            detected === undefined ? undefined : findGame(games, detected.game);
+          if (detected === undefined || game === undefined) return;
+          // The picker shows what was found, unless the person changed it meanwhile.
+          setForm((current) =>
+            current.game === "auto"
+              ? detectedFormState(current, detected, game)
+              : current,
+          );
+        },
+        () => undefined,
+      );
       return;
     }
     runQuery(parsed.input).catch(() => undefined);
@@ -151,13 +173,17 @@ export function QueryPlayground({
             <span />
             <span />
           </div>
-          <p>Contacting the server through the selected game profile…</p>
+          <p>
+            {output.kind === "loading" && output.detecting
+              ? "Trying each supported game protocol…"
+              : "Contacting the server through the selected game profile…"}
+          </p>
         </div>
 
         {output.kind === "error" && (
           <div className="query-request-error" id="query-request-error">
             <p className="eyebrow">{output.code}</p>
-            <h2>The query could not be sent.</h2>
+            <h2>{output.heading ?? "The query could not be sent."}</h2>
             <p>{output.message}</p>
           </div>
         )}

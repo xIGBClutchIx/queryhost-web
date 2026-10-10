@@ -1,6 +1,8 @@
 import type {
   JsonObject,
   JsonValue,
+  PlaygroundDetectInput,
+  PlaygroundGameDefinition,
   PlaygroundProxyErrorResponse,
   PlaygroundQueryInput,
   PlaygroundQueryResponse,
@@ -14,6 +16,26 @@ export type PlaygroundRequestResult =
   | {
       readonly body: PlaygroundQueryResponse;
       readonly kind: "query";
+    };
+
+export type PlaygroundDetectResult =
+  | {
+      readonly body: PlaygroundProxyErrorResponse;
+      readonly kind: "proxy-error";
+    }
+  | {
+      /** The detected game's query, with the live-query cache metadata attached. */
+      readonly body: PlaygroundQueryResponse;
+      readonly game: PlaygroundGameDefinition;
+      readonly kind: "detected";
+      /** Port of the probe that identified the game. */
+      readonly matchedPort?: number;
+    }
+  | {
+      /** A detection error code, such as `NOT_DETECTED`, and its message. */
+      readonly code: string;
+      readonly kind: "undetected";
+      readonly message: string;
     };
 
 export type PlaygroundFetcher = (
@@ -142,4 +164,72 @@ export async function requestPlaygroundQuery(
     throw new Error(UNEXPECTED_RESPONSE);
   }
   return { body, kind: "query" };
+}
+
+// Detection results are never cached, so the query inside one is always live.
+const LIVE_QUERY = { ageMs: 0, status: "miss", ttlMs: 0 } as const;
+
+function matchedProbePort(probes: JsonValue | undefined): number | undefined {
+  if (!Array.isArray(probes)) return undefined;
+  for (const probe of probes) {
+    if (
+      isObject(probe) &&
+      probe.status === "matched" &&
+      typeof probe.port === "number"
+    ) {
+      return probe.port;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Sends one browser detection through the same-origin boundary. A detected
+ * game must be one the page lists, and its query must pass the same checks as
+ * a direct query before the playground renders it.
+ */
+export async function requestPlaygroundDetect(
+  input: PlaygroundDetectInput,
+  games: readonly PlaygroundGameDefinition[],
+  signal: AbortSignal,
+  fetcher: PlaygroundFetcher = fetch,
+): Promise<PlaygroundDetectResult> {
+  const response = await fetcher("/api/detect", {
+    body: JSON.stringify(input),
+    headers: { "Content-Type": "application/json" },
+    method: "POST",
+    signal,
+  });
+  const body = JSON.parse(await response.text()) as JsonValue;
+  if (!response.ok) {
+    if (!isPlaygroundProxyErrorResponse(body)) {
+      throw new Error(UNEXPECTED_RESPONSE);
+    }
+    return { body, kind: "proxy-error" };
+  }
+  if (!isObject(body) || !Array.isArray(body.probes)) {
+    throw new Error(UNEXPECTED_RESPONSE);
+  }
+  if (body.ok === false && isCodeMessage(body.error) && isObject(body.error)) {
+    const { code, message } = body.error;
+    if (typeof code === "string" && typeof message === "string") {
+      return { code, kind: "undetected", message };
+    }
+  }
+  const game = games.find((candidate) => candidate.id === body.game);
+  const result = body.result;
+  if (body.ok !== true || game === undefined || !isObject(result)) {
+    throw new Error(UNEXPECTED_RESPONSE);
+  }
+  const query: JsonValue = { ...result, cache: LIVE_QUERY };
+  if (!isPlaygroundQueryResponse(query) || query.game !== game.id) {
+    throw new Error(UNEXPECTED_RESPONSE);
+  }
+  const matchedPort = matchedProbePort(body.probes);
+  return {
+    body: query,
+    game,
+    kind: "detected",
+    ...(matchedPort === undefined ? {} : { matchedPort }),
+  };
 }
