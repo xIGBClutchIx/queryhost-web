@@ -145,6 +145,13 @@ export function usePlaygroundSession(
         throw abortError("The playground is not active.");
       }
       const request = session.coordinator.start();
+      // Until a game is found there is no result to link to, so an earlier
+      // result page must not stay in the address bar for this new target.
+      history.replaceState(
+        history.state,
+        "",
+        new URL("/", window.location.href),
+      );
       setOutput({ detecting: true, kind: "loading" });
 
       try {

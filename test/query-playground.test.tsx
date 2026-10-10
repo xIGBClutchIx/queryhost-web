@@ -239,6 +239,7 @@ describe("query playground island", () => {
   });
 
   it("keeps Auto selected and explains when no game is detected", async () => {
+    history.replaceState(null, "", "/rust/old.example.com");
     vi.stubGlobal(
       "fetch",
       vi.fn<typeof fetch>(() =>
@@ -281,6 +282,64 @@ describe("query playground island", () => {
     expect(error).toContain("No supported game was detected.");
     expect(element("#query-game-value").textContent).toBe("Auto");
     expect(window.location.pathname).toBe("/");
+  });
+
+  it("leaves the form alone when its target was edited during detection", async () => {
+    const { cache: _cache, ...result } = MINECRAFT_ONLINE;
+    let respond: ((response: Response) => void) | undefined;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<typeof fetch>(
+        () =>
+          new Promise<Response>((resolve) => {
+            respond = resolve;
+          }),
+      ),
+    );
+    void act(() => {
+      root.render(<QueryPlayground games={PLAYGROUND_GAMES} search="" />);
+    });
+    const auto = Array.from(
+      container.querySelectorAll<HTMLButtonElement>(
+        "#query-game-menu [role='option']",
+      ),
+    ).find((option) => option.textContent === "Auto");
+    void act(() => {
+      auto?.click();
+    });
+    void act(() => {
+      setInput(element("#query-host"), "play.example.com");
+    });
+    void act(() => {
+      element<HTMLFormElement>("#query-form").requestSubmit();
+    });
+    void act(() => {
+      setInput(element("#query-host"), "other.example.com");
+    });
+    respond?.(
+      new Response(
+        JSON.stringify({
+          durationMs: 60,
+          evidence: "protocol",
+          game: "minecraft-java",
+          ok: true,
+          probes: [
+            { port: 25_565, protocol: "minecraft-java", status: "matched" },
+          ],
+          result,
+        }),
+      ),
+    );
+    await flush();
+
+    expect(element("#query-result-name").textContent).toBe(
+      "Blockhaven Survival",
+    );
+    expect(element("#query-game-value").textContent).toBe("Auto");
+    expect(element<HTMLInputElement>("#query-host").value).toBe(
+      "other.example.com",
+    );
+    expect(element<HTMLInputElement>("#query-port").value).toBe("");
   });
 
   it("reports a malformed successful response instead of failing to render", async () => {

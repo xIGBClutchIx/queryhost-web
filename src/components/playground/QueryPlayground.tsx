@@ -77,9 +77,14 @@ export function QueryPlayground({
           const game =
             detected === undefined ? undefined : findGame(games, detected.game);
           if (detected === undefined || game === undefined) return;
-          // The picker shows what was found, unless the person changed it meanwhile.
+          // The picker shows what was found, unless the person edited the
+          // detection's target or choices while it ran.
           setForm((current) =>
-            current.game === "auto"
+            current.game === "auto" &&
+            current.host === next.host &&
+            current.port === next.port &&
+            current.mode === next.mode &&
+            current.timeoutMs === next.timeoutMs
               ? detectedFormState(current, detected, game)
               : current,
           );
