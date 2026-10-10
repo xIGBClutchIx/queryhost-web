@@ -112,6 +112,18 @@ describe("OpenAPI document", () => {
     );
   });
 
+  it("describes every field the games route serves", () => {
+    const properties = keys(at(schema("GameDefinition"), "properties"));
+    const served = new Set(GAMES.flatMap((game) => Object.keys(game)));
+    expect([...served].filter((key) => !properties.includes(key))).toEqual([]);
+    const protocols = new Set(GAMES.map((game) => game.protocol));
+    const documented = openEnumValues(
+      at(schema("GameDefinition"), "properties", "protocol"),
+    );
+    expect(documented).toEqual(expect.arrayContaining([...protocols]));
+    expect(documented).toHaveLength(protocols.size);
+  });
+
   it("lists the library's failure codes", () => {
     expect(
       openEnumValues(at(schema("QueryError"), "properties", "code")),

@@ -23,6 +23,7 @@ const SOURCE_LABELS = {
   "minecraft-bedrock-raknet": "Bedrock ping",
   "minecraft-query": "Query",
   "minecraft-slp": "Status",
+  "minecraft-legacy-ping": "Legacy ping",
   "minecraft-srv": "SRV",
 } satisfies Readonly<Record<QuerySourceName, string>>;
 
