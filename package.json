@@ -54,7 +54,7 @@
     "oxlint-tsgolint": "^7.0.2001",
     "preact-render-to-string": "^6.8.0",
     "prettier": "^3.9.6",
-    "prettier-plugin-astro": "^0.14.1",
+    "prettier-plugin-astro": "^1.1.0",
     "typescript": "npm:@typescript/typescript6@^6.0.2",
     "vitest": "^4.1.11"
   }
