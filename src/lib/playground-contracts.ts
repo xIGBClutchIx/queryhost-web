@@ -4,6 +4,7 @@ import type {
   QueryError,
   QueryMode,
   QuerySource,
+  QuerySourceEvent,
   QueryWarning,
   ServerInfo,
   SupportLevel,
@@ -79,6 +80,14 @@ export interface PlaygroundQueryFailure extends HostedResultBase {
 
 export type PlaygroundQueryResponse =
   PlaygroundQueryFailure | PlaygroundQuerySuccess;
+
+/**
+ * One line of a streamed query response: the library's source progress while the query runs,
+ * then exactly one `result` line with the body a JSON response would carry.
+ */
+export type PlaygroundQueryStreamLine =
+  | QuerySourceEvent
+  | { readonly type: "result"; readonly result: PlaygroundQueryResponse };
 
 export type PlaygroundProxyErrorCode =
   | "BAD_REQUEST"

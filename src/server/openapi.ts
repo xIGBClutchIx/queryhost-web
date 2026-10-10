@@ -365,6 +365,36 @@ function buildSchemas(): JsonObject {
       required: [...RESULT_BASE_REQUIRED, "ok", "server", "data", "partial"],
       type: "object",
     },
+    QueryStreamLine: {
+      description:
+        "One line of a streamed query. `started` and `completed` report a source as it runs; exactly one `result` line ends the stream.",
+      oneOf: [
+        {
+          properties: {
+            source: ref("QuerySourceName"),
+            type: { const: "started", type: "string" },
+          },
+          required: ["type", "source"],
+          type: "object",
+        },
+        {
+          properties: {
+            report: ref("QuerySource"),
+            type: { const: "completed", type: "string" },
+          },
+          required: ["type", "report"],
+          type: "object",
+        },
+        {
+          properties: {
+            result: ref("QueryResult"),
+            type: { const: "result", type: "string" },
+          },
+          required: ["type", "result"],
+          type: "object",
+        },
+      ],
+    },
     QueryWarning: {
       properties: {
         code: openEnum(
@@ -517,16 +547,31 @@ function buildPaths(): JsonObject {
     "/query": {
       post: {
         description:
-          "Runs one live query through the hosted cache. A query that reaches the query service returns `200` with the library result, even when the server is offline; check `ok`.",
+          "Runs one live query through the hosted cache. A query that reaches the query service returns `200` with the library result, even when the server is offline; check `ok`. Send `Accept: application/x-ndjson` to stream each source's progress as it runs, one `QueryStreamLine` per line, ending with the result.",
         operationId: "queryServer",
+        parameters: [
+          {
+            description:
+              "`application/x-ndjson` streams progress. Errors stay JSON either way.",
+            in: "header",
+            name: "Accept",
+            required: false,
+            schema: { type: "string" },
+          },
+        ],
         requestBody: {
           content: jsonContent(ref("QueryRequest")),
           required: true,
         },
         responses: {
           "200": {
-            content: jsonContent(ref("QueryResult")),
-            description: "The query result.",
+            content: {
+              ...jsonContent(ref("QueryResult")),
+              // OpenAPI 3.1 has no per-line schema, so this describes each line.
+              "application/x-ndjson": { schema: ref("QueryStreamLine") },
+            },
+            description:
+              "The query result, or a progress stream of one `QueryStreamLine` per line ending with it. Streams carry no `Age` or `x-queryhost-cache` header; read `cache` in the result line.",
             headers: {
               ...CORS_ORIGIN,
               Age: {

@@ -118,6 +118,65 @@ describe("query playground island", () => {
     expect(element<HTMLButtonElement>("#query-submit").disabled).toBe(false);
   });
 
+  it("shows each source's progress while a streamed query runs", async () => {
+    let stream: ReadableStreamDefaultController<Uint8Array> | undefined;
+    const encoder = new TextEncoder();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<typeof fetch>(() =>
+        Promise.resolve(
+          new Response(
+            new ReadableStream<Uint8Array>({
+              start(controller) {
+                stream = controller;
+              },
+            }),
+            { headers: { "Content-Type": "application/x-ndjson" } },
+          ),
+        ),
+      ),
+    );
+    void act(() => {
+      root.render(<QueryPlayground games={PLAYGROUND_GAMES} search="" />);
+    });
+    void act(() => {
+      setInput(element("#query-host"), "play.example.com");
+    });
+    void act(() => {
+      element<HTMLFormElement>("#query-form").requestSubmit();
+    });
+    await flush();
+    expect(element(".query-loading").textContent).toContain(
+      "Contacting the server",
+    );
+
+    stream?.enqueue(
+      encoder.encode(
+        '{"type":"started","source":"minecraft-srv"}\n{"type":"completed","report":{"source":"minecraft-srv","status":"ok","rttMs":4}}\n{"type":"started","source":"minecraft-slp"}\n',
+      ),
+    );
+    await flush();
+    const steps = [...container.querySelectorAll(".query-loading__source")].map(
+      (step) => [step.className, step.textContent],
+    );
+    expect(steps).toEqual([
+      ["query-loading__source query-loading__source--ok", "SRV4 ms"],
+      ["query-loading__source query-loading__source--running", "Status…"],
+    ]);
+
+    stream?.enqueue(
+      encoder.encode(
+        `${JSON.stringify({ result: MINECRAFT_ONLINE, type: "result" })}\n`,
+      ),
+    );
+    stream?.close();
+    await flush();
+    expect(element<HTMLElement>(".query-loading").hidden).toBe(true);
+    expect(element("#query-result-name").textContent).toBe(
+      "Blockhaven Survival",
+    );
+  });
+
   it("runs an example server from its chip and fills in the form", async () => {
     const fetcher = vi.fn<typeof fetch>(() =>
       Promise.resolve(new Response(JSON.stringify(MINECRAFT_ONLINE))),

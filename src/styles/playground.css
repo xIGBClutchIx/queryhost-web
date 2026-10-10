@@ -681,6 +681,55 @@
   font-size: var(--text-xs);
 }
 
+.query-loading__sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-5);
+  padding: 0;
+  margin: var(--space-4) 0 0;
+  color: var(--faint);
+  font-size: var(--text-xs);
+  list-style: none;
+}
+
+.query-loading__source {
+  display: inline-flex;
+  gap: var(--space-1-5);
+  align-items: center;
+}
+
+.query-loading__source code {
+  font-size: var(--text-3xs);
+}
+
+.query-loading__dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: var(--faint);
+}
+
+.query-loading__source--running .query-loading__dot {
+  animation: query-loading-dot 0.9s ease-in-out infinite alternate;
+}
+
+.query-loading__source--ok .query-loading__dot {
+  background: var(--accent);
+}
+
+.query-loading__source--blocked .query-loading__dot,
+.query-loading__source--failed .query-loading__dot,
+.query-loading__source--malformed .query-loading__dot,
+.query-loading__source--timeout .query-loading__dot {
+  background: var(--warning);
+}
+
+@keyframes query-loading-dot {
+  to {
+    opacity: 0.35;
+  }
+}
+
 @keyframes query-loading {
   to {
     background: color-mix(in srgb, var(--surface-subtle) 65%, var(--line));
@@ -1334,6 +1383,7 @@
 @media (prefers-reduced-motion: reduce) {
   .query-loading__line,
   .query-loading__grid span,
+  .query-loading__dot,
   .playground__heading,
   .query-form,
   .playground-examples {

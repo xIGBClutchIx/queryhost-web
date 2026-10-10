@@ -1,8 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import type { PlaygroundQueryInput } from "../src/lib/playground-contracts.js";
+import type {
+  JsonValue,
+  PlaygroundQueryInput,
+} from "../src/lib/playground-contracts.js";
 import { ProxyGate, type ProxyGatePolicy } from "../src/server/proxy-gate.js";
 import {
+  acceptsQueryStream,
   handlePublicQuery,
   loadProxyGatePolicy,
   loadPublicQueryConfig,
@@ -467,5 +471,236 @@ describe("public query configuration", () => {
       cache: { hit: 1, miss: 0, coalesced: 0 },
     });
     expect(JSON.stringify(snapshot)).not.toContain("secret");
+  });
+
+  describe("streamed queries", () => {
+    const RESULT = {
+      cache: { ageMs: 0, status: "miss", ttlMs: 10_000 },
+      data: {},
+      durationMs: 31,
+      game: "rust",
+      ok: true,
+      partial: false,
+      server: { name: "Test server" },
+      sources: [{ rttMs: 31, source: "a2s-info", status: "ok" }],
+      warnings: [],
+    };
+    const LINES = [
+      '{"type":"started","source":"a2s-info"}',
+      '{"type":"completed","report":{"source":"a2s-info","status":"ok","rttMs":31}}',
+      JSON.stringify({ result: RESULT, type: "result" }),
+    ];
+
+    function streamRequest(address = "203.0.113.10"): Request {
+      return new Request("https://query.host/api/query", {
+        body: JSON.stringify({ game: "rust", host: "play.example.com" }),
+        headers: {
+          Accept: "application/x-ndjson, application/json",
+          "Content-Type": "application/json",
+          "x-real-ip": address,
+        },
+        method: "POST",
+      });
+    }
+
+    /** An upstream NDJSON body whose chunks the test releases one at a time. */
+    function controlledUpstream(): {
+      readonly response: Response;
+      readonly push: (text: string) => void;
+      readonly close: () => void;
+    } {
+      let controller: ReadableStreamDefaultController<Uint8Array> | undefined;
+      const body = new ReadableStream<Uint8Array>({
+        start(streamController) {
+          controller = streamController;
+        },
+      });
+      return {
+        close: () => controller?.close(),
+        push: (text) => controller?.enqueue(new TextEncoder().encode(text)),
+        response: new Response(body, {
+          headers: { "Content-Type": "application/x-ndjson; charset=utf-8" },
+        }),
+      };
+    }
+
+    it("asks for NDJSON upstream and relays validated lines while holding admission", async () => {
+      const requests: RecordedRequest[] = [];
+      const upstream = controlledUpstream();
+      const deps = dependencies(
+        (input, init) => {
+          requests.push({ input, init });
+          return Promise.resolve(upstream.response);
+        },
+        { ...POLICY, maxActive: 1 },
+      );
+
+      const response = await handlePublicQuery(streamRequest(), deps);
+      expect(response.status).toBe(200);
+      expect(response.headers.get("content-type")).toBe(
+        "application/x-ndjson; charset=utf-8",
+      );
+      expect(new Headers(requests[0]?.init.headers).get("accept")).toBe(
+        "application/x-ndjson, application/json",
+      );
+      expect(deps.gate.active).toBe(1);
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      // A line split across chunks is relayed once it is complete.
+      upstream.push(`${LINES[0] ?? ""}\n${(LINES[1] ?? "").slice(0, 20)}`);
+      const first = await reader?.read();
+      expect(decoder.decode(first?.value)).toBe(`${LINES[0] ?? ""}\n`);
+
+      upstream.push(`${(LINES[1] ?? "").slice(20)}\n${LINES[2] ?? ""}\n`);
+      upstream.close();
+      let rest = "";
+      for (
+        let chunk = await reader?.read();
+        chunk?.done === false;
+        chunk = await reader?.read()
+      ) {
+        rest += decoder.decode(chunk.value);
+      }
+      expect(rest.trimEnd().split("\n")).toEqual([LINES[1], LINES[2]]);
+      expect(deps.gate.active).toBe(0);
+      expect(deps.usage.snapshot()).toMatchObject({
+        cache: { miss: 1 },
+        requests: { forwarded: 1, unavailable: 0 },
+      });
+    });
+
+    it("fails the stream on an invalid line or a missing result", async () => {
+      for (const body of [
+        '{"type":"started","source":"a2s-info"}\n{"type":"surprise"}\n',
+        '{"type":"started","source":"a2s-info"}\n',
+      ]) {
+        const deps = dependencies(() =>
+          Promise.resolve(
+            new Response(body, {
+              headers: { "Content-Type": "application/x-ndjson" },
+            }),
+          ),
+        );
+        const response = await handlePublicQuery(streamRequest(), deps);
+        await expect(response.text()).rejects.toThrow();
+        expect(deps.gate.active).toBe(0);
+        expect(deps.usage.snapshot().requests.unavailable).toBe(1);
+      }
+    });
+
+    it("releases admission when the caller cancels the stream", async () => {
+      const upstream = controlledUpstream();
+      const deps = dependencies(() => Promise.resolve(upstream.response));
+      const response = await handlePublicQuery(streamRequest(), deps);
+      expect(deps.gate.active).toBe(1);
+      await response.body?.cancel();
+      expect(deps.gate.active).toBe(0);
+    });
+
+    it("keeps JSON refusals from the query service as JSON", async () => {
+      const deps = dependencies(() =>
+        Promise.resolve(
+          new Response(
+            '{"error":{"code":"OVERLOADED","message":"At capacity."}}',
+            {
+              headers: {
+                "Content-Type": "application/json",
+                "Retry-After": "1",
+              },
+              status: 429,
+            },
+          ),
+        ),
+      );
+      const response = await handlePublicQuery(streamRequest(), deps);
+      expect(response.status).toBe(429);
+      expect(response.headers.get("content-type")).toBe(
+        "application/json; charset=utf-8",
+      );
+      expect(response.headers.get("retry-after")).toBe("1");
+      expect(deps.gate.active).toBe(0);
+    });
+
+    it("streams local queries with the library's progress callback", async () => {
+      const queryRunner: LocalQueryRunner = (input) => {
+        input.onSource?.({ source: "a2s-info", type: "started" });
+        input.onSource?.({
+          report: { rttMs: 31, source: "a2s-info", status: "ok" },
+          type: "completed",
+        });
+        return Promise.resolve({
+          data: { players: [] },
+          durationMs: 31,
+          game: "rust",
+          ok: true,
+          partial: false,
+          server: { name: "Test server" },
+          sources: [{ rttMs: 31, source: "a2s-info", status: "ok" }],
+          warnings: [],
+        });
+      };
+      const gate = new ProxyGate(POLICY);
+      const response = await handlePublicQuery(streamRequest(), {
+        config: {
+          maxBodyBytes: 2_048,
+          target: { kind: "local" },
+          upstreamTimeoutMs: 7_000,
+        },
+        fetcher: () =>
+          Promise.reject(new Error("The hosted API should not be called.")),
+        gate,
+        queryRunner,
+        usage: new SurfaceUsage(),
+      });
+
+      const lines = (await response.text()).trimEnd().split("\n");
+      const parse = (line: string): JsonValue => JSON.parse(line) as JsonValue;
+      expect(lines.slice(0, 2).map(parse)).toEqual(
+        LINES.slice(0, 2).map(parse),
+      );
+      expect(JSON.parse(lines[2] ?? "")).toMatchObject({
+        result: { cache: { status: "miss", ttlMs: 0 }, ok: true },
+        type: "result",
+      });
+      expect(gate.active).toBe(0);
+    });
+
+    it("aborts a local query and releases admission when the caller cancels", async () => {
+      let querySignal: AbortSignal | undefined;
+      const gate = new ProxyGate(POLICY);
+      const response = await handlePublicQuery(streamRequest(), {
+        config: {
+          maxBodyBytes: 2_048,
+          target: { kind: "local" },
+          upstreamTimeoutMs: 7_000,
+        },
+        fetcher: () =>
+          Promise.reject(new Error("The hosted API should not be called.")),
+        gate,
+        queryRunner: (input) => {
+          querySignal = input.signal;
+          return new Promise(() => undefined);
+        },
+        usage: new SurfaceUsage(),
+      });
+      expect(gate.active).toBe(1);
+
+      await response.body?.cancel();
+      expect(querySignal?.aborted).toBe(true);
+      expect(gate.active).toBe(0);
+    });
+
+    it("answers JSON when NDJSON is refused", () => {
+      expect(
+        acceptsQueryStream(new Headers({ Accept: "application/x-ndjson;q=0" })),
+      ).toBe(false);
+      expect(acceptsQueryStream(new Headers({ Accept: "*/*" }))).toBe(false);
+      expect(
+        acceptsQueryStream(
+          new Headers({ Accept: "application/json, Application/X-NDJSON" }),
+        ),
+      ).toBe(true);
+    });
   });
 });
