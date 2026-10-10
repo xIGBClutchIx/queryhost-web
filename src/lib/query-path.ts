@@ -10,6 +10,7 @@ const SOURCE_LABELS = {
   "a2s-info": "Info",
   "a2s-player": "Players",
   "a2s-rules": "Rules",
+  "eco-frontpage": "Front page",
   "fivem-dynamic": "Status",
   "fivem-info": "Server info",
   "fivem-players": "Players",

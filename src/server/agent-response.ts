@@ -8,6 +8,7 @@ const sourceName = z.enum([
   "a2s-info",
   "a2s-player",
   "a2s-rules",
+  "eco-frontpage",
   "minecraft-srv",
   "minecraft-slp",
   "minecraft-query",
