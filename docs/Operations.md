@@ -66,6 +66,14 @@ The August 31, 2026 production baseline passed these checks through the Railway-
 
 This is a bounded baseline, not a capacity claim. Unique-destination and global admission tests require an approved target set and must not be simulated by probing arbitrary hosts or ports.
 
+## Library releases
+
+This service pins an exact `queryhost` version. The `QueryHost release` workflow opens the pull request that moves the pin: it checks npm every 15 minutes, and running it by hand from the Actions tab, optionally with a version, starts it at once. The same change runs locally with `node scripts/bump-queryhost.mjs [version]`.
+
+The pull request carries the pin, the lockfile, prose that names the old pin, the library changelog entries, and any new game IDs. GitHub does not start pull-request workflows for pull requests opened by `GITHUB_TOKEN`, so the workflow dispatches CI on the branch itself. It needs **Allow GitHub Actions to create and approve pull requests** enabled under Settings, Actions, General. Merging still deploys, so review and merge it by hand.
+
+A release that adds a `QuerySourceName` fails typecheck on that pull request until the source has a label in `src/lib/query-path.ts`, an entry in `src/server/openapi.ts`, and a value in the MCP schema in `src/server/agent-response.ts`. Push those to the release branch before merging.
+
 ## Rollback
 
 Keep the Railway-generated web domain available while custom domains are introduced. If a web deployment is unhealthy:
