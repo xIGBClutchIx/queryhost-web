@@ -19,7 +19,7 @@ const curlExample = `curl https://query.host/api/v1/query \\
   -H 'Content-Type: application/json' \\
   -d '{"game":"minecraft","host":"mc.example.com","mode":"summary"}'`;
 
-const badgeExample = `[![Minecraft server status](https://query.host/api/v1/badge/minecraft/mc.example.com.svg)](https://query.host/?game=minecraft&host=mc.example.com)`;
+const badgeExample = `[![Minecraft server status](https://query.host/api/v1/badge/minecraft/mc.example.com.svg)](https://query.host/minecraft-java/mc.example.com)`;
 
 const fetchExample = `const response = await fetch("https://query.host/api/v1/query", {
   method: "POST",
@@ -167,6 +167,18 @@ export function PublicApiPage(): ReactNode {
         views do not count toward your per-IP query limit; uncached badges share
         their own budget, and when it is spent a badge shows its last known
         state or <code>unavailable</code>.
+      </p>
+      <h2 id="result-links">Result links</h2>
+      <p>
+        Every query has a page at{" "}
+        <code>
+          https://query.host/{"{game}"}/{"{host}"}
+        </code>
+        , with the same <code>:port</code> and <code>?queryPort=</code> rules as
+        badges. Opening it runs the query, and link previews in chat apps and
+        social sites show a card with the server&apos;s name and status, drawn
+        from the badge&apos;s cached query. The link button next to a result
+        copies its page URL.
       </p>
       <h2 id="limits">Limits</h2>
       <ul>

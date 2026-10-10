@@ -5,6 +5,8 @@ export type BadgeState =
       readonly partial: boolean;
       readonly online?: number;
       readonly max?: number;
+      /** The server's reported name; link previews show it, badges do not. */
+      readonly name?: string;
     }
   | { readonly kind: "offline" }
   | { readonly kind: "unavailable" }

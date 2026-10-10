@@ -29,7 +29,10 @@ import "../../styles/playground.css";
 interface QueryPlaygroundProps {
   /** Browser-safe registry projection serialized by the server. */
   readonly games: readonly PlaygroundGameDefinition[];
-  /** Request query string, so shared links render prefilled on the server. */
+  /**
+   * The query in form-parameter shape (`?game=&host=&port=`), so result pages
+   * and shared links render prefilled on the server.
+   */
   readonly search: string;
 }
 
@@ -128,6 +131,7 @@ export function QueryPlayground({
       {output.kind === "idle" && (
         <PlaygroundExamples
           examples={PLAYGROUND_EXAMPLES}
+          games={games}
           onSelect={onExample}
         />
       )}

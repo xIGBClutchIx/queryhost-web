@@ -187,6 +187,22 @@ describe("badge results", () => {
     expect(badgeStateFromResult('{"ok":false}')).toEqual({ kind: "offline" });
   });
 
+  it("keeps a bounded, non-blank server name for link previews", () => {
+    const named = (name: string): string =>
+      JSON.stringify({ ok: true, partial: false, server: { name } });
+    expect(badgeStateFromResult(named("Example Vanilla"))).toEqual({
+      kind: "online",
+      name: "Example Vanilla",
+      partial: false,
+    });
+    expect(badgeStateFromResult(named("   "))).toEqual({
+      kind: "online",
+      partial: false,
+    });
+    const long = badgeStateFromResult(named("x".repeat(1_000)));
+    expect(long?.kind === "online" ? long.name?.length : undefined).toBe(256);
+  });
+
   it("rejects bodies that are not query results", () => {
     expect(badgeStateFromResult("not json")).toBeUndefined();
     expect(badgeStateFromResult("[]")).toBeUndefined();

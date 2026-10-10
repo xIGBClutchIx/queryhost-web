@@ -8,6 +8,7 @@ import type {
   PlaygroundQueryInput,
 } from "./playground-contracts.js";
 import { defaultQueryMode } from "./playground-defaults.js";
+import { resultPath } from "./result-url.js";
 
 export type PlaygroundTimeout = "3000" | "5000";
 
@@ -233,28 +234,13 @@ export function formQueryInput(
   };
 }
 
-/** Builds the replaceable share URL; defaults are omitted to keep links short. */
+/** The shareable result URL on the current origin, as in `/rust/play.example.com`. */
 export function shareUrl(
   currentHref: string,
   input: PlaygroundQueryInput,
+  games: readonly PlaygroundGameDefinition[],
 ): URL {
-  const url = new URL(currentHref);
-  url.search = "";
-  url.searchParams.set("game", input.game);
-  url.searchParams.set("host", input.host);
-  if (input.port !== undefined) {
-    url.searchParams.set("port", String(input.port));
-  }
-  if (input.queryPort !== undefined) {
-    url.searchParams.set("queryPort", String(input.queryPort));
-  }
-  if (input.mode === "summary") {
-    url.searchParams.set("mode", "summary");
-  }
-  if (input.timeoutMs !== undefined && input.timeoutMs !== 5_000) {
-    url.searchParams.set("timeoutMs", String(input.timeoutMs));
-  }
-  return url;
+  return new URL(resultPath(input, findGame(games, input.game)), currentHref);
 }
 
 export function milliseconds(value: number): string {

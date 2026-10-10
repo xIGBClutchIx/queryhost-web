@@ -112,9 +112,9 @@ describe("query playground island", () => {
     expect(element("#query-panel-json code").textContent).toBe(
       JSON.stringify(MINECRAFT_ONLINE, null, 2),
     );
-    expect(window.location.search).toBe(
-      "?game=minecraft-java&host=play.example.com&port=25565&mode=summary",
-    );
+    // The default port and Minecraft's summary mode stay out of the link.
+    expect(window.location.pathname).toBe("/minecraft-java/play.example.com");
+    expect(window.location.search).toBe("");
     expect(element<HTMLButtonElement>("#query-submit").disabled).toBe(false);
   });
 
@@ -128,9 +128,7 @@ describe("query playground island", () => {
     });
 
     const chip = element<HTMLAnchorElement>(".playground-examples__chip");
-    expect(chip.getAttribute("href")).toBe(
-      "/?game=minecraft-java&host=mc.hypixel.net",
-    );
+    expect(chip.getAttribute("href")).toBe("/minecraft-java/mc.hypixel.net");
     void act(() => {
       chip.click();
     });

@@ -15,6 +15,7 @@ import {
   shareUrl,
 } from "../src/lib/playground-form.js";
 import { PLAYGROUND_GAMES } from "../src/lib/playground-games.js";
+import { resultFormSearch, splitTarget } from "../src/lib/result-url.js";
 
 function game(id: string): PlaygroundGameDefinition {
   const definition = findGame(PLAYGROUND_GAMES, id);
@@ -203,29 +204,57 @@ describe("playground query input", () => {
     expect(result.kind === "valid" && "queryPort" in result.input).toBe(false);
   });
 
-  it("builds short share URLs from non-default values only", () => {
+  it("builds short result URLs from non-default values only", () => {
     expect(
-      shareUrl("https://query.host/?stale=1#top", {
-        game: "rust",
-        host: "play.example.com",
-        mode: "full",
-        port: 28015,
-        timeoutMs: 5_000,
-      }).href,
-    ).toBe(
-      "https://query.host/?game=rust&host=play.example.com&port=28015#top",
-    );
+      shareUrl(
+        "https://query.host/?stale=1#top",
+        {
+          game: "rust",
+          host: "play.example.com",
+          mode: "full",
+          port: 28015,
+          timeoutMs: 5_000,
+        },
+        PLAYGROUND_GAMES,
+      ).href,
+    ).toBe("https://query.host/rust/play.example.com");
     expect(
-      shareUrl("https://query.host/", {
-        game: "minecraft-java",
-        host: "mc.example",
-        mode: "summary",
-        queryPort: 25566,
-        timeoutMs: 3_000,
-      }).search,
+      shareUrl(
+        "https://query.host/",
+        {
+          game: "minecraft-java",
+          host: "mc.example",
+          mode: "full",
+          port: 25566,
+          queryPort: 25567,
+          timeoutMs: 3_000,
+        },
+        PLAYGROUND_GAMES,
+      ).href,
     ).toBe(
-      "?game=minecraft-java&host=mc.example&queryPort=25566&mode=summary&timeoutMs=3000",
+      "https://query.host/minecraft-java/mc.example:25566?queryPort=25567&mode=full&timeoutMs=3000",
     );
+  });
+
+  it("round-trips a result URL through the form", () => {
+    const input = {
+      game: "rust",
+      host: "play.example.com",
+      mode: "full",
+      port: 28015,
+      timeoutMs: 5_000,
+    } as const;
+    const url = shareUrl("https://query.host/", input, PLAYGROUND_GAMES);
+    const [, gameId = "", target = ""] = url.pathname.split("/");
+    const search = resultFormSearch(
+      gameId,
+      splitTarget(target),
+      url.searchParams,
+    );
+    expect(isCompleteSharedQuery(search, PLAYGROUND_GAMES)).toBe(true);
+    expect(
+      formQueryInput(formStateFromSearch(search, PLAYGROUND_GAMES, initial)),
+    ).toEqual({ input, kind: "valid" });
   });
 });
 

@@ -1,4 +1,5 @@
 import { GAMES } from "../lib/queryhost.js";
+import { splitTarget } from "../lib/result-url.js";
 import type {
   JsonObject,
   JsonValue,
@@ -50,6 +51,7 @@ const BADGE_CALLER = "badge";
 const UNAVAILABLE_MAX_AGE_SECONDS = 10;
 const BADGE_ROUTE_ALLOW = "GET, HEAD, OPTIONS";
 const PORT_PATTERN = /^\d{1,5}$/u;
+const MAX_NAME_LENGTH = 256;
 
 /** Reads the badge budget, which is global and separate from every other gate. */
 export function loadBadgeGatePolicy(
@@ -93,39 +95,20 @@ function portValue(raw: string | null | undefined): JsonValue | undefined {
 }
 
 /**
- * Splits `host`, `host:port`, `[ipv6]`, or `[ipv6]:port`. A bare IPv6 literal
- * has several colons and is taken whole, without a port.
- */
-function splitTarget(target: string): {
-  readonly host: string;
-  readonly port?: string;
-} {
-  const bracketed = /^\[([^\]]+)\](?::([^:]*))?$/u.exec(target);
-  if (bracketed !== null) {
-    const [, host = "", port] = bracketed;
-    return port === undefined ? { host } : { host, port };
-  }
-  const colon = target.indexOf(":");
-  if (colon !== -1 && colon === target.lastIndexOf(":")) {
-    return { host: target.slice(0, colon), port: target.slice(colon + 1) };
-  }
-  return { host: target };
-}
-
-/**
- * Turns `/api/v1/badge/{game}/{target}.svg?queryPort=` into a summary query
- * input. Returns undefined when the path is not a badge path, and throws
+ * Turns `{game}/{target}{extension}?queryPort=` image paths into a summary
+ * query input. Returns undefined when the file lacks the extension, and throws
  * {@link PublicQueryInputError} when it names an invalid server.
  */
-export function parseBadgeRequest(
+export function parseImageRequest(
   game: string,
   file: string,
+  extension: ".png" | ".svg",
   search: URLSearchParams,
 ): PlaygroundQueryInput | undefined {
-  if (!file.endsWith(".svg")) {
+  if (!file.endsWith(extension)) {
     return undefined;
   }
-  const { host, port } = splitTarget(file.slice(0, -".svg".length));
+  const { host, port } = splitTarget(file.slice(0, -extension.length));
   const portField = portValue(port);
   const queryPortField = portValue(search.get("queryPort"));
   const fields: JsonObject = {
@@ -138,6 +121,15 @@ export function parseBadgeRequest(
   return parseQueryFields(fields);
 }
 
+/** Parses `/api/v1/badge/{game}/{target}.svg`; see {@link parseImageRequest}. */
+export function parseBadgeRequest(
+  game: string,
+  file: string,
+  search: URLSearchParams,
+): PlaygroundQueryInput | undefined {
+  return parseImageRequest(game, file, ".svg", search);
+}
+
 function jsonObjectField(value: JsonValue | undefined): JsonObject | undefined {
   return typeof value === "object" && value !== null && !Array.isArray(value)
     ? value
@@ -148,6 +140,15 @@ function countField(value: JsonValue | undefined): number | undefined {
   return typeof value === "number" && Number.isSafeInteger(value) && value >= 0
     ? value
     : undefined;
+}
+
+/** A server-reported name, bounded so cached entries stay small. */
+function nameField(value: JsonValue | undefined): string | undefined {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+  const name = value.slice(0, MAX_NAME_LENGTH);
+  return name.trim().length === 0 ? undefined : name;
 }
 
 /** Reads the badge-relevant fields of a hosted query response body. */
@@ -168,14 +169,17 @@ export function badgeStateFromResult(text: string): BadgeState | undefined {
   if (body["ok"] !== true) {
     return undefined;
   }
-  const players = jsonObjectField(jsonObjectField(body["server"])?.["players"]);
+  const server = jsonObjectField(body["server"]);
+  const players = jsonObjectField(server?.["players"]);
   const online = countField(players?.["online"]);
   const max = countField(players?.["max"]);
+  const name = nameField(server?.["name"]);
   return {
     kind: "online",
     partial: body["partial"] === true,
     ...(online === undefined ? {} : { online }),
     ...(max === undefined ? {} : { max }),
+    ...(name === undefined ? {} : { name }),
   };
 }
 

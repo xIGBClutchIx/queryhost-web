@@ -1,0 +1,39 @@
+---
+import { Header } from "../../components/Header.tsx";
+import { QueryPlayground } from "../../components/playground/QueryPlayground.tsx";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { PLAYGROUND_GAMES } from "../../lib/playground-games.js";
+import { resolveResultPage } from "../../server/result-page.js";
+
+// A shareable result, as in /rust/play.example.com: the homepage playground,
+// prefilled and run once, with its own title and live preview image.
+const page = resolveResultPage(
+  Astro.params.game ?? "",
+  Astro.params.target ?? "",
+  Astro.url,
+  PLAYGROUND_GAMES,
+);
+if (page.kind === "redirect") {
+  return Astro.redirect(page.location, 301);
+}
+if (page.kind === "not-found") {
+  return Astro.rewrite("/404/");
+}
+---
+
+<BaseLayout
+  bodyClass="home-page"
+  title={page.title}
+  description={page.description}
+  image={{ alt: page.imageAlt, path: page.imagePath }}
+  noindex
+>
+  <Header active="site" />
+  <main class="site-main" id="main-content">
+    <QueryPlayground
+      client:load
+      games={PLAYGROUND_GAMES}
+      search={page.search}
+    />
+  </main>
+</BaseLayout>
