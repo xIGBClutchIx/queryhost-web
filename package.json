@@ -39,7 +39,7 @@
     "compression": "^1.8.2",
     "marked": "^18.0.10",
     "preact": "^10.29.8",
-    "queryhost": "1.6.0",
+    "queryhost": "1.7.0",
     "shiki": "^4.4.3",
     "zod": "^4.6.5"
   },
