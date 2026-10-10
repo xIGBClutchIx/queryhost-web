@@ -8,6 +8,10 @@ import type {
 } from "../../lib/playground-contracts.js";
 import { shareUrl } from "../../lib/playground-form.js";
 import { requestPlaygroundQuery } from "../../lib/playground-query.js";
+import {
+  applySourceEvent,
+  type SourceProgressEntry,
+} from "../../lib/query-path.js";
 import { PlaygroundRequestCoordinator } from "../../lib/playground-request-coordinator.js";
 import type { WebMcpRegistration } from "../../lib/webmcp.js";
 
@@ -16,7 +20,11 @@ export type QueryOutcome =
 
 export type OutputState =
   | { readonly kind: "idle" }
-  | { readonly kind: "loading" }
+  | {
+      readonly kind: "loading";
+      /** Sources the running query has reported so far. */
+      readonly progress: readonly SourceProgressEntry[];
+    }
   | {
       readonly code: string;
       readonly kind: "error";
@@ -76,10 +84,25 @@ export function usePlaygroundSession(
         "",
         shareUrl(window.location.href, input, games),
       );
-      setOutput({ kind: "loading" });
+      setOutput({ kind: "loading", progress: [] });
 
       try {
-        const response = await requestPlaygroundQuery(input, request.signal);
+        const response = await requestPlaygroundQuery(
+          input,
+          request.signal,
+          fetch,
+          (event) => {
+            if (!request.isCurrent()) return;
+            setOutput((current) =>
+              current.kind === "loading"
+                ? {
+                    kind: "loading",
+                    progress: applySourceEvent(current.progress, event),
+                  }
+                : current,
+            );
+          },
+        );
         if (!request.isCurrent()) {
           throw abortError("The query was superseded.");
         }

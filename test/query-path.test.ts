@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { queryPathItems } from "../src/lib/query-path.js";
+import {
+  applySourceEvent,
+  queryPathItems,
+  sourceProgressItems,
+} from "../src/lib/query-path.js";
 
 describe("compact query path", () => {
   it("labels the new game's sources without losing source provenance", () => {
@@ -63,6 +67,46 @@ describe("compact query path", () => {
       { detail: "Skipped", label: "Players" },
       { detail: "12.3 ms", label: "Server info" },
       { detail: "Blocked", label: "Bedrock ping" },
+    ]);
+  });
+
+  it("folds running-query progress in first-seen order", () => {
+    let progress = applySourceEvent([], {
+      source: "a2s-info",
+      type: "started",
+    });
+    progress = applySourceEvent(progress, {
+      source: "a2s-player",
+      type: "started",
+    });
+    progress = applySourceEvent(progress, {
+      report: { rttMs: 31, source: "a2s-info", status: "ok" },
+      type: "completed",
+    });
+    progress = applySourceEvent(progress, {
+      report: { source: "a2s-rules", status: "not-requested" },
+      type: "completed",
+    });
+    // A repeated start never undoes a completion.
+    progress = applySourceEvent(progress, {
+      source: "a2s-info",
+      type: "started",
+    });
+
+    expect(sourceProgressItems(progress)).toEqual([
+      { detail: "31 ms", label: "Info", source: "a2s-info", state: "ok" },
+      {
+        detail: "…",
+        label: "Players",
+        source: "a2s-player",
+        state: "running",
+      },
+      {
+        detail: "Skipped",
+        label: "Rules",
+        source: "a2s-rules",
+        state: "not-requested",
+      },
     ]);
   });
 });

@@ -15,6 +15,10 @@ import {
   isCompleteSharedQuery,
 } from "../../lib/playground-form.js";
 import type { PlaygroundFormState } from "../../lib/playground-form.js";
+import {
+  sourceProgressItems,
+  type SourceProgressEntry,
+} from "../../lib/query-path.js";
 import { HOME_HEADLINE, HOME_SUMMARY } from "../../lib/site.js";
 import { PlaygroundExamples } from "./PlaygroundExamples.js";
 import { QueryForm } from "./QueryForm.js";
@@ -151,7 +155,9 @@ export function QueryPlayground({
             <span />
             <span />
           </div>
-          <p>Contacting the server through the selected game profile…</p>
+          <QueryProgress
+            progress={output.kind === "loading" ? output.progress : []}
+          />
         </div>
 
         {output.kind === "error" && (
@@ -172,5 +178,32 @@ export function QueryPlayground({
         )}
       </section>
     </section>
+  );
+}
+
+/** A quiet line naming each source as the running query reports it. */
+function QueryProgress({
+  progress,
+}: {
+  readonly progress: readonly SourceProgressEntry[];
+}): ReactNode {
+  const items = sourceProgressItems(progress);
+  if (items.length === 0) {
+    return <p>Contacting the server through the selected game profile…</p>;
+  }
+  return (
+    <ol className="query-loading__sources" aria-label="Query progress">
+      {items.map((item) => (
+        <li
+          key={item.source}
+          className={`query-loading__source query-loading__source--${item.state}`}
+          title={item.source}
+        >
+          <span className="query-loading__dot" aria-hidden="true" />
+          {item.label}
+          <code>{item.detail}</code>
+        </li>
+      ))}
+    </ol>
   );
 }

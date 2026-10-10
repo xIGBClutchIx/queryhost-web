@@ -131,12 +131,16 @@ describe("site HTTP server", () => {
     const port = await listen((request, response) => {
       response.setHeader(
         "Content-Type",
-        request.url === "/events" ? "text/event-stream" : "font/woff2",
+        request.url === "/events"
+          ? "text/event-stream"
+          : request.url === "/api/query"
+            ? "application/x-ndjson; charset=utf-8"
+            : "font/woff2",
       );
       response.end(LARGE_TEXT);
     });
 
-    for (const path of ["/events", "/_astro/geist.woff2"]) {
+    for (const path of ["/events", "/api/query", "/_astro/geist.woff2"]) {
       const response = await fetchRaw(port, path, { encoding: "gzip, br" });
       expect(response.headers["content-encoding"]).toBeUndefined();
       expect(response.body.toString()).toBe(LARGE_TEXT);
