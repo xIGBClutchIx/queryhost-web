@@ -1191,6 +1191,8 @@
 
 .query-data-list > div > div {
   min-width: 0;
+  max-height: 16rem;
+  overflow: auto;
   color: var(--text-strong);
   font-family: "Geist Mono Variable", monospace;
   font-size: var(--text-xs);
