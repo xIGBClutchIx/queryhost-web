@@ -8,9 +8,9 @@ import {
   type WorkspaceResult,
 } from "./mcp-workspace-contract.js";
 import {
-  minecraftEdition,
-  stripMinecraftFormatting,
-} from "./minecraft-text.js";
+  appendMinecraftText,
+  minecraftIdentity,
+} from "./minecraft-presentation.js";
 
 export interface WorkspaceBridge {
   query(
@@ -196,21 +196,24 @@ export function mountWorkspace(doc: Document, bridge: WorkspaceBridge) {
         const dt = doc.createElement("dt");
         const dd = doc.createElement("dd");
         dt.textContent = label ?? "";
-        dd.textContent = value ?? "";
+        appendMinecraftText(dd, value ?? "", current.input.game);
         group.append(dt, dd);
         stats.append(group);
       }
       overview.append(stats);
+      const identity = minecraftIdentity(
+        doc,
+        current.input.game,
+        object(result["data"]),
+        server,
+      );
+      if (identity) overview.append(identity);
       const motdValue = object(result["data"])["motd"] ?? server["motd"];
       const plainMotd =
         typeof motdValue === "string" ? motdValue : object(motdValue)["plain"];
-      if (typeof plainMotd === "string") {
+      if (!identity && typeof plainMotd === "string") {
         const motd = doc.createElement("p");
-        const edition = minecraftEdition(current.input.game);
-        motd.textContent =
-          edition === undefined
-            ? plainMotd
-            : stripMinecraftFormatting(plainMotd, edition);
+        motd.textContent = plainMotd;
         overview.append(motd);
       }
     } else {

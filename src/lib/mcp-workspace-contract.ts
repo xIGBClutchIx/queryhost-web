@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const WORKSPACE_URI = "ui://queryhost/query-app-v1.html";
+export const WORKSPACE_URI = "ui://queryhost/query-app-v2.html";
 export const FULL_RESULT_KEY = "queryhost/fullResult";
 export const FULL_RESULT_LIMIT = 2_097_152;
 

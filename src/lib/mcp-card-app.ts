@@ -1,8 +1,11 @@
 import type { JsonObject, JsonValue } from "./playground-contracts.js";
+import {
+  appendMinecraftText,
+  minecraftIdentity,
+} from "./minecraft-presentation.js";
+import { FULL_RESULT_KEY } from "./mcp-workspace-contract.js";
 
-/** Self-contained entry point serialized into the MCP resource after TS compilation.
- * Keep runtime dependencies inside this function so the iframe needs no network access.
- */
+/** Bundled entry point; the iframe needs no network access. */
 export function startMcpCards(): void {
   const root = document.getElementById("cards");
   const status = document.getElementById("status");
@@ -124,7 +127,9 @@ export function startMcpCards(): void {
         (text(input["game"]).startsWith("minecraft-")
           ? rawName.replace(/§[0-9a-x]/giu, "")
           : rawName) || host;
-      identity.append(element("h2", name));
+      const title = element("h2");
+      appendMinecraftText(title, rawName || host, text(input["game"]));
+      identity.append(title);
       if (name !== host || typeof input["port"] === "number")
         identity.append(
           element(
@@ -177,12 +182,23 @@ export function startMcpCards(): void {
           ],
         ]) {
           const group = element("div");
-          group.append(element("dt", label), element("dd", value));
+          const detail = element("dd");
+          appendMinecraftText(detail, value ?? "", text(input["game"]));
+          group.append(element("dt", label), detail);
           stats.append(group);
         }
         article.append(stats);
-        const motd = text(object(object(result["data"])["motd"])["plain"]);
-        if (motd) article.append(element("p", motd, "motd"));
+        const visual = minecraftIdentity(
+          document,
+          text(input["game"]),
+          object(result["data"]),
+          server,
+        );
+        if (visual) article.append(visual);
+        else {
+          const motd = text(object(object(result["data"])["motd"])["plain"]);
+          if (motd) article.append(element("p", motd, "motd"));
+        }
       } else {
         const error = object(result["error"]);
         article.append(
@@ -343,7 +359,12 @@ export function startMcpCards(): void {
     const params = object(message["params"]);
     switch (message["method"]) {
       case "ui/notifications/tool-result":
-        render(object(params["structuredContent"]));
+        render(
+          object(
+            object(params["_meta"])[FULL_RESULT_KEY] ??
+              params["structuredContent"],
+          ),
+        );
         break;
       case "ui/notifications/tool-cancelled":
         cards.replaceChildren();

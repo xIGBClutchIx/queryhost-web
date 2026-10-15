@@ -368,7 +368,8 @@ export async function handleMcpRequest(
             structuredContent,
             isError,
             content: [{ type: "text", text: toolText(structuredContent) }],
-            ...(params.name === "query_game_server"
+            ...(params.name === "query_game_server" ||
+            params.name === "compare_game_servers"
               ? { _meta: workspaceMetadata(fullOutput) }
               : {}),
           };

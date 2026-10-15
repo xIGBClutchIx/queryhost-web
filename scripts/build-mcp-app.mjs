@@ -25,3 +25,17 @@ await writeFile(
     .replace("<!-- STYLES -->", () => `<style>${native}\n${styles}</style>`)
     .replace("<!-- SCRIPT -->", () => `<script>${script}</script>`),
 );
+const cards = await build({
+  entryPoints: ["src/lib/mcp-card-entry.ts"],
+  bundle: true,
+  write: false,
+  platform: "browser",
+  format: "iife",
+  target: "es2022",
+  minify: true,
+  legalComments: "none",
+});
+await writeFile(
+  "src/generated/mcp-cards.js",
+  cards.outputFiles[0].text.replaceAll("</script", "<\\/script"),
+);

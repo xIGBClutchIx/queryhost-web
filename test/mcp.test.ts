@@ -228,6 +228,9 @@ describe("remote MCP", () => {
       expect(comparison.structuredContent).toMatchObject({
         results: [{ input }, { input: { host: "other.example.com" } }],
       });
+      expect(comparison._meta?.[FULL_RESULT_KEY]).toMatchObject({
+        results: [{ input }, { input: { host: "other.example.com" } }],
+      });
       expect(calls).toHaveLength(3);
       expect(
         new Headers(calls[0]?.headers).get("x-queryhost-origin-token"),

@@ -53,10 +53,18 @@ Query and comparison tools declare `_meta.ui.resourceUri` referencing
 `ui://queryhost/server-cards-v2.html`. `resources/list` and `resources/read` expose
 the self-contained `text/html;profile=mcp-app` resource. Compatible hosts render
 one server card or up to four cards side by side, stacking at narrow widths.
-Cards show population, query RTT, version, map, plain MOTD, source details,
+Cards show population, query RTT, version, map, MOTD, source details,
 warnings, cache state, truncation notices, failures, and a playground link.
 Missing values display a dash; confirmed zero values remain zero. Cards never
-interpret returned strings as HTML or navigate to server-provided URLs.
+execute server markup or navigate to server-provided URLs. Minecraft results can
+display edition-aware colors and formatting, normalized Java MOTD spans, and
+embedded 64×64 PNG icons. The renderer rebuilds only the library's fixed span/br
+vocabulary with allowlisted styles and drops arbitrary attributes. Icons are
+bounded PNG data URLs; remote image URLs and SVGs are rejected. Minecraft MOTDs
+and icons use the card's normal background.
+Visual assets travel only in UI metadata for single queries and comparisons;
+the model-facing projection continues to omit HTML and icons. Hosts that omit
+UI metadata retain the compact plain-text result.
 
 The resource uses the MCP Apps `ui/initialize` handshake and tool-result,
 cancellation, theme-change, size-change, and teardown messages. It accepts only
@@ -100,7 +108,7 @@ validation and admission limits. Clipboard writing is the only requested sandbox
 permission and has a manual-copy fallback.
 
 Single-query results include UI-only `_meta["queryhost/fullResult"]` with full
-validated details and raw data where available, excluding favicons. Model-facing
+validated details and raw data where available, including bounded PNG favicons. Model-facing
 text and `structuredContent` keep their existing projection budgets. UI details
 have a 2 MiB total budget and 32-level nesting limit; `queryhost/detailLimited`
 reports fallback or depth omissions. Comparisons retain the existing compact

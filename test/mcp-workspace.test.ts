@@ -161,6 +161,34 @@ describe("query workspace", () => {
     expect(overview?.textContent).not.toContain("§");
     workspace.dispose();
   });
+  it("renders the UI-only Minecraft icon and component styles in the overview", () => {
+    const full = output();
+    const icon = `data:image/png;base64,${btoa("\x89PNG\r\n\x1a\n\0\0\0\rIHDR\0\0\0\x40\0\0\0\x40")}`;
+    full._meta = {
+      [FULL_RESULT_KEY]: {
+        ...full.structuredContent,
+        result: {
+          ok: true,
+          server: {},
+          data: {
+            favicon: icon,
+            motd: {
+              plain: "Colorful",
+              html: '<span style="color:#55ff55;font-weight:bold">Colorful</span>',
+            },
+          },
+        },
+      },
+    };
+    const { workspace } = setup();
+    workspace.result(full);
+    const overview = document.getElementById("panel-overview");
+    expect(overview?.querySelector("img")?.src).toBe(icon);
+    expect(
+      overview?.querySelector(".minecraft-motd span")?.getAttribute("style"),
+    ).toContain("font-weight: bold");
+    workspace.dispose();
+  });
   it("uses full UI metadata, renders zero safely, and shares only bounded trusted context", async () => {
     const full = output();
     full._meta = {

@@ -156,6 +156,30 @@ summary {
   gap: 20px;
   margin: 0 0 22px;
 }
+.minecraft-identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.minecraft-identity img {
+  width: 64px;
+  height: 64px;
+  flex: none;
+  image-rendering: pixelated;
+}
+.minecraft-motd {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  min-width: 0;
+  line-height: 1.5;
+}
+@media (max-width: 360px) {
+  .minecraft-identity {
+    flex-wrap: wrap;
+  }
+}
 dt {
   color: var(--muted-foreground);
   font-size: calc(var(--font-size-base) * 0.92);

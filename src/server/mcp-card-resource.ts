@@ -1,8 +1,8 @@
-import { startMcpCards } from "../lib/mcp-card-app.js";
+import cardScript from "../generated/mcp-cards.js?raw";
 import nativeStyles from "@openai/mcp-extensions/app/styles.css?raw";
 
 // Hosts cache resource contents by URI; advance this version when shipping UI changes.
-export const MCP_CARD_URI = "ui://queryhost/server-cards-v2.html";
+export const MCP_CARD_URI = "ui://queryhost/server-cards-v3.html";
 export const MCP_CARD_MIME = "text/html;profile=mcp-app";
 
 /** A portable, self-contained resource: no external scripts, fonts, images or API calls. */
@@ -26,6 +26,10 @@ h2 { font-size: calc(var(--font-size-base) * 1.28); line-height: 1.35; overflow-
 dt, .muted, #status { color: var(--muted-foreground); font-size: max(11px, calc(var(--font-size-base) - 2px)); }
 dd { margin: 3px 0 0; font-size: calc(var(--font-size-base) * 1.14); font-weight: var(--font-weight-medium, 500); overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
 p, li { overflow-wrap: anywhere; } .motd { border-top: 1px solid var(--border); padding-top: 14px; }
+.minecraft-identity { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.minecraft-identity img { width: 64px; height: 64px; flex: none; image-rendering: pixelated; }
+.minecraft-motd { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; min-width: 0; line-height: 1.5; }
+@media (max-width: 320px) { .minecraft-identity { flex-wrap: wrap; } }
 .diagnostics { border-top: 1px solid var(--border); padding-top: 12px; }
 summary { color: var(--muted-foreground); font-size: max(11px, calc(var(--font-size-base) - 2px)); min-height: 28px; align-content: center; }
 .diagnostic-content { display: grid; gap: 8px; padding-top: 8px; } ul { margin: 0; padding-left: 18px; } .sources { font-size: max(11px, calc(var(--font-size-base) - 2px)); }
@@ -33,5 +37,5 @@ summary { color: var(--muted-foreground); font-size: max(11px, calc(var(--font-s
 :focus-visible { outline: 2px solid var(--ring); outline-offset: 3px; }
 @media (max-width: 440px) { .server-content { padding: 4px; } }
 </style></head><body><main id="cards" aria-label="Game server results"></main><p id="status" role="status">Waiting for a server query…</p>
-<script>(${startMcpCards.toString()})();</script></body></html>`;
+<script>${cardScript}</script></body></html>`;
 }
