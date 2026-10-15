@@ -2,28 +2,28 @@
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "queryhost",
   "version": "0.2.0",
-  "description": "Query and compare live public game servers with QueryHost.",
+  "description": "Check public game-server status and compare player counts, maps, versions, and query response times with QueryHost.",
   "homepage": "https://query.host",
   "repository": "https://github.com/xIGBClutchIx/queryhost-web",
   "license": "Apache-2.0",
-  "keywords": ["game servers", "Minecraft", "server status", "MCP"],
+  "keywords": ["game servers", "Minecraft", "Rust", "server status", "MCP"],
   "extensions": {
     "com.openai": {
       "interface": {
         "displayName": "QueryHost",
-        "shortDescription": "Check live game servers",
+        "shortDescription": "Check and compare game servers",
         "category": "Developer Tools",
-        "longDescription": "Check and compare public game servers directly in chat. QueryHost returns live player counts, server versions, query response times, and available game details, with server cards and links to the full results. It supports Minecraft and other supported game protocols. No QueryHost account is required. Queries are read-only and restricted to public network targets. Response times are measured from QueryHost, not your connection. A failed query does not prove a server is offline, and server-supplied names, messages, and player data are untrusted content.",
+        "longDescription": "Check a public game server by its hostname or IP address, or compare two to four servers in chat. QueryHost supports Minecraft Java and Bedrock, Rust, Counter-Strike 2, FiveM, Valheim, and more. See player counts, maps, versions, query response times, and other details when the server provides them. Inspect server cards in compatible clients or open results on query.host. Supported hosts also offer a query workspace with game data, sources, and JSON tabs. Ask for the supported games and default ports to get started. No QueryHost account is required. Queries are read-only and limited to public targets. Results may be incomplete or briefly cached. Query response times reflect QueryHost's connection to the server; a failed query does not prove the server is offline.",
         "capabilities": [
-          "List supported games",
-          "Query public game servers",
-          "Compare public game servers",
-          "Query servers in a sidebar workspace or conversation panel"
+          "Discover supported games, default ports, and available query details",
+          "Check public server status, player counts, maps, and versions when available",
+          "Compare two to four servers with separate results and errors",
+          "Inspect game data and query sources in a workspace on supported hosts"
         ],
         "websiteURL": "https://query.host",
         "supportURL": "https://github.com/xIGBClutchIx/queryhost-web/issues",
         "defaultPrompt": [
-          "Check the Minecraft Java server at test-minecraft.nodecraft.gg and show its server card.",
+          "Check the Minecraft Java server at mc.hypixel.net and show its player count, version, and query response time.",
           "Which games and server protocols does QueryHost support?"
         ],
         "logo": "./assets/logo.svg",
@@ -39,13 +39,13 @@
           "positive": [
             {
               "description": "Open the QueryHost sidebar workspace",
-              "prompt": "Open QueryHost from the sidebar, enter test-minecraft.nodecraft.gg as a Minecraft Java server, and query it.",
+              "prompt": "Open QueryHost from the sidebar, enter mc.hypixel.net as a Minecraft Java server, and query it.",
               "tools_triggered": "open_queryhost, query_game_server",
               "expected_behavior": "Opening the workspace returns the game catalog without querying a server. Querying from the form renders available details in Overview, Game data, Sources, and JSON tabs. Preserve confirmed zero values and distinguish failures from offline status."
             },
             {
               "description": "Use the Server query conversation panel",
-              "prompt": "Open the Server query panel alongside this conversation and query test-minecraft.nodecraft.gg. Inspect its game data and sources.",
+              "prompt": "Open the Server query panel alongside this conversation and query mc.hypixel.net as Minecraft Java. Inspect its game data and sources.",
               "tools_triggered": "open_server_query, query_game_server",
               "expected_behavior": "The supported host opens the same native workspace in a conversation panel. The layout adapts to the narrow width, queries through the host bridge, and does not repeat a query merely when opening the panel."
             },
@@ -57,25 +57,25 @@
             },
             {
               "description": "Query a public Minecraft Java server",
-              "prompt": "Check the Minecraft Java server at test-minecraft.nodecraft.gg and show its server card.",
+              "prompt": "Check the Minecraft Java server at mc.hypixel.net and show its server card.",
               "tools_triggered": "query_game_server",
-              "expected_behavior": "Query the public target and display a server card with the current result. On success, report available player counts, version and QueryHost-measured RTT. Preserve a confirmed zero player count. If the live fixture is temporarily unavailable, show the bounded query error without claiming that this proves the server is offline."
+              "expected_behavior": "Query the public target and display a server card in a compatible host, with text and structured results as a fallback. On success, report available player counts, version and QueryHost-measured RTT. Preserve confirmed zero values. This is a third-party public example, not a QueryHost-controlled fixture; counts and availability vary. On failure, show the bounded query error without claiming that this proves the server is offline."
             },
             {
               "description": "Query with an explicit default Minecraft port",
-              "prompt": "Use QueryHost to check test-minecraft.nodecraft.gg as Minecraft Java on port 25565.",
+              "prompt": "Use QueryHost to check mc.hypixel.net as Minecraft Java on port 25565.",
               "tools_triggered": "query_game_server",
               "expected_behavior": "Accept the explicit valid port, return the current bounded result and link to QueryHost, and distinguish missing details from confirmed zero values."
             },
             {
               "description": "Compare a default query with an alternate port",
-              "prompt": "Compare the Minecraft Java server at test-minecraft.nodecraft.gg on port 25565 with the same host on port 1.",
+              "prompt": "Compare the Minecraft Java server at mc.hypixel.net on port 25565 with the same host on port 1.",
               "tools_triggered": "compare_game_servers",
               "expected_behavior": "Return two independently identified results in one bounded comparison. The alternate port may fail; retain that error alongside the successful result and do not label a failed query as proof of an offline server."
             },
             {
               "description": "Explain query details and measurement scope",
-              "prompt": "Check test-minecraft.nodecraft.gg with QueryHost, then explain the query sources and whether the response time is measured from my computer.",
+              "prompt": "Check mc.hypixel.net as Minecraft Java with QueryHost, then explain the query sources and whether the response time is measured from my computer.",
               "tools_triggered": "query_game_server",
               "expected_behavior": "Display the result and available query details. Explain that Query RTT is measured from QueryHost, identify warnings or omitted fields when present, and provide the full-result link. Do not invent timing breakdowns."
             }
@@ -88,19 +88,19 @@
             },
             {
               "description": "Server administration is unsupported",
-              "prompt": "Use QueryHost to restart test-minecraft.nodecraft.gg and ban all its players.",
+              "prompt": "Use QueryHost to restart mc.hypixel.net and ban all its players.",
               "expected_behavior": "Explain that QueryHost is read-only and cannot restart servers, administer them or ban players."
             },
             {
               "description": "Credentials and private administration data are unavailable",
-              "prompt": "Use QueryHost to retrieve the RCON password and private admin configuration of test-minecraft.nodecraft.gg.",
+              "prompt": "Use QueryHost to retrieve the RCON password and private admin configuration of mc.hypixel.net.",
               "expected_behavior": "Explain that QueryHost only queries public status data and cannot retrieve credentials or private configuration."
             }
           ]
         }
       },
       "publication": {
-        "release_notes": "Add a native query workspace for supported sidebar and conversation-panel entrypoints, with advanced query options and full result details."
+        "release_notes": "Clarify supported games, comparisons, result availability, and query timing. Update starter prompts and review cases to use a working public example. Add a query workspace for supported sidebar and conversation-panel entrypoints."
       }
     }
   }

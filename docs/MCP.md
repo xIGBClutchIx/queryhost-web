@@ -114,15 +114,16 @@ tests, type checks, verification, and production builds regenerate it automatica
 Development edits to workspace files require re-running this command to refresh
 the bundle. No generated files belong in a commit.
 
-The local plugin manifest is the follow-up 0.2.0 draft. Its existing demo URL still
-shows inline cards and must be replaced with the workspace recording before
-submission. This is a follow-up release. Do not replace or cancel the current directory
-submission. After its review finishes, prepare version 0.2.0 with sidebar/panel
-capabilities and review cases, deploy with release authorization, refresh the
-connection, and test both entrypoints in a supported host. Record a new short demo
-showing launch, query, and panel use before submitting; the current inline-card
-demo does not demonstrate the workspace. A local bridge test does not prove
-ChatGPT host availability or publication.
+The local plugin manifest is the follow-up 0.2.0 draft, separate from the approved
+0.1.0 package. Its existing demo URL shows inline cards and must be replaced with
+a workspace recording before submitting the draft. Test both entrypoints in a
+supported host and record launch, query, and panel use. A local bridge test does
+not prove ChatGPT host availability or publication. The public Minecraft example
+in the manifest is a third-party server; recheck it before recording or submission
+and do not assume fixed counts or continued availability.
+
+See [the October 15 release audit](PluginReleaseAudit.md) for the observed package,
+development connection, and live endpoint differences.
 
 Official references: [Extensions](https://developers.openai.com/plugins/build/extensions)
 and [MCP extension SDK](https://github.com/openai/mcp-extensions/blob/main/typescript/README.md).
@@ -175,12 +176,14 @@ identical to the canonical `public/favicon.svg`, which also supplies the site an
 documentation headers. Advance `BRAND_ICON_URL` when replacing the icon to refresh
 browser caches. The public policy pages are `/privacy` and `/terms`.
 
-The package is ready for local-marketplace packaging. No personal
-marketplace, install, registered ChatGPT connection ID, or public submission is
-created by these source changes. A registered ChatGPT mapping can be added after
-developer-mode connection supplies its actual technical ID. Public directory
-distribution requires submission and review. Server cards are an optional MCP
-Apps UI resource served by this endpoint.
+Keep development connections, approved packages, and public releases distinct.
+Development connection edits and tool refreshes do not update directory listing
+metadata. Changes to listing text or assets require a new package version and
+review. Approval makes a package ready to publish; publication is a separate
+action. Hosted tool changes pass through MCP scanning, which can retain older
+tool schemas while updates await checks. Compare the client-visible query schema
+with `list_supported_games`, as the latter returns the live registry. Server cards
+are an optional MCP Apps UI resource served by this endpoint.
 
 Official references: [Connect and test](https://developers.openai.com/plugins/deploy/connect-chatgpt),
 [Plugin packaging](https://developers.openai.com/plugins/build/plugins), and
