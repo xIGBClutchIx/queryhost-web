@@ -24,7 +24,8 @@
         "supportURL": "https://github.com/xIGBClutchIx/queryhost-web/issues",
         "defaultPrompt": [
           "Check the Minecraft Java server at mc.hypixel.net and show its player count, version, and query response time.",
-          "Which games and server protocols does QueryHost support?"
+          "Which games and server protocols does QueryHost support?",
+          "Compare mc.hypixel.net and play.cubecraft.net as Minecraft Java servers, including player counts and query response times."
         ],
         "logo": "./assets/logo.svg",
         "composerIcon": "./assets/logo.svg",
@@ -57,7 +58,7 @@
             },
             {
               "description": "Query a public Minecraft Java server",
-              "prompt": "Check the Minecraft Java server at mc.hypixel.net and show its server card.",
+              "prompt": "Check the Minecraft Java server at mc.hypixel.net and show its player count, version, and query response time.",
               "tools_triggered": "query_game_server",
               "expected_behavior": "Query the public target and display a server card in a compatible host, with text and structured results as a fallback. On success, report available player counts, version and QueryHost-measured RTT. Preserve confirmed zero values. This is a third-party public example, not a QueryHost-controlled fixture; counts and availability vary. On failure, show the bounded query error without claiming that this proves the server is offline."
             },
@@ -68,10 +69,10 @@
               "expected_behavior": "Accept the explicit valid port, return the current bounded result and link to QueryHost, and distinguish missing details from confirmed zero values."
             },
             {
-              "description": "Compare a default query with an alternate port",
-              "prompt": "Compare the Minecraft Java server at mc.hypixel.net on port 25565 with the same host on port 1.",
+              "description": "Compare two public Minecraft Java servers",
+              "prompt": "Compare mc.hypixel.net and play.cubecraft.net as Minecraft Java servers, including player counts and query response times.",
               "tools_triggered": "compare_game_servers",
-              "expected_behavior": "Return two independently identified results in one bounded comparison. The alternate port may fail; retain that error alongside the successful result and do not label a failed query as proof of an offline server."
+              "expected_behavior": "Return two independently identified results in input order in one bounded comparison. Report available player counts, capacities, versions, and QueryHost-measured RTT without inventing missing fields or treating RTT as the user's ping. These are third-party public examples; counts and availability vary. Preserve any individual error alongside other results rather than claiming a failed query proves the server is offline."
             },
             {
               "description": "Explain query details and measurement scope",

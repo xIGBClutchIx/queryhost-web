@@ -118,9 +118,11 @@ The local plugin manifest is the follow-up 0.2.0 draft, separate from the approv
 0.1.0 package. Its existing demo URL shows inline cards and must be replaced with
 a workspace recording before submitting the draft. Test both entrypoints in a
 supported host and record launch, query, and panel use. A local bridge test does
-not prove ChatGPT host availability or publication. The public Minecraft example
-in the manifest is a third-party server; recheck it before recording or submission
-and do not assume fixed counts or continued availability.
+not prove ChatGPT host availability or publication. The public Minecraft examples
+in the manifest, `mc.hypixel.net` and `play.cubecraft.net`, are third-party servers;
+both succeeded through the live MCP comparison tool on October 15, 2026. Recheck
+them before recording or submission and do not assume fixed counts or continued
+availability.
 
 See [the October 15 release audit](PluginReleaseAudit.md) for the observed package,
 development connection, and live endpoint differences.
@@ -164,9 +166,9 @@ behind trusted Railway ingress that provides caller headers.
    Plugins, and add `https://query.host/mcp` with no authentication. Availability
    depends on account and workspace policy.
 5. Install/select the connection and try “Use QueryHost to list supported games,”
-   “Query my Minecraft Java server at play.example.com,” and “Compare these two
-   Minecraft servers: play.example.com and other.example.com.” Use real servers
-   for live tests. Refresh the connection after tool metadata changes.
+   “Check mc.hypixel.net as Minecraft Java and show its player count, version, and
+   query response time,” and “Compare mc.hypixel.net and play.cubecraft.net as
+   Minecraft Java servers.” Refresh the connection after tool metadata changes.
 
 The portable plugin package is in `plugins/queryhost/`: `plugin.json` gives it a
 stable identity and `mcp.json` points at the Railway-hosted public endpoint.
