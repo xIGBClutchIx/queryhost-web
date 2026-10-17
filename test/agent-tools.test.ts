@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { parseAgentResponse } from "../src/server/agent-response.js";
 import {
   agentQueryResult,
   queryHostAgentTools,
@@ -31,6 +32,19 @@ const INPUT: PlaygroundQueryInput = {
 };
 
 describe("shared agent tools", () => {
+  it("accepts NetherNet sources in model-facing query responses", () => {
+    const response = {
+      ...SUCCESS,
+      game: "minecraft-bedrock",
+      sources: [
+        { source: "minecraft-bedrock-nethernet", status: "ok", rttMs: 59 },
+      ],
+      data: { transport: "nethernet", protocolVersion: 2193, gameType: 0 },
+    };
+    expect(
+      parseAgentResponse(JSON.stringify(response), "minecraft-bedrock"),
+    ).toEqual(response);
+  });
   it("preserves confirmed zero, empty and false values and provides an encoded share link", () => {
     const output = agentQueryResult(INPUT, SUCCESS);
     expect(output.result).toEqual(SUCCESS);

@@ -74,11 +74,13 @@ describe("compact query path", () => {
         { source: "a2s-player", status: "not-requested" },
         { source: "fivem-info", status: "ok", rttMs: 12.34 },
         { source: "minecraft-bedrock-raknet", status: "blocked" },
+        { source: "minecraft-bedrock-nethernet", status: "ok", rttMs: 59 },
       ]).map(({ detail, label }) => ({ detail, label })),
     ).toEqual([
       { detail: "Skipped", label: "Players" },
       { detail: "12.3 ms", label: "Server info" },
       { detail: "Blocked", label: "Bedrock ping" },
+      { detail: "59 ms", label: "NetherNet status" },
     ]);
   });
 

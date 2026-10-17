@@ -83,6 +83,11 @@ function implementedRoutes(): readonly string[] {
 }
 
 describe("OpenAPI document", () => {
+  it("documents NetherNet query provenance", () => {
+    expect(openEnumValues(schema("QuerySourceName"))).toContain(
+      "minecraft-bedrock-nethernet",
+    );
+  });
   it("documents exactly the implemented /api/v1 routes", () => {
     expect([...keys(at(document, "paths"))].sort()).toEqual(
       implementedRoutes(),

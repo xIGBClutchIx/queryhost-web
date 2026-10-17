@@ -14,6 +14,7 @@ const sourceName = z.enum([
   "minecraft-legacy-ping",
   "minecraft-query",
   "minecraft-bedrock-raknet",
+  "minecraft-bedrock-nethernet",
   "fivem-info",
   "fivem-dynamic",
   "fivem-players",

@@ -82,6 +82,7 @@ const QUERY_SOURCE_NAMES: Readonly<Record<QuerySourceName, true>> = {
   "minecraft-legacy-ping": true,
   "minecraft-query": true,
   "minecraft-bedrock-raknet": true,
+  "minecraft-bedrock-nethernet": true,
   "fivem-info": true,
   "fivem-dynamic": true,
   "fivem-players": true,

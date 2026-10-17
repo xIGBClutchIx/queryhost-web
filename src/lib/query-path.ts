@@ -22,6 +22,7 @@ const SOURCE_LABELS = {
   "satisfactory-health": "Health",
   "vintage-story-query": "Server query",
   "minecraft-bedrock-raknet": "Bedrock ping",
+  "minecraft-bedrock-nethernet": "NetherNet status",
   "minecraft-query": "Query",
   "minecraft-slp": "Status",
   "minecraft-legacy-ping": "Legacy ping",
