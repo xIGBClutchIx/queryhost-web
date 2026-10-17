@@ -19,6 +19,8 @@ The Railway workspace uses a $5 compute email alert and a $10 compute hard limit
 
 ## Usage counters
 
+Cloudflare's proxied DNS record supplies HTTP traffic analytics while Railway continues to host the application. Caller rate limits accept `CF-Connecting-IP` only when Railway's `X-Real-IP` identifies a Cloudflare proxy address from the published ranges in `src/server/client-address.ts`; direct origin requests cannot select their identity with that header. MCP preserves these headers when forwarding a tool query internally. Keep those ranges current with Cloudflare's published IPv4 and IPv6 lists.
+
 `GET /api/stats` reports aggregate counters since the web process started: for the playground (including MCP tool queries) and the public API separately, requests rejected as invalid, rate limited by gate bound (`active`, `window`, `caller`, `callers`), forwarded by upstream status and cache outcome, and unavailable; full versus `304` responses from `/api/v1/games`; and, under `api`, the private API's own `GET /stats` (`null` if it cannot be read). Every key comes from a closed set, so the report never contains targets, callers, or results, and it resets on restart.
 
 The route answers `404` unless `QUERYHOST_WEB_STATS_TOKEN` (32 to 256 characters, server-only) is set, and then requires `Authorization: Bearer <token>`:

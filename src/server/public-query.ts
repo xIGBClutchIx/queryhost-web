@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { callerAddress } from "./client-address.js";
 
 import {
   canonicalGameId,
@@ -441,11 +442,7 @@ export function parseQueryFields(body: JsonObject): PlaygroundQueryInput {
 }
 
 export function callerFingerprint(request: Request): string {
-  const forwarded = request.headers.get("x-forwarded-for");
-  const address =
-    request.headers.get("x-real-ip")?.trim() ||
-    forwarded?.split(",", 1)[0]?.trim() ||
-    "anonymous";
+  const address = callerAddress(request);
   return createHash("sha256").update(address.slice(0, 128)).digest("hex");
 }
 

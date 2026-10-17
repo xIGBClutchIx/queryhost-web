@@ -223,7 +223,11 @@ export async function handleMcpRequest(
       queryGameServer: async (input, executionSignal) => {
         const headers = new Headers();
         headers.set("Content-Type", "application/json");
-        for (const name of ["x-real-ip", "x-forwarded-for"]) {
+        for (const name of [
+          "x-real-ip",
+          "x-forwarded-for",
+          "cf-connecting-ip",
+        ]) {
           const value = request.headers.get(name);
           if (value !== null) headers.set(name, value);
         }

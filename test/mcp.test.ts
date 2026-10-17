@@ -243,6 +243,36 @@ describe("remote MCP", () => {
     }
   });
 
+  it("preserves separate visitor limits when MCP forwards requests from one Cloudflare edge", async () => {
+    const { calls, dependencies } = setup();
+    const invoke = (visitor: string) =>
+      handleMcpRequest(
+        rpc(
+          "tools/call",
+          {
+            name: "query_game_server",
+            arguments: { game: "minecraft-java", host: "play.example.com" },
+          },
+          { "x-real-ip": "104.16.0.1", "cf-connecting-ip": visitor },
+        ),
+        dependencies,
+      );
+    for (let index = 0; index < 8; index += 1) {
+      expect(await (await invoke("203.0.113.20")).json()).toMatchObject({
+        result: { structuredContent: { result: { ok: true } } },
+      });
+    }
+    expect(await (await invoke("203.0.113.20")).json()).toMatchObject({
+      result: {
+        structuredContent: { result: { error: { code: "RATE_LIMITED" } } },
+      },
+    });
+    expect(await (await invoke("203.0.113.21")).json()).toMatchObject({
+      result: { structuredContent: { result: { ok: true } } },
+    });
+    expect(calls).toHaveLength(9);
+  });
+
   it("rejects invalid tool inputs before network work and returns stable errors", async () => {
     const { calls, dependencies } = setup();
     const response = await handleMcpRequest(
