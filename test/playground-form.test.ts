@@ -365,15 +365,17 @@ describe("auto detection form", () => {
 
 describe("playground result helpers", () => {
   it("labels cache provenance", () => {
-    expect(cacheLabel({ ageMs: 1234.56, status: "hit", ttlMs: 1 })).toBe(
-      "Cache hit · 1234.6 ms old",
+    expect(cacheLabel({ ageMs: 3182, status: "hit", ttlMs: 1 })).toBe(
+      "Cached 3 s ago",
+    );
+    // A hit younger than half a second still reads as a cached result.
+    expect(cacheLabel({ ageMs: 120, status: "hit", ttlMs: 1 })).toBe(
+      "Cached 1 s ago",
     );
     expect(cacheLabel({ ageMs: 0, status: "coalesced", ttlMs: 1 })).toBe(
-      "Shared in-flight query",
+      "Shared query",
     );
-    expect(cacheLabel({ ageMs: 0, status: "miss", ttlMs: 1 })).toBe(
-      "Live query",
-    );
+    expect(cacheLabel({ ageMs: 0, status: "miss", ttlMs: 1 })).toBe("Live");
   });
 
   it("keeps only safe Minecraft favicons and optional MOTD forms", () => {

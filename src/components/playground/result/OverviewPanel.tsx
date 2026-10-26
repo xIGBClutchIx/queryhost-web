@@ -1,10 +1,7 @@
 import type { CSSProperties } from "preact";
 import type { ReactNode } from "react";
 
-import type {
-  PlaygroundGameDefinition,
-  PlaygroundQueryResponse,
-} from "../../../lib/playground-contracts.js";
+import type { PlaygroundQueryResponse } from "../../../lib/playground-contracts.js";
 import {
   milliseconds,
   minecraftSummary,
@@ -25,18 +22,9 @@ interface OverviewRow {
   readonly value: string;
 }
 
-function overviewRows(
-  result: PlaygroundQueryResponse,
-  games: readonly PlaygroundGameDefinition[],
-): readonly OverviewRow[] {
-  const rows: OverviewRow[] = [
-    {
-      label: "Game",
-      value:
-        games.find((candidate) => candidate.id === result.game)?.name ??
-        result.game,
-    },
-  ];
+/** Headline facts, players first; the game itself is named in the result header. */
+function overviewRows(result: PlaygroundQueryResponse): readonly OverviewRow[] {
+  const rows: OverviewRow[] = [];
   if (!result.ok) {
     rows.push({ label: "Error", value: result.error.code });
     if (result.error.source !== undefined) {
@@ -46,6 +34,14 @@ function overviewRows(
   }
 
   const { server } = result;
+  if (server.players !== undefined) {
+    const fill = playerFillRatio(server.players);
+    rows.push({
+      label: "Players",
+      value: formatPlayerCount(server.players),
+      ...(fill === undefined ? {} : { fill }),
+    });
+  }
   if (server.map !== undefined) {
     rows.push({
       label: "Map",
@@ -56,14 +52,6 @@ function overviewRows(
     rows.push({
       label: "Version",
       value: displayServerText(result.game, server.version),
-    });
-  }
-  if (server.players !== undefined) {
-    const fill = playerFillRatio(server.players);
-    rows.push({
-      label: "Players",
-      value: formatPlayerCount(server.players),
-      ...(fill === undefined ? {} : { fill }),
     });
   }
   if (server.password !== undefined) {
@@ -122,11 +110,14 @@ function MinecraftSummaryView({
     ? minecraftSummary(result.game, result.data)
     : undefined;
   const edition = minecraftEdition(result.game);
-  if (summary === undefined || edition === undefined) {
+  // The server icon belongs to the result header; this block is the MOTD alone.
+  if (
+    summary === undefined ||
+    edition === undefined ||
+    (summary.motdHtml === undefined && summary.motdPlain === undefined)
+  ) {
     return <div className="query-game-summary" hidden />;
   }
-  const hasMotd =
-    summary.motdHtml !== undefined || summary.motdPlain !== undefined;
   // The HTML MOTD is rebuilt from its allow-listed vocabulary with readable colors;
   // anything unexpected falls back to the plain MOTD.
   const motdSegments =
@@ -135,47 +126,34 @@ function MinecraftSummaryView({
       : motdHtmlSegments(document, summary.motdHtml);
   return (
     <div className="query-game-summary">
-      {summary.favicon !== undefined && (
-        <img
-          src={summary.favicon}
-          alt="Minecraft server favicon"
-          width={64}
-          height={64}
-          decoding="async"
-        />
-      )}
-      {hasMotd && (
-        <div>
-          <span>Message of the day</span>
-          <p>
-            {motdSegments === undefined ? (
-              <MinecraftText edition={edition} text={summary.motdPlain ?? ""} />
-            ) : (
-              <MinecraftSegments segments={motdSegments} />
-            )}
-          </p>
-        </div>
-      )}
+      <div>
+        <span>Message of the day</span>
+        <p>
+          {motdSegments === undefined ? (
+            <MinecraftText edition={edition} text={summary.motdPlain ?? ""} />
+          ) : (
+            <MinecraftSegments segments={motdSegments} />
+          )}
+        </p>
+      </div>
     </div>
   );
 }
 
 interface OverviewPanelProps {
-  readonly games: readonly PlaygroundGameDefinition[];
   readonly result: PlaygroundQueryResponse;
 }
 
-/** Query path, Minecraft summary, headline server facts, and warnings. */
-export function OverviewPanel({
-  games,
-  result,
-}: OverviewPanelProps): ReactNode {
+/**
+ * Top to bottom: what the server says (its MOTD), its headline facts and any
+ * warnings, then how QueryHost reached it.
+ */
+export function OverviewPanel({ result }: OverviewPanelProps): ReactNode {
   return (
     <>
-      <QueryPath result={result} />
       <MinecraftSummaryView result={result} />
       <dl className="query-overview">
-        {overviewRows(result, games).map((row) => (
+        {overviewRows(result).map((row) => (
           <div key={row.label}>
             <dt>{row.label}</dt>
             <dd>{row.value}</dd>
@@ -200,6 +178,7 @@ export function OverviewPanel({
           ))}
         </ul>
       </div>
+      <QueryPath result={result} />
     </>
   );
 }

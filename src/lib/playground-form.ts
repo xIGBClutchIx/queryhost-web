@@ -377,12 +377,13 @@ export function scalarText(value: JsonValue): string | undefined {
   return undefined;
 }
 
+/** How fresh a result is, in the words of the result header's freshness chip. */
 export function cacheLabel(cache: HostedCacheMetadata): string {
   return cache.status === "hit"
-    ? `Cache hit · ${milliseconds(cache.ageMs)} old`
+    ? `Cached ${String(Math.max(1, Math.round(cache.ageMs / 1_000)))} s ago`
     : cache.status === "coalesced"
-      ? "Shared in-flight query"
-      : "Live query";
+      ? "Shared query"
+      : "Live";
 }
 
 function isJsonObject(value: JsonValue | undefined): value is JsonObject {

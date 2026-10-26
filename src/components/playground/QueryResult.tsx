@@ -1,4 +1,4 @@
-import { memo, useMemo, useState } from "react";
+import { memo, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 
 import {
@@ -16,9 +16,11 @@ import { displayServerText } from "../../lib/server-text.js";
 import {
   cacheLabel,
   milliseconds,
+  minecraftSummary,
   shareUrl,
 } from "../../lib/playground-form.js";
 import { TabPanel, Tabs } from "../Tabs.js";
+import { useStuck } from "./use-stuck.js";
 import { DataPanel } from "./result/DataPanel.js";
 import { JsonPanel } from "./result/JsonPanel.js";
 import { OverviewPanel } from "./result/OverviewPanel.js";
@@ -97,61 +99,95 @@ export const QueryResult = memo(function QueryResult({
     return share;
   }, [games, input]);
 
+  const identityRef = useRef<HTMLElement>(null);
+  const barRef = useRef<HTMLDivElement>(null);
+  const pinned = useStuck(identityRef, barRef);
+
+  const state = result.ok ? (result.partial ? "partial" : "online") : "offline";
   const status = result.ok
     ? result.partial
       ? "Online · partial"
       : "Online"
-    : "Offline or unreachable";
+    : "Unreachable";
   const rawName = result.ok ? result.server.name : undefined;
   // Show names without game formatting codes; the JSON view keeps the raw value.
   const reportedName =
     rawName === undefined ? undefined : displayServerText(result.game, rawName);
-  // Servers that report no name, such as every Minecraft status ping, are titled
-  // by the address that was queried.
-  const name = result.ok
-    ? reportedName !== undefined && reportedName.trim() !== ""
-      ? reportedName
-      : input === undefined
-        ? "Unnamed server"
-        : targetLabel(input, game)
-    : result.error.message;
-  const dot = result.ok
-    ? result.partial
-      ? "is-partial"
-      : "is-online"
-    : "is-offline";
+  const named =
+    result.ok && reportedName !== undefined && reportedName.trim() !== "";
+  const address = input === undefined ? undefined : targetLabel(input, game);
+  // A reported name is the title; otherwise, as for every Minecraft status ping
+  // and every failure, the queried address is.
+  const name = named
+    ? reportedName
+    : (address ?? (result.ok ? "Unnamed server" : "Unreachable server"));
+  const icon = result.ok
+    ? minecraftSummary(result.game, result.data)?.favicon
+    : undefined;
+  const refresh =
+    input === undefined || onRefresh === undefined
+      ? undefined
+      : () => {
+          onRefresh(input);
+        };
 
   return (
     <div className="query-result" id="query-result">
-      <header className="query-result__toolbar">
-        <div className="query-result__state">
-          <span id="query-result-dot" className={dot} aria-hidden="true" />
-          <div>
-            <p id="query-result-status">
+      <header
+        className={`query-result__identity is-${state}`}
+        ref={identityRef}
+      >
+        {icon !== undefined && (
+          <img
+            className="query-result__icon"
+            src={icon}
+            alt=""
+            width={64}
+            height={64}
+            decoding="async"
+          />
+        )}
+        <div className="query-result__who">
+          <p className="query-result__line">
+            <span className="query-result__status" id="query-result-status">
               {status}
-              {detected && (
-                <span
-                  className="query-result__detected"
-                  id="query-result-detected"
-                >
-                  Detected: {game?.name ?? result.game}
-                </span>
-              )}
-            </p>
-            <h2 id="query-result-name">{name}</h2>
-          </div>
-          <div className="query-result__actions">
-            {links !== undefined && <ShareMenu links={links} />}
-            {input !== undefined && onRefresh !== undefined && (
-              <RefreshButton
-                onClick={() => {
-                  onRefresh(input);
-                }}
-              />
+            </span>
+            {detected && (
+              <span
+                className="query-result__detected"
+                id="query-result-detected"
+              >
+                Detected
+              </span>
             )}
-          </div>
+            <span className="query-result__game">
+              {game?.name ?? result.game}
+            </span>
+          </p>
+          <h2 id="query-result-name">{name}</h2>
+          {/* Only what the panels below do not show: the address behind a
+              reported name, or why the query failed. */}
+          <p className="query-result__subtitle" id="query-result-subtitle">
+            {result.ok ? (named ? address : undefined) : result.error.message}
+          </p>
         </div>
+        <div className="query-result__actions">
+          <FreshnessChip onRefresh={refresh} result={result} />
+          {links !== undefined && <ShareMenu links={links} />}
+        </div>
+      </header>
 
+      <div
+        className={pinned ? "query-result__bar is-pinned" : "query-result__bar"}
+        ref={barRef}
+      >
+        {/* Once the header scrolls away, the pinned bar repeats its essentials. */}
+        {pinned && (
+          <p className="query-result__pinned-name" aria-hidden="true">
+            {icon !== undefined && <img src={icon} alt="" />}
+            <span>{name}</span>
+          </p>
+        )}
         <Tabs
           className="query-tabs"
           label="Query result views"
@@ -160,14 +196,15 @@ export const QueryResult = memo(function QueryResult({
           active={activeTab}
           onChange={setActiveTab}
         />
-
-        <div className="query-result__timing">
-          <span id="query-result-cache">{cacheLabel(result.cache)}</span>
-          <strong id="query-result-duration">
-            {milliseconds(result.durationMs)}
-          </strong>
-        </div>
-      </header>
+        {pinned && (
+          <div className="query-result__actions">
+            <FreshnessChip compact onRefresh={refresh} result={result} />
+            {links !== undefined && (
+              <ShareMenu idSuffix="-pinned" links={links} />
+            )}
+          </div>
+        )}
+      </div>
 
       <TabPanel
         className="query-panel"
@@ -175,7 +212,7 @@ export const QueryResult = memo(function QueryResult({
         id="overview"
         active={activeTab}
       >
-        <OverviewPanel games={games} result={result} />
+        <OverviewPanel result={result} />
       </TabPanel>
       <TabPanel
         className="query-panel"
@@ -205,25 +242,51 @@ export const QueryResult = memo(function QueryResult({
   );
 });
 
-/** A quiet icon beside the share link that runs the same query again. */
-function RefreshButton({
-  onClick,
+/**
+ * How fresh the result is and how long it took. With `onRefresh`, the chip is
+ * also the control that queries the server again.
+ */
+function FreshnessChip({
+  compact = false,
+  onRefresh,
+  result,
 }: {
-  readonly onClick: () => void;
+  /** Shows only the duration, for the pinned bar. */
+  readonly compact?: boolean;
+  readonly onRefresh: (() => void) | undefined;
+  readonly result: PlaygroundQueryResponse;
 }): ReactNode {
+  const freshness = cacheLabel(result.cache);
+  const duration = milliseconds(result.durationMs);
+  const content = (
+    <>
+      {onRefresh !== undefined && (
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3" />
+          <path d="M19.5 4.5v4h-4" />
+        </svg>
+      )}
+      {!compact && <span>{freshness} · </span>}
+      <strong>{duration}</strong>
+    </>
+  );
+  if (onRefresh === undefined) {
+    return (
+      <span className="query-freshness" title={freshness}>
+        {content}
+      </span>
+    );
+  }
   return (
     <button
       type="button"
-      className="query-result__share"
-      id="query-result-refresh"
-      aria-label="Query this server again"
-      title="Query this server again"
-      onClick={onClick}
+      className="query-freshness"
+      id={compact ? "query-result-refresh-pinned" : "query-result-refresh"}
+      aria-label={`Query again. ${freshness}, ${duration}.`}
+      title="Query again"
+      onClick={onRefresh}
     >
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3" />
-        <path d="M19.5 4.5v4h-4" />
-      </svg>
+      {content}
     </button>
   );
 }
