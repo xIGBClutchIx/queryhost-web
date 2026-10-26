@@ -9,13 +9,15 @@ import {
   milliseconds,
   minecraftSummary,
 } from "../../../lib/playground-form.js";
+import { motdHtmlSegments } from "../../../lib/minecraft-presentation.js";
 import { minecraftEdition } from "../../../lib/minecraft-text.js";
 import {
   formatPlayerCount,
   playerFillRatio,
 } from "../../../lib/player-count.js";
 import { queryPathItems } from "../../../lib/query-path.js";
-import { MinecraftText } from "./MinecraftText.js";
+import { displayServerText } from "../../../lib/server-text.js";
+import { MinecraftSegments, MinecraftText } from "./MinecraftText.js";
 
 interface OverviewRow {
   readonly fill?: number;
@@ -44,9 +46,17 @@ function overviewRows(
   }
 
   const { server } = result;
-  if (server.map !== undefined) rows.push({ label: "Map", value: server.map });
+  if (server.map !== undefined) {
+    rows.push({
+      label: "Map",
+      value: displayServerText(result.game, server.map),
+    });
+  }
   if (server.version !== undefined) {
-    rows.push({ label: "Version", value: server.version });
+    rows.push({
+      label: "Version",
+      value: displayServerText(result.game, server.version),
+    });
   }
   if (server.players !== undefined) {
     const fill = playerFillRatio(server.players);
@@ -117,6 +127,12 @@ function MinecraftSummaryView({
   }
   const hasMotd =
     summary.motdHtml !== undefined || summary.motdPlain !== undefined;
+  // The HTML MOTD is rebuilt from its allow-listed vocabulary with readable colors;
+  // anything unexpected falls back to the plain MOTD.
+  const motdSegments =
+    summary.motdHtml === undefined || typeof document === "undefined"
+      ? undefined
+      : motdHtmlSegments(document, summary.motdHtml);
   return (
     <div className="query-game-summary">
       {summary.favicon !== undefined && (
@@ -131,16 +147,13 @@ function MinecraftSummaryView({
       {hasMotd && (
         <div>
           <span>Message of the day</span>
-          {summary.motdHtml === undefined ? (
-            <p>
+          <p>
+            {motdSegments === undefined ? (
               <MinecraftText edition={edition} text={summary.motdPlain ?? ""} />
-            </p>
-          ) : (
-            <p
-              // QueryHost emits only escaped text and allow-listed formatting here.
-              dangerouslySetInnerHTML={{ __html: summary.motdHtml }}
-            />
-          )}
+            ) : (
+              <MinecraftSegments segments={motdSegments} />
+            )}
+          </p>
         </div>
       )}
     </div>

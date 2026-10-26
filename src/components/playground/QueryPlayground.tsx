@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import type { TargetedSubmitEvent } from "preact";
 import type { ReactNode } from "react";
 
@@ -17,17 +24,28 @@ import {
   isCompleteSharedQuery,
 } from "../../lib/playground-form.js";
 import type { PlaygroundFormState } from "../../lib/playground-form.js";
+import { formatPlayerCount } from "../../lib/player-count.js";
 import {
   sourceProgressItems,
   type SourceProgressEntry,
 } from "../../lib/query-path.js";
+import {
+  notifyRecentChecks,
+  parseRecentChecks,
+  recentChecksSnapshot,
+  saveRecentChecks,
+  subscribeRecentChecks,
+  withRecentCheck,
+} from "../../lib/recent-checks.js";
 import { HOME_HEADLINE, HOME_SUMMARY } from "../../lib/site.js";
 import { PlaygroundExamples } from "./PlaygroundExamples.js";
 import { QueryForm } from "./QueryForm.js";
 import { QueryResult } from "./QueryResult.js";
+import { RecentChecks } from "./RecentChecks.js";
 import { useDockHeight } from "./use-dock-height.js";
 import { useFocusShortcut } from "./use-focus-shortcut.js";
 import { usePlaygroundSession } from "./use-playground-session.js";
+import type { OutputState } from "./use-playground-session.js";
 import { useRevealOutput } from "./use-reveal-output.js";
 import { useViewportFit } from "./use-viewport-fit.js";
 import "../../styles/playground.css";
@@ -60,12 +78,57 @@ export function QueryPlayground({
     setFormError(undefined);
     setForm(formStateFromQueryInput(input));
   }, []);
-  const { output, runDetect, runQuery } = usePlaygroundSession(
+  const { cancel, output, runDetect, runQuery } = usePlaygroundSession(
     games,
     onAgentQuery,
   );
   const outputRef = useRevealOutput(output);
   useViewportFit(playgroundRef, output.kind);
+  // Result pages lead with the result, so the form sits higher than on the home page.
+  const [resultPage] = useState(() => isCompleteSharedQuery(search, games));
+  const onRefresh = useCallback(
+    (input: PlaygroundQueryInput) => {
+      runQuery(input).catch(() => undefined);
+    },
+    [runQuery],
+  );
+
+  // The list lives in this browser's storage. The server renders none, so the
+  // hydrating render must too; the list appears once the island has mounted.
+  const mounted = useRef(false);
+  const readRecentChecks = useCallback(
+    () => (mounted.current ? recentChecksSnapshot() : null),
+    [],
+  );
+  const recentText = useSyncExternalStore(
+    subscribeRecentChecks,
+    readRecentChecks,
+  );
+  useEffect(() => {
+    mounted.current = true;
+    notifyRecentChecks();
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+  const recentChecks = useMemo(
+    () => parseRecentChecks(recentText, games),
+    [games, recentText],
+  );
+  // Only servers that answered are remembered, which keeps typos out.
+  useEffect(() => {
+    if (output.kind !== "result" || !output.result.ok) return;
+    saveRecentChecks(
+      withRecentCheck(
+        parseRecentChecks(recentChecksSnapshot(), games),
+        output.input,
+      ),
+    );
+  }, [games, output]);
+  const clearRecentChecks = useCallback(() => {
+    saveRecentChecks([]);
+    hostRef.current?.focus();
+  }, []);
 
   function submit(next: PlaygroundFormState): void {
     setFormError(undefined);
@@ -102,6 +165,8 @@ export function QueryPlayground({
 
   function onSubmit(event: TargetedSubmitEvent<HTMLFormElement>): void {
     event.preventDefault();
+    // The submit button stays focusable while a query runs, so it ignores presses.
+    if (output.kind === "loading") return;
     setFormError(undefined);
     if (formRef.current?.reportValidity() === false) return;
     submit(form);
@@ -139,6 +204,7 @@ export function QueryPlayground({
     <section
       className="playground"
       aria-labelledby="query-heading"
+      data-result-page={resultPage ? "" : undefined}
       ref={playgroundRef}
     >
       <div className="playground__heading">
@@ -160,21 +226,48 @@ export function QueryPlayground({
       </div>
 
       {output.kind === "idle" && (
-        <PlaygroundExamples
-          examples={PLAYGROUND_EXAMPLES}
-          games={games}
-          onSelect={onExample}
-        />
+        <>
+          <PlaygroundExamples
+            examples={PLAYGROUND_EXAMPLES}
+            games={games}
+            onSelect={onExample}
+          />
+          <RecentChecks
+            checks={recentChecks}
+            games={games}
+            onClear={clearRecentChecks}
+            onSelect={onExample}
+          />
+          <p className="playground-coverage" id="playground-coverage">
+            {games.filter((game) => game.id !== "a2s").length} games plus any
+            Steam A2S server. <a href="/docs/games/">Browse supported games</a>
+          </p>
+        </>
       )}
+
+      <p className="sr-only" role="status" id="query-announcement">
+        {outputAnnouncement(output)}
+      </p>
 
       <section
         className="query-output"
         id="query-output"
         ref={outputRef}
-        aria-live="polite"
+        aria-label="Query result"
         aria-busy={loading}
       >
         <div className="query-loading" hidden={!loading}>
+          <button
+            type="button"
+            className="query-loading__cancel"
+            id="query-cancel"
+            onClick={() => {
+              cancel();
+              hostRef.current?.focus();
+            }}
+          >
+            Cancel
+          </button>
           <div className="query-loading__line query-loading__line--short" />
           <div className="query-loading__grid">
             <span />
@@ -199,14 +292,41 @@ export function QueryPlayground({
         {output.kind === "result" && (
           <QueryResult
             key={output.id}
+            detected={output.detected}
             games={games}
             input={output.input}
+            onRefresh={onRefresh}
             result={output.result}
           />
         )}
       </section>
     </section>
   );
+}
+
+/**
+ * One short line for screen readers per outcome, so assistive technology hears the
+ * result without reading every row, tab, and warning of the output region.
+ */
+function outputAnnouncement(output: OutputState): string {
+  switch (output.kind) {
+    case "idle":
+    case "loading":
+      return "";
+    case "error":
+      return `${output.heading ?? "The query could not be sent."} ${output.message}`;
+    case "result": {
+      const { result } = output;
+      if (!result.ok) {
+        return `Offline or unreachable. ${result.error.message}`;
+      }
+      const status = result.partial ? "Online with partial data." : "Online.";
+      const players = result.server.players;
+      return players === undefined
+        ? status
+        : `${status} ${formatPlayerCount(players)} players.`;
+    }
+  }
 }
 
 /** A quiet line naming each source as the running query reports it. */

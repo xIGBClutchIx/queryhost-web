@@ -35,7 +35,11 @@ function preventRedundantNavigation(event: MouseEvent): void {
 }
 
 function closeMobileDocumentationMenu(event: KeyboardEvent): void {
-  if (event.key !== "Escape") return;
+  if (event.key !== "Escape" || event.defaultPrevented) return;
+  // Escape inside a dialog, such as docs search, closes only that dialog.
+  if (event.target instanceof Element && event.target.closest("dialog")) {
+    return;
+  }
   const menu = document.querySelector<HTMLDetailsElement>(
     ".docs-mobile-nav details[open]",
   );

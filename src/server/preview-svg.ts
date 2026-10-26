@@ -47,8 +47,14 @@ function escapeXml(text: string): string {
 }
 
 /** Drops control characters, which are invalid in XML or render as boxes. */
+/** Bidirectional embedding, override, isolate, and mark controls. */
+const BIDI_CONTROLS = /[؜‎‏‪-‮⁦-⁩]/gu;
+
 function printable(text: string): string {
-  return text.replaceAll(/[\p{Cc}\p{Cs}￾￿]/gu, " ").trim();
+  return text
+    .replaceAll(BIDI_CONTROLS, "")
+    .replaceAll(/[\p{Cc}\p{Cs}￾￿]/gu, " ")
+    .trim();
 }
 
 const GRAPHEMES = new Intl.Segmenter("en", { granularity: "grapheme" });

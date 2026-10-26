@@ -111,12 +111,13 @@ export function selectGame(
   previous: PlaygroundGameDefinition | undefined,
   next: PlaygroundGameDefinition | "auto",
 ): PlaygroundFormState {
-  // Auto has no default port, so any port typed while it was selected was the person's own.
+  // Auto and generic A2S have no default port, so any port typed while either was
+  // selected was the person's own.
   const keepPort =
     state.port.length > 0 &&
     (state.game === "auto" ||
-      (previous?.defaultPort !== undefined &&
-        Number(state.port) !== previous.defaultPort));
+      previous?.defaultPort === undefined ||
+      Number(state.port) !== previous.defaultPort);
   if (next === "auto") {
     return {
       ...state,
@@ -125,10 +126,15 @@ export function selectGame(
       queryPort: "",
     };
   }
+  // A mode the person chose stays chosen; an untouched default follows the new game.
+  const keepMode =
+    state.game !== "auto" &&
+    previous !== undefined &&
+    state.mode !== defaultQueryMode(previous.id);
   return {
     ...state,
     game: next.id,
-    mode: defaultQueryMode(next.id),
+    mode: keepMode ? state.mode : defaultQueryMode(next.id),
     port: keepPort ? state.port : portText(next.defaultPort),
     queryPort: next.id === "a2s" ? "" : state.queryPort,
   };
@@ -200,10 +206,12 @@ export function formStateFromQueryInput(
 ): PlaygroundFormState {
   const mode =
     input.mode === "full" || input.mode === "summary" ? input.mode : "summary";
+  // Advanced opens when it holds a choice that differs from the defaults, as it
+  // does for a shared link.
   return {
     advancedOpen:
       input.queryPort !== undefined ||
-      input.mode === "full" ||
+      mode !== defaultQueryMode(input.game) ||
       input.timeoutMs === 3_000,
     game: input.game,
     host: input.host,

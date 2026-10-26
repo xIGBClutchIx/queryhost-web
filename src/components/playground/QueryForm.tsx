@@ -133,7 +133,8 @@ export function QueryForm({
           className="query-submit"
           id="query-submit"
           type="submit"
-          disabled={loading}
+          // Not `disabled`: a disabled button would drop keyboard focus to the page.
+          aria-disabled={loading}
         >
           {loading ? "Querying…" : "Query"}
         </button>

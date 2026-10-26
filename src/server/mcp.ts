@@ -17,6 +17,7 @@ import type {
   PlaygroundGameDefinition,
 } from "../lib/playground-contracts.js";
 import { PLAYGROUND_GAMES } from "../lib/playground-games.js";
+import { canonicalUrl } from "../lib/site.js";
 import { parseAgentResponse } from "./agent-response.js";
 import { compactMcpOutput } from "./mcp-projection.js";
 import {
@@ -74,6 +75,27 @@ function errorResponse(
   );
 }
 
+/**
+ * Whether a browser origin is this site. The adapter builds `request.url` from
+ * its own listener, not the public address, so the site's canonical origin and
+ * the request's `Host` (the public name behind the proxy) both count.
+ */
+function isSameSiteOrigin(origin: string, request: Request): boolean {
+  if (
+    origin === new URL(canonicalUrl("/")).origin ||
+    origin === new URL(request.url).origin
+  ) {
+    return true;
+  }
+  const host = request.headers.get("host");
+  if (host === null) return false;
+  try {
+    return new URL(origin).host === host;
+  } catch {
+    return false;
+  }
+}
+
 function toolText(output: JsonObject): string {
   if (
     typeof output["summary"] === "string" &&
@@ -116,7 +138,7 @@ export async function handleMcpRequest(
   const origin = request.headers.get("origin");
   if (
     origin !== null &&
-    origin !== new URL(request.url).origin &&
+    !isSameSiteOrigin(origin, request) &&
     origin !== "https://chatgpt.com"
   ) {
     return errorResponse(403, "Origin is not allowed.");
@@ -209,7 +231,16 @@ export async function handleMcpRequest(
   try {
     if (!request.headers.get("content-type")?.startsWith("application/json"))
       return errorResponse(415, "MCP requires application/json.");
-    const body = await readBoundedText(request.body, 16_384, signal);
+    let body: string;
+    try {
+      body = await readBoundedText(request.body, 16_384, signal);
+    } catch (error) {
+      // The strict decoder rejects invalid UTF-8 with a TypeError: a client error.
+      if (error instanceof TypeError && !signal.aborted) {
+        return errorResponse(400, "MCP request body must be UTF-8 JSON.");
+      }
+      throw error;
+    }
     let parsed: JsonObject;
     try {
       parsed = z.record(z.string(), z.json()).parse(JSON.parse(body));

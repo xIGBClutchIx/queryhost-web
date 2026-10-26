@@ -17,6 +17,7 @@ import {
   resultPath,
   resultFormSearch,
   splitTarget,
+  targetSegment,
 } from "../lib/result-url.js";
 import { previewAddress } from "./preview.js";
 import { parseQueryFields, PublicQueryInputError } from "./public-query.js";
@@ -54,7 +55,7 @@ function decodeSegment(segment: string): string | undefined {
  */
 export function resolveResultPage(
   gameSegment: string,
-  targetSegment: string,
+  rawTarget: string,
   url: URL,
   games: readonly PlaygroundGameDefinition[],
 ): ResultPageResolution {
@@ -62,19 +63,27 @@ export function resolveResultPage(
     return { kind: "not-found" };
   }
   const gameId = canonicalGameId(gameSegment);
-  if (gameId !== gameSegment) {
-    return {
-      kind: "redirect",
-      location: `/${gameId}/${targetSegment}${url.search}`,
-    };
-  }
   const game = findGame(games, gameId);
-  const target = decodeSegment(targetSegment);
+  const target = decodeSegment(rawTarget);
   if (game === undefined || target === undefined) {
     return { kind: "not-found" };
   }
-
   const { host, port } = splitTarget(target);
+
+  if (gameId !== gameSegment) {
+    // Only a valid server redirects, and its address is re-encoded so a
+    // non-ASCII host never reaches the Location header raw.
+    const page = resolveResultPage(gameId, rawTarget, url, games);
+    if (page.kind !== "page") return page;
+    return {
+      kind: "redirect",
+      location: `/${gameId}/${targetSegment(
+        host,
+        port === undefined ? undefined : Number(port),
+      )}${url.search}`,
+    };
+  }
+
   const queryPort = url.searchParams.get("queryPort");
   let input: PlaygroundQueryInput;
   try {

@@ -5,15 +5,12 @@ import { createRequire } from "node:module";
 import { initWasm, Resvg } from "@resvg/resvg-wasm";
 import type { GameId } from "queryhost";
 
-import {
-  minecraftEdition,
-  stripMinecraftFormatting,
-} from "../lib/minecraft-text.js";
 import type {
   PlaygroundGameDefinition,
   PlaygroundProxyErrorResponse,
   PlaygroundQueryInput,
 } from "../lib/playground-contracts.js";
+import { displayServerText } from "../lib/server-text.js";
 import type { BadgeService } from "./badge.js";
 import { parseImageRequest } from "./badge.js";
 import type { BadgeState } from "./badge-svg.js";
@@ -116,11 +113,7 @@ function serverName(game: GameId, state: BadgeState): string | undefined {
   if (state.kind !== "online" || state.name === undefined) {
     return undefined;
   }
-  const edition = minecraftEdition(game);
-  const name =
-    edition === undefined
-      ? state.name
-      : stripMinecraftFormatting(state.name, edition);
+  const name = displayServerText(game, state.name);
   return name.trim().length === 0 ? undefined : name;
 }
 

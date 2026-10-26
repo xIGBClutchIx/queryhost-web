@@ -10,7 +10,7 @@ export const metadata = {
 
 export function PrivacyPage(): ReactNode {
   return (
-    <PolicyLayout title={metadata.title}>
+    <PolicyLayout effective="October 26, 2026" title={metadata.title}>
       <p>
         QueryHost lets you query public game-server status through query.host
         and connected AI clients.
@@ -44,13 +44,17 @@ export function PrivacyPage(): ReactNode {
       <p>
         The query service uses a bounded, short-lived in-memory result cache to
         reduce repeated network work. It does not provide saved query accounts
-        or a persistent query-history database. The API records operational
-        events such as request identifiers, method, route, response status,
-        duration, game, and cache outcome. Hosting and network infrastructure
-        may also process connection metadata and access logs. Operational logs
-        are retained under the hosting providers' configured retention policies.
-        We do not promise that requests leave no logs. Contact us for
-        information about logs associated with a particular request.
+        or a persistent query-history database. The playground remembers the
+        last few servers you checked, by game and address only, in your own
+        browser's local storage so you can run them again; that list is never
+        sent to QueryHost, and the Clear button or your browser's site data
+        controls remove it. The API records operational events such as request
+        identifiers, method, route, response status, duration, game, and cache
+        outcome. Hosting and network infrastructure may also process connection
+        metadata and access logs. Operational logs are retained under the
+        hosting providers' configured retention policies. We do not promise that
+        requests leave no logs. Contact us for information about logs associated
+        with a particular request.
       </p>
       <h2>Contact and requests</h2>
       <p>

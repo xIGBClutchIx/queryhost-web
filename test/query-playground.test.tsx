@@ -115,7 +115,112 @@ describe("query playground island", () => {
     // The default port and Minecraft's summary mode stay out of the link.
     expect(window.location.pathname).toBe("/minecraft-java/play.example.com");
     expect(window.location.search).toBe("");
-    expect(element<HTMLButtonElement>("#query-submit").disabled).toBe(false);
+    expect(element("#query-submit").getAttribute("aria-disabled")).toBe(
+      "false",
+    );
+    expect(element("#query-announcement").textContent).toBe(
+      "Online. 37 / 120 players.",
+    );
+  });
+
+  it("remembers answered servers in this browser and runs them again", async () => {
+    localStorage.clear();
+    const fetcher = vi.fn<typeof fetch>(() =>
+      Promise.resolve(new Response(JSON.stringify(MINECRAFT_ONLINE))),
+    );
+    vi.stubGlobal("fetch", fetcher);
+    void act(() => {
+      root.render(<QueryPlayground games={PLAYGROUND_GAMES} search="" />);
+    });
+    expect(container.querySelector("#playground-recent")).toBeNull();
+
+    void act(() => {
+      setInput(element("#query-host"), "play.example.com");
+    });
+    void act(() => {
+      element<HTMLFormElement>("#query-form").requestSubmit();
+    });
+    await flush();
+    expect(
+      JSON.parse(localStorage.getItem("queryhost:recent-checks") ?? ""),
+    ).toEqual([
+      { game: "minecraft-java", host: "play.example.com", port: 25_565 },
+    ]);
+
+    // A fresh page shows the list on the idle home screen.
+    void act(() => {
+      root.unmount();
+    });
+    root = createRoot(container);
+    void act(() => {
+      root.render(<QueryPlayground games={PLAYGROUND_GAMES} search="" />);
+    });
+    await flush();
+    const chip = element<HTMLAnchorElement>("#playground-recent a");
+    expect(chip.getAttribute("href")).toBe("/minecraft-java/play.example.com");
+    expect(chip.textContent).toBe("play.example.com Minecraft: Java Edition");
+    void act(() => {
+      chip.click();
+    });
+    await flush();
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    expect(element("#query-result-name").textContent).toBe(
+      "Blockhaven Survival",
+    );
+
+    void act(() => {
+      root.unmount();
+    });
+    root = createRoot(container);
+    void act(() => {
+      root.render(<QueryPlayground games={PLAYGROUND_GAMES} search="" />);
+    });
+    await flush();
+    void act(() => {
+      element<HTMLButtonElement>(".playground-recent__clear").click();
+    });
+    expect(container.querySelector("#playground-recent")).toBeNull();
+    expect(localStorage.getItem("queryhost:recent-checks")).toBeNull();
+  });
+
+  it("keeps the busy submit focusable and cancels a running query", async () => {
+    let aborted = false;
+    const fetcher = vi.fn<typeof fetch>(
+      (_input, init) =>
+        new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener("abort", () => {
+            aborted = true;
+            reject(new DOMException("Aborted", "AbortError"));
+          });
+        }),
+    );
+    vi.stubGlobal("fetch", fetcher);
+    void act(() => {
+      root.render(<QueryPlayground games={PLAYGROUND_GAMES} search="" />);
+    });
+    void act(() => {
+      setInput(element("#query-host"), "play.example.com");
+    });
+    void act(() => {
+      element<HTMLFormElement>("#query-form").requestSubmit();
+    });
+    const submit = element<HTMLButtonElement>("#query-submit");
+    expect(submit.disabled).toBe(false);
+    expect(submit.getAttribute("aria-disabled")).toBe("true");
+    // A second press while busy does not start another query.
+    void act(() => {
+      element<HTMLFormElement>("#query-form").requestSubmit();
+    });
+    expect(fetcher).toHaveBeenCalledOnce();
+
+    void act(() => {
+      element<HTMLButtonElement>("#query-cancel").click();
+    });
+    await flush();
+    expect(aborted).toBe(true);
+    expect(element<HTMLElement>(".query-loading").hidden).toBe(true);
+    expect(container.querySelector("#query-result")).toBeNull();
+    expect(document.activeElement).toBe(element("#query-host"));
   });
 
   it("shows each source's progress while a streamed query runs", async () => {

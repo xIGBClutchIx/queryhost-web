@@ -39,6 +39,8 @@ export type OutputState =
       readonly message: string;
     }
   | {
+      /** Whether Auto detection chose the game. */
+      readonly detected: boolean;
       readonly id: number;
       readonly input: PlaygroundQueryInput;
       readonly kind: "result";
@@ -56,6 +58,8 @@ function abortError(message: string): DOMException {
 }
 
 export interface PlaygroundSessionControls {
+  /** Abandons the running query or detection and returns to the idle state. */
+  readonly cancel: () => void;
   readonly output: OutputState;
   /** Runs one query, superseding any in flight, and reports its outcome. */
   readonly runQuery: (
@@ -127,6 +131,7 @@ export function usePlaygroundSession(
         }
         resultSequence.current += 1;
         setOutput({
+          detected: false,
           id: resultSequence.current,
           input,
           kind: "result",
@@ -210,6 +215,7 @@ export function usePlaygroundSession(
         );
         resultSequence.current += 1;
         setOutput({
+          detected: true,
           id: resultSequence.current,
           input: detected,
           kind: "result",
@@ -237,6 +243,15 @@ export function usePlaygroundSession(
     },
     [games],
   );
+
+  const cancel = useCallback(() => {
+    const session = sessionRef.current;
+    if (session === undefined) return;
+    session.coordinator.abort();
+    setOutput((current) =>
+      current.kind === "loading" ? { kind: "idle" } : current,
+    );
+  }, []);
 
   useEffect(() => {
     let registration: WebMcpRegistration | undefined;
@@ -296,5 +311,5 @@ export function usePlaygroundSession(
     };
   }, [games, onAgentQuery, runQuery]);
 
-  return { output, runDetect, runQuery };
+  return { cancel, output, runDetect, runQuery };
 }

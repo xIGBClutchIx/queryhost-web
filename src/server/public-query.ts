@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { callerAddress } from "./client-address.js";
+import { callerAddress, rateLimitIdentity } from "./client-address.js";
 
 import {
   canonicalGameId,
@@ -442,7 +442,7 @@ export function parseQueryFields(body: JsonObject): PlaygroundQueryInput {
 }
 
 export function callerFingerprint(request: Request): string {
-  const address = callerAddress(request);
+  const address = rateLimitIdentity(callerAddress(request));
   return createHash("sha256").update(address.slice(0, 128)).digest("hex");
 }
 
@@ -808,7 +808,13 @@ export async function readJsonRequest(
 ): Promise<string | Response> {
   if (request.method !== "POST") {
     usage.recordInvalid();
-    return jsonResponse(405, "METHOD_NOT_ALLOWED", `Use POST for ${noun}.`);
+    const response = jsonResponse(
+      405,
+      "METHOD_NOT_ALLOWED",
+      `Use POST for ${noun}.`,
+    );
+    response.headers.set("Allow", "POST");
+    return response;
   }
   if (!request.headers.get("content-type")?.startsWith("application/json")) {
     usage.recordInvalid();

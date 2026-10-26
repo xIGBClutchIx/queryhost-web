@@ -50,6 +50,21 @@ function requestPathname(request: IncomingMessage): string {
 }
 
 /**
+ * The path's cache policy is set before Astro runs, and an error Astro renders
+ * itself never replaces it. Server errors must not be cached, so the policy
+ * becomes `no-store` as the status line is written.
+ */
+function preventServerErrorCaching(response: ServerResponse): void {
+  const writeHead = response.writeHead.bind(response);
+  response.writeHead = ((
+    ...args: Parameters<ServerResponse["writeHead"]>
+  ): ServerResponse => {
+    if (args[0] >= 500) response.setHeader("Cache-Control", "no-store");
+    return writeHead(...args);
+  }) as ServerResponse["writeHead"];
+}
+
+/**
  * Wraps the Astro handler so static files share the site's cache policy and
  * every compressible response is negotiated with gzip or Brotli.
  */
@@ -66,6 +81,7 @@ export function createSiteRequestListener(
       cacheControlForPath(requestPathname(request)),
     );
     response.setHeader("X-Content-Type-Options", "nosniff");
+    preventServerErrorCaching(response);
 
     compress(request, response, (error) => {
       if (error !== undefined) {
