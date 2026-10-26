@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import {
   minecraftTextSegments,
   type MinecraftEdition,
+  type MinecraftTextSegment,
 } from "../../../lib/minecraft-text.js";
 
 interface MinecraftTextProps {
@@ -16,7 +17,16 @@ export function MinecraftText({
   edition,
   text,
 }: MinecraftTextProps): ReactNode {
-  return minecraftTextSegments(text, edition).map((segment, index) => {
+  return <MinecraftSegments segments={minecraftTextSegments(text, edition)} />;
+}
+
+/** Renders already parsed formatted runs as text and styled spans. */
+export function MinecraftSegments({
+  segments,
+}: {
+  readonly segments: readonly MinecraftTextSegment[];
+}): ReactNode {
+  return segments.map((segment, index) => {
     const className = [
       segment.bold && "mc-bold",
       segment.italic && "mc-italic",

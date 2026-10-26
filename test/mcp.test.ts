@@ -360,6 +360,39 @@ describe("remote MCP", () => {
         )
       ).status,
     ).toBe(403);
+    // The adapter builds request.url from its own listener, not the public name.
+    for (const headers of [
+      { Origin: "https://query.host" },
+      {
+        Origin: "https://web-staging.up.railway.app",
+        Host: "web-staging.up.railway.app",
+      },
+    ]) {
+      const local = new Request("http://localhost:4321/mcp", {
+        method: "POST",
+        headers: {
+          Accept: "application/json, text/event-stream",
+          "Content-Type": "application/json",
+          ...headers,
+        },
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" }),
+      });
+      expect((await handleMcpRequest(local, dependencies)).status).not.toBe(
+        403,
+      );
+    }
+    expect(
+      (
+        await handleMcpRequest(
+          new Request("https://query.host/mcp", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: new Uint8Array([0x7b, 0xff, 0x7d]),
+          }),
+          dependencies,
+        )
+      ).status,
+    ).toBe(400);
     expect(
       (
         await handleMcpRequest(

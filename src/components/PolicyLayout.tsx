@@ -5,11 +5,14 @@ import "../styles/policy.css";
 
 interface PolicyLayoutProps {
   readonly children: ReactNode;
+  /** The date this policy took effect, as in "October 1, 2026". */
+  readonly effective: string;
   readonly title: string;
 }
 
 export function PolicyLayout({
   children,
+  effective,
   title,
 }: PolicyLayoutProps): ReactNode {
   return (
@@ -17,7 +20,7 @@ export function PolicyLayout({
       <Header active="site" />
       <main id="main-content" className="policy">
         <h1>{title}</h1>
-        <p className="policy-date">Effective October 1, 2026</p>
+        <p className="policy-date">Effective {effective}</p>
         {children}
         <nav className="policy-links" aria-label="Service policies">
           <a href="/privacy">Privacy policy</a>

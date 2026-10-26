@@ -122,6 +122,115 @@ describe("Minecraft text in query results", () => {
   });
 });
 
+const JAVA_ONLINE: PlaygroundQueryResponse = {
+  ok: true,
+  game: "minecraft-java",
+  durationMs: 40,
+  partial: false,
+  cache: { status: "miss", ageMs: 0, ttlMs: 10000 },
+  server: { version: "§f§fWe support: 1.21", players: { online: 3, max: 20 } },
+  data: {
+    motd: {
+      plain: "Dark Bold",
+      html: '<span style="color:#000000">Dark</span><br><span style="color:#55ff55;font-weight:bold">Bold</span>',
+    },
+  },
+  sources: [{ source: "minecraft-slp", status: "ok", rttMs: 40 }],
+  warnings: [],
+};
+
+const JAVA_INPUT: PlaygroundQueryInput = {
+  game: "minecraft-java",
+  host: "play.example.com",
+  port: 25565,
+};
+
+describe("result header", () => {
+  it("titles a nameless server by its address and omits a default port", () => {
+    let unmount = render(JAVA_ONLINE, JAVA_INPUT);
+    expect(container.querySelector("#query-result-name")?.textContent).toBe(
+      "play.example.com",
+    );
+    // Server-reported text never shows its formatting codes.
+    expect(container.querySelector(".query-overview")?.textContent).toContain(
+      "VersionWe support: 1.21",
+    );
+    unmount();
+    unmount = render(JAVA_ONLINE, { ...JAVA_INPUT, port: 25570 });
+    expect(container.querySelector("#query-result-name")?.textContent).toBe(
+      "play.example.com:25570",
+    );
+    unmount();
+    unmount = render(JAVA_ONLINE);
+    expect(container.querySelector("#query-result-name")?.textContent).toBe(
+      "Unnamed server",
+    );
+    unmount();
+  });
+
+  it("strips FiveM color codes and bidi controls from names", () => {
+    const unmount = render({
+      ...JAVA_ONLINE,
+      game: "fivem",
+      server: { name: "^1Red ^7Server‮" },
+      data: {},
+    });
+    expect(container.querySelector("#query-result-name")?.textContent).toBe(
+      "Red Server",
+    );
+    unmount();
+  });
+
+  it("names the game Auto detection chose and refreshes the same input", () => {
+    const onRefresh = vi.fn();
+    const root = createRoot(container);
+    void act(() => {
+      root.render(
+        <QueryResult
+          detected
+          games={PLAYGROUND_GAMES}
+          input={JAVA_INPUT}
+          onRefresh={onRefresh}
+          result={JAVA_ONLINE}
+        />,
+      );
+    });
+    expect(container.querySelector("#query-result-detected")?.textContent).toBe(
+      "Detected: Minecraft: Java Edition",
+    );
+    click("#query-result-refresh");
+    expect(onRefresh).toHaveBeenCalledWith(JAVA_INPUT);
+    void act(() => {
+      root.unmount();
+    });
+  });
+});
+
+describe("Java MOTD HTML", () => {
+  it("rebuilds allow-listed formatting with readable colors", () => {
+    const unmount = render(JAVA_ONLINE);
+    const motd = container.querySelector(".query-game-summary p");
+    expect(motd?.textContent).toBe("Dark\nBold");
+    const [dark, bold] = motd?.querySelectorAll("span") ?? [];
+    expect(dark?.style.color).not.toBe("rgb(0, 0, 0)");
+    expect(bold?.className).toBe("mc-bold");
+    unmount();
+  });
+
+  it("falls back to the plain MOTD for markup outside the vocabulary", () => {
+    const unmount = render({
+      ...JAVA_ONLINE,
+      data: {
+        motd: { plain: "Safe text", html: '<img src="x" onerror="alert(1)">' },
+      },
+    });
+    const motd = container.querySelector(".query-game-summary p");
+    expect(motd?.textContent).toBe("Safe text");
+    expect(motd?.querySelector("img")).toBeNull();
+    unmount();
+  });
+});
+
 describe("Copy badge", () => {
   function buttons(): string[] {
     return Array.from(
@@ -169,8 +278,15 @@ describe("Copy badge", () => {
   });
 });
 
-describe("Copy link", () => {
-  it("copies the result's shareable URL, keeping non-default options", async () => {
+describe("Share and embed", () => {
+  function panelCodes(): string[] {
+    return Array.from(
+      container.querySelectorAll("#query-share-panel code"),
+      (code) => code.textContent ?? "",
+    );
+  }
+
+  it("offers the link, badge formats, and API call for the result", async () => {
     const writeText = vi.fn(() => Promise.resolve());
     Object.defineProperty(navigator, "clipboard", {
       configurable: true,
@@ -183,18 +299,53 @@ describe("Copy link", () => {
       port: 19133,
       timeoutMs: 3_000,
     });
-    const share = container.querySelector<HTMLButtonElement>(
-      "#query-result-share",
+    const origin = window.location.origin;
+    expect(container.querySelector("#query-share-panel")).toBeNull();
+    click("#query-result-share");
+    expect(
+      container
+        .querySelector("#query-result-share")
+        ?.getAttribute("aria-expanded"),
+    ).toBe("true");
+    // The badge image loads only once the menu is open.
+    expect(
+      container.querySelector("#query-share-panel img")?.getAttribute("src"),
+    ).toBe(
+      `${origin}/api/v1/badge/minecraft-bedrock/play.example.com:19133.svg`,
     );
-    expect(share?.getAttribute("aria-label")).toBe("Copy link to this result");
+    const [link, badge, api] = panelCodes();
+    expect(link).toBe(
+      `${origin}/minecraft-bedrock/play.example.com:19133?mode=summary&timeoutMs=3000`,
+    );
+    expect(badge).toBe(
+      `[![Minecraft: Bedrock Edition server status](${origin}/api/v1/badge/minecraft-bedrock/play.example.com:19133.svg)](${origin}/minecraft-bedrock/play.example.com:19133)`,
+    );
+    expect(api).toBe(
+      `curl ${origin}/api/v1/query -H 'Content-Type: application/json' -d '{"game":"minecraft-bedrock","host":"play.example.com","port":19133,"mode":"summary"}'`,
+    );
+
+    click('#query-share-panel [role="radio"]:nth-child(2)');
+    expect(panelCodes()[1]).toBe(
+      `<a href="${origin}/minecraft-bedrock/play.example.com:19133"><img src="${origin}/api/v1/badge/minecraft-bedrock/play.example.com:19133.svg" alt="Minecraft: Bedrock Edition server status"></a>`,
+    );
+
     await act(async () => {
-      share?.click();
+      container
+        .querySelector<HTMLButtonElement>("#query-share-panel button")
+        ?.click();
       await Promise.resolve();
     });
-    expect(writeText).toHaveBeenCalledWith(
-      `${window.location.origin}/minecraft-bedrock/play.example.com:19133?mode=summary&timeoutMs=3000`,
-    );
-    expect(share?.getAttribute("aria-label")).toBe("Link copied");
+    expect(writeText).toHaveBeenCalledWith(link);
+
+    void act(() => {
+      container
+        .querySelector("#query-share-panel")
+        ?.dispatchEvent(
+          new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+        );
+    });
+    expect(container.querySelector("#query-share-panel")).toBeNull();
+    expect(document.activeElement?.id).toBe("query-result-share");
     unmount();
   });
 });

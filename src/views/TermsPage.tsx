@@ -9,7 +9,7 @@ export const metadata = {
 
 export function TermsPage(): ReactNode {
   return (
-    <PolicyLayout title={metadata.title}>
+    <PolicyLayout effective="October 1, 2026" title={metadata.title}>
       <p>
         QueryHost provides read-only status queries and comparisons for
         supported public game servers. You are responsible for the targets and

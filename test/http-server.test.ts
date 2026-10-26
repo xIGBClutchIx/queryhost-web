@@ -152,5 +152,16 @@ describe("site HTTP server", () => {
     const response = await fetchRaw(port, "/");
     expect(response.status).toBe(500);
     expect(response.body.length).toBe(0);
+    expect(response.headers["cache-control"]).toBe("no-store");
+  });
+
+  it("never lets a server error keep the path's public cache policy", async () => {
+    const port = await listen((_request, response) => {
+      response.statusCode = 503;
+      response.end("unavailable");
+    });
+    const response = await fetchRaw(port, "/rust/play.example.com");
+    expect(response.status).toBe(503);
+    expect(response.headers["cache-control"]).toBe("no-store");
   });
 });

@@ -59,6 +59,23 @@ describe("playground form state", () => {
     expect(cleared.port).toBe("2302");
   });
 
+  it("keeps a port typed for generic A2S and a mode the person chose", () => {
+    const a2s = selectGame(initial, game("minecraft-java"), game("a2s"));
+    const typed = { ...a2s, port: "27016" };
+    expect(selectGame(typed, game("a2s"), game("rust")).port).toBe("27016");
+    expect(selectGame(typed, game("a2s"), "auto").port).toBe("27016");
+
+    const full = { ...initial, mode: "full" as const };
+    expect(selectGame(full, game("minecraft-java"), game("rust")).mode).toBe(
+      "full",
+    );
+    const rust = selectGame(initial, game("minecraft-java"), game("rust"));
+    expect(rust.mode).toBe("full");
+    expect(selectGame(rust, game("rust"), game("minecraft-java")).mode).toBe(
+      "summary",
+    );
+  });
+
   it("gives generic A2S a required query port and no separate query port", () => {
     const a2s = selectGame(
       { ...initial, queryPort: "27016" },
@@ -149,10 +166,11 @@ describe("playground form state", () => {
   });
 
   it("mirrors agent input without inventing omitted ports", () => {
+    // Agents default to summary mode, which is not Rust's default, so Advanced shows it.
     expect(
       formStateFromQueryInput({ game: "rust", host: "agent.example" }),
     ).toEqual({
-      advancedOpen: false,
+      advancedOpen: true,
       game: "rust",
       host: "agent.example",
       mode: "summary",

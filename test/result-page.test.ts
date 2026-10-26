@@ -101,6 +101,22 @@ describe("result pages", () => {
     });
   });
 
+  it("encodes a non-ASCII alias target and redirects only valid servers", () => {
+    // Astro hands routes decoded parameters, so the raw host must be re-encoded.
+    const url = new URL("https://query.host/mc/%E4%B8%AD.com:25566");
+    expect(
+      resolveResultPage("mc", "中.com:25566", url, PLAYGROUND_GAMES),
+    ).toEqual({
+      kind: "redirect",
+      location: "/minecraft-java/%E4%B8%AD.com:25566",
+    });
+    expect(resolve("/mc/[2001:db8::1]:25566")).toEqual({
+      kind: "redirect",
+      location: "/minecraft-java/[2001:db8::1]:25566",
+    });
+    expect(resolve("/mc/example.com:99999")).toEqual({ kind: "not-found" });
+  });
+
   it("is not a page for unknown games or invalid servers", () => {
     for (const path of [
       "/docs/unknown",

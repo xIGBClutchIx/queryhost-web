@@ -3,6 +3,7 @@ import {
   minecraftEdition,
   minecraftTextSegments,
   readableMinecraftColor,
+  type MinecraftTextSegment,
 } from "./minecraft-text.js";
 
 /** Only bounded embedded PNGs can become images; never fetch a server-supplied URL. */
@@ -117,6 +118,80 @@ function appendMotdHtml(node: HTMLElement, html: string): boolean {
     if (!copy(child, fragment, 0)) return false;
   node.append(fragment);
   return true;
+}
+
+type SegmentStyle = Omit<MinecraftTextSegment, "text">;
+
+const PLAIN_STYLE: SegmentStyle = {
+  bold: false,
+  italic: false,
+  obfuscated: false,
+  strikethrough: false,
+  underlined: false,
+};
+
+/**
+ * Reads the query library's fixed span/br MOTD vocabulary into formatted runs, with
+ * colors lifted for contrast. Returns `undefined` for anything outside that vocabulary,
+ * so callers fall back to the plain MOTD instead of trusting unexpected markup.
+ */
+export function motdHtmlSegments(
+  doc: Document,
+  html: string,
+): readonly MinecraftTextSegment[] | undefined {
+  if (html.length > 65_536) return undefined;
+  const template = doc.createElement("template");
+  template.innerHTML = html;
+  const segments: MinecraftTextSegment[] = [];
+  let count = 0;
+  const visit = (source: Node, style: SegmentStyle, depth: number): boolean => {
+    if (++count > 2048 || depth > 16) return false;
+    if (source.nodeType === 3) {
+      const text = source.textContent ?? "";
+      if (text.length > 0) segments.push({ ...style, text });
+      return true;
+    }
+    if (source.nodeType !== 1) return false;
+    const element = source as Element;
+    if (element.tagName === "BR") {
+      segments.push({ ...style, text: "\n" });
+      return element.childNodes.length === 0;
+    }
+    if (element.tagName !== "SPAN") return false;
+    let next = style;
+    for (const declaration of (element.getAttribute("style") ?? "").split(
+      ";",
+    )) {
+      if (declaration.trim() === "") continue;
+      const [property, value = ""] = declaration
+        .split(":")
+        .map((part) => part.trim());
+      if (property === "color" && /^#[0-9a-f]{6}$/iu.test(value))
+        next = { ...next, color: readableMinecraftColor(value) };
+      else if (property === "font-weight" && value === "bold")
+        next = { ...next, bold: true };
+      else if (property === "font-style" && value === "italic")
+        next = { ...next, italic: true };
+      else if (
+        property === "text-decoration" &&
+        /^(?:underline|line-through|underline line-through)$/u.test(value)
+      )
+        next = {
+          ...next,
+          strikethrough: value.includes("line-through"),
+          underlined: value.includes("underline"),
+        };
+      else if (property === "filter" && value === "blur(0.25em)")
+        next = { ...next, obfuscated: true };
+      else return false;
+    }
+    for (const child of element.childNodes)
+      if (!visit(child, next, depth + 1)) return false;
+    return true;
+  };
+  for (const child of template.content.childNodes)
+    if (!visit(child, PLAIN_STYLE, 0)) return undefined;
+  return segments;
 }
 
 /** Visual identity shared by MCP cards and the workspace. Missing fields stay absent. */

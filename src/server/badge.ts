@@ -211,6 +211,8 @@ export class BadgeService {
     const now = this.#dependencies.now();
     const entry = this.#entries.get(key);
     if (entry !== undefined && now < entry.expiresAt) {
+      // A hit counts as recent use, so popular badges outlive one-off lookups.
+      this.#store(key, entry);
       return Promise.resolve(this.#fromEntry(entry, now));
     }
     const pending = this.#inflight.get(key);

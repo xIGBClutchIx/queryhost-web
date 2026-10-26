@@ -19,7 +19,21 @@ interface CustomSelectProps<V extends string> {
   readonly value: V;
 }
 
-type FocusTarget = "first" | "last" | "selected";
+/** A named position, or an option index chosen by typeahead. */
+type FocusTarget = "first" | "last" | "selected" | number;
+
+/** Typed characters within this window extend one typeahead search. */
+const TYPEAHEAD_RESET_MS = 600;
+
+function isTypeaheadKey(event: KeyboardEvent): boolean {
+  return (
+    event.key.length === 1 &&
+    event.key !== " " &&
+    !event.ctrlKey &&
+    !event.metaKey &&
+    !event.altKey
+  );
+}
 
 interface ScrollEdges {
   readonly above: boolean;
@@ -57,6 +71,7 @@ export function CustomSelect<V extends string>({
   const optionRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const pendingFocus = useRef<FocusTarget | undefined>(undefined);
   const revealSelected = useRef(false);
+  const typeahead = useRef({ text: "", time: 0 });
   const selectedIndex = options.findIndex((option) => option.value === value);
   const selected = options[selectedIndex];
   if (selected === undefined) {
@@ -69,12 +84,44 @@ export function CustomSelect<V extends string>({
 
   function focusOption(target: FocusTarget): void {
     const index =
-      target === "first"
-        ? 0
-        : target === "last"
-          ? options.length - 1
-          : selectedIndex;
-    optionRefs.current[index]?.focus();
+      typeof target === "number"
+        ? target
+        : target === "first"
+          ? 0
+          : target === "last"
+            ? options.length - 1
+            : selectedIndex;
+    const option = optionRefs.current[index];
+    option?.focus();
+    // A typeahead jump can land far down a long list.
+    if (typeof target === "number")
+      option?.scrollIntoView({ block: "nearest" });
+  }
+
+  /**
+   * Finds the option whose label starts with the typed text, searching after `from`.
+   * Repeating one letter cycles through the options that start with it.
+   */
+  function typeaheadMatch(
+    event: KeyboardEvent,
+    from: number,
+  ): number | undefined {
+    const now = event.timeStamp;
+    const previous = typeahead.current;
+    const text = (
+      now - previous.time > TYPEAHEAD_RESET_MS
+        ? event.key
+        : previous.text + event.key
+    ).toLowerCase();
+    typeahead.current = { text, time: now };
+    const repeated = text === text.charAt(0).repeat(text.length);
+    const search = repeated ? text.slice(0, 1) : text;
+    const start = repeated ? from + 1 : from;
+    for (let offset = 0; offset < options.length; offset += 1) {
+      const index = (start + offset) % options.length;
+      if (options[index]?.label.toLowerCase().startsWith(search)) return index;
+    }
+    return undefined;
   }
 
   // Open on the selected option, so a long list shows where the current choice sits,
@@ -134,6 +181,25 @@ export function CustomSelect<V extends string>({
   function onTriggerKeyDown(
     event: TargetedKeyboardEvent<HTMLButtonElement>,
   ): void {
+    // A menu opened with the pointer keeps focus on the trigger.
+    if (event.key === "Escape" && open) {
+      event.preventDefault();
+      setOpen(false);
+      return;
+    }
+    if (event.key === "Home" || event.key === "End") {
+      event.preventDefault();
+      openWithFocus(event.key === "Home" ? "first" : "last");
+      return;
+    }
+    if (isTypeaheadKey(event)) {
+      const match = typeaheadMatch(event, selectedIndex);
+      if (match !== undefined) {
+        event.preventDefault();
+        openWithFocus(match);
+      }
+      return;
+    }
     if (event.key !== "ArrowDown" && event.key !== "ArrowUp") {
       return;
     }
@@ -148,6 +214,14 @@ export function CustomSelect<V extends string>({
     if (event.key === "Escape") {
       event.preventDefault();
       closeAndReturnFocus();
+      return;
+    }
+    if (isTypeaheadKey(event)) {
+      const match = typeaheadMatch(event, index);
+      if (match !== undefined) {
+        event.preventDefault();
+        focusOption(match);
+      }
       return;
     }
     if (event.key === "Home" || event.key === "End") {

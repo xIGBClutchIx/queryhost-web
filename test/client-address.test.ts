@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { callerAddress } from "../src/server/client-address.js";
+import {
+  callerAddress,
+  rateLimitIdentity,
+} from "../src/server/client-address.js";
 import { callerFingerprint } from "../src/server/public-query.js";
 
 function request(peer?: string, visitor?: string): Request {
@@ -41,6 +44,23 @@ describe("caller addresses behind Cloudflare and Railway", () => {
       "192.0.2.100",
     );
     expect(callerAddress(new Request("https://query.host"))).toBe("anonymous");
+  });
+  it("limits an IPv6 caller by its /64 and leaves other identities alone", () => {
+    expect(rateLimitIdentity("2001:db8:1:2:aaaa::1")).toBe("2001:db8:1:2::/64");
+    expect(rateLimitIdentity("2001:0DB8:0001:0002:ffff:0:0:9")).toBe(
+      "2001:db8:1:2::/64",
+    );
+    expect(rateLimitIdentity("2001:db8::1")).toBe("2001:db8:0:0::/64");
+    expect(rateLimitIdentity("fe80::1%eth0")).toBe("fe80:0:0:0::/64");
+    expect(rateLimitIdentity("::ffff:203.0.113.20")).toBe("203.0.113.20");
+    expect(rateLimitIdentity("203.0.113.20")).toBe("203.0.113.20");
+    expect(rateLimitIdentity("anonymous")).toBe("anonymous");
+    expect(callerFingerprint(request("2606:4700::1", "2001:db8:1:2::20"))).toBe(
+      callerFingerprint(request("2606:4700::1", "2001:db8:1:2:ffff::99")),
+    );
+    expect(
+      callerFingerprint(request("2606:4700::1", "2001:db8:1:3::20")),
+    ).not.toBe(callerFingerprint(request("2606:4700::1", "2001:db8:1:2::20")));
   });
   it("keeps visitors separate and one visitor stable across different edges", () => {
     const first = callerFingerprint(request("104.16.0.1", "203.0.113.20"));

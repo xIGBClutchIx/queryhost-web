@@ -34,6 +34,38 @@ for (const [network, prefix] of [
 ] as const)
   EDGE_RANGES.addSubnet(network, prefix, "ipv6");
 
+/**
+ * The unit a caller limit applies to. An IPv6 caller usually controls a whole
+ * /64, so its addresses share one identity; anything else is used as is.
+ */
+export function rateLimitIdentity(address: string): string {
+  const plain = address.split("%", 1)[0] ?? address;
+  if (isIP(plain) !== 6) return address;
+  const mapped = /^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/iu.exec(plain);
+  if (mapped?.[1] !== undefined) return mapped[1];
+  const [head = "", tail] = plain.toLowerCase().split("::", 2);
+  const left = head === "" ? [] : head.split(":");
+  const right = tail === undefined || tail === "" ? [] : tail.split(":");
+  // An embedded dotted IPv4 tail fills two 16-bit groups.
+  const rightGroups = right.reduce(
+    (count, group) => count + (group.includes(".") ? 2 : 1),
+    0,
+  );
+  const groups =
+    tail === undefined
+      ? left
+      : [
+          ...left,
+          ...Array.from({ length: 8 - left.length - rightGroups }, () => "0"),
+          ...right,
+        ];
+  const prefix = groups
+    .slice(0, 4)
+    .map((group) => group.replace(/^0+(?=.)/u, ""))
+    .join(":");
+  return `${prefix}::/64`;
+}
+
 /** Resolves a rate-limit identity through Railway and an optional trusted Cloudflare edge. */
 export function callerAddress(request: Request): string {
   const peer = request.headers.get("x-real-ip")?.trim();
