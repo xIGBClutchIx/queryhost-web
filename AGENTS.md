@@ -13,6 +13,15 @@ This repository contains the public site and documentation service. It owns `que
 - Keep TypeScript strict and do not use explicit `any` or `unknown`.
 - Preserve the accessible dark theme and responsive keyboard-first behavior.
 
+## Related repositories
+
+Sibling repositories live beside this one. Use these absolute paths; relative paths break inside worktrees.
+
+- `C:\Users\camer\repos\queryhost\query` — the `queryhost` library and game registry. Read it to understand the public contract; library changes are made, released, and then picked up here with a version bump.
+- `C:\Users\camer\repos\queryhost\api` — hosted API this site calls with its private token.
+
+Cross-project decisions and their rationale live in `C:\Users\camer\repos\queryhost\query\docs\Decisions.md`. Read it before changing project shape or scope.
+
 ## Finish gate
 
 Run `npm run verify`. For visual changes, also inspect the built site at desktop and mobile widths.

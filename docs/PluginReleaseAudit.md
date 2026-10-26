@@ -2,6 +2,9 @@
 
 Observed October 15, 2026. These are release snapshots, not ongoing availability
 guarantees. No package was uploaded, submitted, or published during this audit.
+Later the same day, 0.1.0 was published and 0.2.0 submitted for review; see
+[Publication on October 15](#publication-on-october-15) and the open
+[published install loop](#open-published-install-loop).
 
 ## Approved package and development connection
 
@@ -58,6 +61,8 @@ and the four listing links.
 
 ## Remaining release work
 
+Item 1 was resolved later on October 15 by publishing 0.1.0 and submitting 0.2.0.
+
 1. Decide whether to publish approved 0.1.0 first or prepare 0.2.0 for review.
    Approval and a working development connection do not make a directory release
    public. Keep the approved package intact while making that decision.
@@ -72,6 +77,60 @@ and the four listing links.
 5. Recheck the example host, package contents, icon, links, and review cases before
    an authorized upload, submission, or publication. Verify the public listing and
    install the published plugin after publication.
+
+## Publication on October 15
+
+Recorded October 15, 2026, America/New_York, after this audit.
+
+- **0.1.0 published.** An MCP rescan completed with no findings before
+  publication. The portal shows endpoint `https://query.host/mcp`, no
+  authentication, a verified domain, and all five tools **Live**. The scanned
+  query definition contains all 43 live profiles, including the eight missing
+  from the development connection. Public listing:
+  <https://chatgpt.com/plugins/plugin_asdk_app_6abe77b4d3a4819181619426d75d8fae>.
+- **0.2.0 in review.** Uploaded to the existing plugin with no metadata or skills
+  findings and submitted (`pluginrel_db38290eb40081919446b8ebec24125f`). The
+  uploaded package still uses the existing inline-card demo URL; no workspace
+  recording was made. Uploaded ZIP SHA-256:
+  `CFAE6F29C991E3A743CE4BB2C389C762360C8664C71563848917FAAC941E9CD3`.
+- The development connection is separate and was kept. Remove it only after the
+  published plugin installs successfully.
+
+## Open: published install loop
+
+Observed October 15, 2026, about 11:29 AM America/New_York, on 0.1.0.
+
+1. Open the public listing while signed into ChatGPT and select Install plugin.
+2. The dialog says “Could not load this app's connection details” and offers
+   Open in browser.
+3. Open in browser returns to the same listing, so installation loops.
+
+The listing's app row shows the raw app ID and “No description.” The Install
+action's own requests, captured without replay or modification, returned:
+
+- `GET /backend-api/aip/connectors/asdk_app_6abe77b4d3a4819181619426d75d8fae?include_actions=false`:
+  HTTP 404, `{"detail":"Connector not found"}`.
+- `GET /backend-api/aip/connectors/asdk_app_6abe77b4d3a4819181619426d75d8fae/tos`:
+  HTTP 404, `{"detail":"Connector not found"}`.
+- `/backend-api/aip/connectors/asdk_app_6abe77b4d3a4819181619426d75d8fae/link`:
+  HTTP 200, `{"link":null}`.
+
+The failure is in ChatGPT's connector lookup before a connection dialog loads,
+which points to publication propagation or connector registration on OpenAI's
+side. It does not establish a QueryHost endpoint failure or a conflict with the
+development connection, and no change in this repository is expected to fix it.
+
+A support request was drafted but, as of this record, not sent:
+
+> QueryHost version 0.1.0 is published and its MCP tools are Live with no scan
+> findings, but the public plugin cannot be installed. Install shows “Could not
+> load this app's connection details” and Open in browser loops to the listing.
+> ChatGPT's connector details and tos requests both return 404 “Connector not
+> found” for app asdk_app_6abe77b4d3a4819181619426d75d8fae; the link lookup
+> returns null. Please check the published plugin's associated connector
+> registration and availability.
+
+Close this item once the published plugin installs.
 
 OpenAI documents separate [package updates and MCP scans](https://developers.openai.com/plugins/deploy/submission)
 and [retention of approved tool definitions during continuous review](https://developers.openai.com/plugins/deploy/app-review).
