@@ -196,13 +196,83 @@ describe("result header", () => {
       );
     });
     expect(container.querySelector("#query-result-detected")?.textContent).toBe(
-      "Detected: Minecraft: Java Edition",
+      "Detected",
+    );
+    expect(container.querySelector(".query-result__game")?.textContent).toBe(
+      "Minecraft: Java Edition",
+    );
+    // The freshness chip is the refresh control and says how fresh the data is.
+    const refresh = container.querySelector("#query-result-refresh");
+    expect(refresh?.textContent).toBe("Live · 40 ms");
+    expect(refresh?.getAttribute("aria-label")).toBe(
+      "Query again. Live, 40 ms.",
     );
     click("#query-result-refresh");
     expect(onRefresh).toHaveBeenCalledWith(JAVA_INPUT);
     void act(() => {
       root.unmount();
     });
+  });
+
+  it("adds a subtitle only for what the panels do not show", () => {
+    // The address is already the title, and version and players have tiles.
+    let unmount = render(JAVA_ONLINE, JAVA_INPUT);
+    expect(container.querySelector("#query-result-subtitle")?.textContent).toBe(
+      "",
+    );
+    expect(container.querySelector(".query-result__icon")).toBeNull();
+    unmount();
+
+    // A reported name is the title, so the queried address becomes the subtitle.
+    unmount = render(
+      {
+        ...JAVA_ONLINE,
+        game: "rust",
+        cache: { status: "hit", ageMs: 3_182, ttlMs: 10_000 },
+        server: { name: "Main", map: "Procedural Map" },
+        data: {},
+      },
+      { game: "rust", host: "rust.example.com", port: 28016 },
+    );
+    expect(container.querySelector("#query-result-name")?.textContent).toBe(
+      "Main",
+    );
+    expect(container.querySelector("#query-result-subtitle")?.textContent).toBe(
+      "rust.example.com:28016",
+    );
+    expect(container.querySelector("#query-result-refresh")).toBeNull();
+    expect(container.querySelector(".query-freshness")?.textContent).toBe(
+      "Cached 3 s ago · 40 ms",
+    );
+    unmount();
+  });
+
+  it("titles a failed query by its address and explains it below", () => {
+    const unmount = render(
+      {
+        ok: false,
+        game: "minecraft-java",
+        durationMs: 22.8,
+        cache: { status: "miss", ageMs: 0, ttlMs: 2000 },
+        error: {
+          code: "DNS_FAILED",
+          message: "The target could not be resolved.",
+        },
+        sources: [],
+        warnings: [],
+      },
+      JAVA_INPUT,
+    );
+    expect(container.querySelector("#query-result-status")?.textContent).toBe(
+      "Unreachable",
+    );
+    expect(container.querySelector("#query-result-name")?.textContent).toBe(
+      "play.example.com",
+    );
+    expect(container.querySelector("#query-result-subtitle")?.textContent).toBe(
+      "The target could not be resolved.",
+    );
+    unmount();
   });
 });
 

@@ -36,10 +36,14 @@ function badgeText(links: ShareLinks, format: BadgeFormat): string {
  * status badge in three formats, and the same query as a public API call.
  */
 export function ShareMenu({
+  idSuffix = "",
   links,
 }: {
+  /** Distinguishes a second copy of the menu, as in the pinned result bar. */
+  readonly idSuffix?: string;
   readonly links: ShareLinks;
 }): ReactNode {
+  const panelId = `query-share-panel${idSuffix}`;
   const [open, setOpen] = useState(false);
   const [format, setFormat] = useState<BadgeFormat>("markdown");
   const rootRef = useRef<HTMLDivElement>(null);
@@ -87,10 +91,10 @@ export function ShareMenu({
       <button
         type="button"
         className="share-menu__trigger"
-        id="query-result-share"
+        id={`query-result-share${idSuffix}`}
         ref={triggerRef}
         aria-expanded={open}
-        aria-controls="query-share-panel"
+        aria-controls={panelId}
         onClick={() => {
           setOpen((current) => !current);
         }}
@@ -104,7 +108,7 @@ export function ShareMenu({
       {open && (
         <div
           className="share-menu__panel"
-          id="query-share-panel"
+          id={panelId}
           ref={panelRef}
           role="dialog"
           aria-label="Share and embed"

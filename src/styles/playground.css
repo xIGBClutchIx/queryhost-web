@@ -48,11 +48,6 @@
   padding-bottom: 0;
 }
 
-/* A shared result page leads with the result, so the form starts nearer the top. */
-.playground[data-result-page] {
-  padding-top: clamp(2rem, 7dvh, 4rem);
-}
-
 @keyframes playground-enter {
   from {
     opacity: 0;
@@ -228,36 +223,49 @@
     border: 0;
   }
 
-  .playground .query-result__toolbar {
+  /* The card is drawn in three stacked pieces so its tab bar can stick: the
+     identity header, the bar, and the panel each carry part of the border. */
+  .playground .query-result__identity {
+    border: 1px solid var(--glass-edge);
+    border-bottom: 0;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    background: var(--glass-sheen), var(--glass-fill);
+  }
+
+  .playground .query-result__bar {
     position: sticky;
     top: calc(var(--header-height) + var(--query-dock-height));
     z-index: 4;
     isolation: isolate;
-    grid-template-columns: minmax(12rem, 0.8fr) minmax(18rem, 1fr) auto;
-    min-height: 4.25rem;
-    padding: 0 var(--space-5);
     border: 0;
     background: transparent;
   }
 
-  .playground .query-result__toolbar::before,
-  .playground .query-result__toolbar::after {
+  .playground .query-result__bar::before,
+  .playground .query-result__bar::after {
     position: absolute;
     inset: 0;
     content: "";
     pointer-events: none;
   }
 
-  .playground .query-result__toolbar::before {
+  /* While pinned, the page backdrop behind the bar hides content scrolling under it. */
+  .playground .query-result__bar::before {
     z-index: -2;
     background: var(--home-backdrop), var(--background);
     background-attachment: fixed;
   }
 
-  .playground .query-result__toolbar::after {
+  .playground .query-result__bar::after {
     z-index: -1;
     border: 1px solid var(--glass-edge);
+    border-top-color: var(--glass-inset-edge);
     border-bottom-color: var(--glass-inset-edge);
+    background: var(--glass-fill);
+  }
+
+  .playground .query-result__bar.is-pinned::after {
+    border-top-color: var(--glass-edge);
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;
     background: var(--glass-sheen), var(--glass-fill);
   }
@@ -266,15 +274,6 @@
     border: 1px solid var(--glass-edge);
     border-top: 0;
     border-radius: 0 0 var(--radius-lg) var(--radius-lg);
-  }
-
-  .playground .query-result__toolbar .query-tabs {
-    grid-row: 1;
-    grid-column: 2;
-    align-self: stretch;
-    padding: 0;
-    margin: 0 var(--space-5);
-    border: 0;
   }
 }
 
@@ -639,7 +638,6 @@
   padding: var(--space-4) var(--space-5);
 }
 
-.query-result__state > span,
 .query-source-dot {
   flex: none;
   width: 0.55rem;
@@ -795,16 +793,6 @@
   }
 }
 
-.query-result__toolbar {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: var(--space-6);
-  min-height: 4.5rem;
-  padding: var(--space-4) var(--space-5) 0;
-  border-bottom: 1px solid var(--glass-inset-edge);
-}
-
 .query-result {
   overflow: hidden;
   border: 1px solid var(--glass-edge);
@@ -813,82 +801,221 @@
   box-shadow: var(--shadow);
 }
 
-.query-result__state {
+/* Who the server is: icon, status line, name, and a one-line summary. */
+.query-result__identity {
   display: flex;
-  gap: var(--space-3);
+  gap: var(--space-4);
   align-items: center;
+  padding: var(--space-5);
+}
+
+.query-result__icon {
+  flex: none;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: var(--radius-md);
+  image-rendering: pixelated;
+}
+
+.query-result__who {
+  flex: 1;
   min-width: 0;
 }
 
-.query-result__state > div {
-  min-width: 0;
-}
-
-.query-result__state > span.is-online {
-  background: var(--accent);
-}
-
-.query-result__state > span.is-partial {
-  background: var(--warning);
-}
-
-.query-result__state > span.is-offline {
-  background: var(--faint);
-}
-
-.query-result__state:has(> span.is-online) p {
-  color: var(--accent-strong);
-}
-
-.query-result__state:has(> span.is-partial) p {
-  color: var(--warning);
-}
-
-.query-result__state p,
-.query-result__state h2,
-.query-result__timing span,
-.query-result__timing strong {
+.query-result__line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1-5) var(--space-2-5);
+  align-items: center;
   margin: 0;
 }
 
-.query-result__state p {
-  color: var(--muted);
-  font-size: var(--text-2xs);
-  font-weight: var(--weight-semibold);
-  letter-spacing: 0.04em;
+.query-result__status,
+.query-result__detected {
+  display: inline-flex;
+  gap: var(--space-1-5);
+  align-items: center;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-full);
+  font-size: var(--text-3xs);
+  line-height: 1.5;
+  font-weight: var(--weight-bold);
+  letter-spacing: 0.05em;
   text-transform: uppercase;
 }
 
-/* Names the game Auto detection chose, beside the status. */
+.query-result__status::before {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: var(--faint);
+  content: "";
+}
+
+.query-result__status {
+  color: var(--muted);
+}
+
+.is-online .query-result__status {
+  border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.is-online .query-result__status::before {
+  background: var(--accent);
+}
+
+.is-partial .query-result__status {
+  border-color: color-mix(in srgb, var(--warning) 40%, transparent);
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+
+.is-partial .query-result__status::before {
+  background: var(--warning);
+}
+
+/* Marks a result whose game Auto detection chose. */
 .query-result__detected {
-  margin-left: var(--space-2);
-  padding: 0 var(--space-1-5);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-full);
   color: var(--text);
   font-weight: var(--weight-medium);
   letter-spacing: 0;
   text-transform: none;
 }
 
-.query-result__state h2 {
+.query-result__game {
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
+
+.query-result__identity h2 {
+  margin: var(--space-1) 0 0;
   overflow: hidden;
   color: var(--text-strong);
-  font-size: var(--text-lg);
-  font-weight: var(--weight-semibold);
-  letter-spacing: -0.01em;
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
+  letter-spacing: -0.015em;
+  line-height: 1.25;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.query-result__state > .query-result__actions {
-  display: flex;
-  flex: none;
-  min-width: auto;
+.query-result__subtitle {
+  margin: var(--space-0-5) 0 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: var(--text-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.query-result__actions:empty {
+.query-result__subtitle:empty {
   display: none;
+}
+
+.query-result__actions {
+  display: flex;
+  flex: none;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+/* How fresh the result is; with a query to repeat, it is also Refresh. */
+.query-freshness {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+  height: 2.25rem;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: var(--text-xs);
+  white-space: nowrap;
+}
+
+button.query-freshness {
+  cursor: pointer;
+  transition:
+    border-color var(--duration-fast),
+    color var(--duration-fast);
+}
+
+button.query-freshness:hover,
+button.query-freshness:focus-visible {
+  border-color: var(--accent);
+  color: var(--text-strong);
+}
+
+.query-freshness svg {
+  width: 0.9rem;
+  height: 0.9rem;
+  color: var(--accent);
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.query-freshness strong {
+  color: var(--text-strong);
+  font-family: "Geist Mono Variable", monospace;
+  font-weight: var(--weight-semibold);
+}
+
+/* The tab bar; once pinned it repeats the name and actions beside the tabs. */
+.query-result__bar {
+  position: relative;
+  display: flex;
+  gap: var(--space-5);
+  align-items: center;
+  padding: 0 var(--space-5);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--glass-inset-edge);
+}
+
+.query-result__bar .query-tabs {
+  flex: 1;
+  min-width: 0;
+}
+
+.query-result__bar.is-pinned .query-tabs {
+  flex: none;
+}
+
+.query-result__pinned-name {
+  display: flex;
+  flex: 1;
+  gap: var(--space-2-5);
+  align-items: center;
+  min-width: 0;
+  margin: 0;
+  color: var(--text-strong);
+  font-weight: var(--weight-semibold);
+}
+
+.query-result__pinned-name img {
+  flex: none;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: var(--radius-sm);
+  image-rendering: pixelated;
+}
+
+.query-result__pinned-name span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.query-result__bar .query-freshness,
+.query-result__bar .share-menu__trigger {
+  height: 2rem;
 }
 
 .share-menu {
@@ -900,12 +1027,12 @@
   display: inline-flex;
   gap: var(--space-1-5);
   align-items: center;
-  height: var(--space-8);
-  padding: 0 var(--space-2-5);
+  height: 2.25rem;
+  padding: 0 var(--space-3-5);
   border: 1px solid var(--line-strong);
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--text);
+  border-radius: var(--radius-md);
+  background: var(--surface-subtle);
+  color: var(--text-strong);
   cursor: pointer;
   font: inherit;
   font-size: var(--text-xs);
@@ -934,7 +1061,7 @@
 .share-menu__panel {
   position: absolute;
   top: calc(100% + var(--space-2));
-  left: 0;
+  right: 0;
   z-index: 6;
   width: min(27rem, calc(100vw - 2rem));
   border: 1px solid var(--line-strong);
@@ -965,8 +1092,7 @@
   text-transform: uppercase;
 }
 
-/* The menu sits inside the result status, so its text resets that styling. */
-.query-result__state .share-menu__panel section p {
+.share-menu__panel section p {
   margin: 0;
   color: var(--muted);
   font-size: var(--text-xs);
@@ -1058,72 +1184,12 @@
   color: var(--text-strong);
 }
 
-/* A quiet cue: the icon stays faint until hovered or focused. */
-.query-result__share {
-  display: grid;
-  flex: none;
-  place-items: center;
-  width: var(--space-8);
-  height: var(--space-8);
-  padding: 0;
-  border: 0;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--faint);
-  cursor: pointer;
-  transition:
-    color var(--duration-fast),
-    background var(--duration-fast);
-}
-
-.query-result__share:hover,
-.query-result__share:focus-visible {
-  background: var(--surface-subtle);
-  color: var(--accent-strong);
-}
-
-.query-result__share[data-state="copied"] {
-  color: var(--accent);
-}
-
-.query-result__share svg {
-  width: var(--space-4);
-  height: var(--space-4);
-  fill: none;
-  stroke: currentColor;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 2;
-}
-
-.query-result__timing {
-  display: grid;
-  flex: none;
-  justify-items: end;
-}
-
-.query-result__timing span {
-  color: var(--faint);
-  font-size: var(--text-2xs);
-}
-
-.query-result__timing strong {
-  color: var(--text-strong);
-  font-family: "Geist Mono Variable", monospace;
-  font-size: var(--text-sm);
-}
-
 .query-tabs {
   display: flex;
-  grid-row: 2;
-  grid-column: 1 / -1;
   gap: var(--space-6);
-  align-self: end;
-  padding: 0 var(--space-5);
-  margin: 0 calc(-1 * var(--space-5));
+  align-self: stretch;
   overflow-x: auto;
   overflow-y: hidden;
-  border-top: 1px solid var(--line);
 }
 
 .query-tabs button {
@@ -1163,7 +1229,7 @@
   align-items: center;
   min-height: 3rem;
   padding: var(--space-2-5) var(--space-3-5);
-  margin-bottom: var(--space-4);
+  margin-top: var(--space-4);
   border: 1px solid var(--glass-inset-edge);
   border-radius: var(--radius-md);
   background: var(--glass-inset);
@@ -1261,7 +1327,7 @@
 
 .query-game-summary {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-3-5);
   align-items: center;
   padding: var(--space-3) var(--space-3-5);
@@ -1273,13 +1339,6 @@
 
 .query-game-summary[hidden] {
   display: none;
-}
-
-.query-game-summary img {
-  width: 3.5rem;
-  height: 3.5rem;
-  border-radius: var(--radius-sm);
-  image-rendering: pixelated;
 }
 
 .query-game-summary > div {
@@ -1582,16 +1641,6 @@
 
 /* Breakpoint: phone. */
 @media (max-width: 34rem) {
-  /* The icon alone leaves the server name room; the label stays for assistive tech. */
-  .share-menu__label {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-  }
-
   .playground {
     padding: var(--space-12) 0 var(--space-16);
   }
@@ -1612,9 +1661,33 @@
     padding: var(--space-4);
   }
 
-  .query-result__toolbar {
-    align-items: start;
-    padding: var(--space-4) var(--space-4) 0;
+  /* The actions take their own row, so the name never has to truncate for them. */
+  .query-result__identity {
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    padding: var(--space-4);
+  }
+
+  .query-result__icon {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+
+  .query-result__who {
+    flex-basis: calc(100% - 2.75rem - var(--space-3));
+  }
+
+  .query-result__identity h2 {
+    font-size: var(--text-lg);
+  }
+
+  .query-result__identity .query-result__actions {
+    flex-basis: 100%;
+    justify-content: space-between;
+  }
+
+  .query-result__bar {
+    padding: 0 var(--space-4);
   }
 
   .query-path {
@@ -1642,8 +1715,6 @@
 
   .query-tabs {
     gap: var(--space-5);
-    padding: 0 var(--space-4);
-    margin-inline: calc(-1 * var(--space-4));
   }
 
   .query-data-list > div {

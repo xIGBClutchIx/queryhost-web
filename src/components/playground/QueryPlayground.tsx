@@ -84,8 +84,6 @@ export function QueryPlayground({
   );
   const outputRef = useRevealOutput(output);
   useViewportFit(playgroundRef, output.kind);
-  // Result pages lead with the result, so the form sits higher than on the home page.
-  const [resultPage] = useState(() => isCompleteSharedQuery(search, games));
   const onRefresh = useCallback(
     (input: PlaygroundQueryInput) => {
       runQuery(input).catch(() => undefined);
@@ -204,7 +202,6 @@ export function QueryPlayground({
     <section
       className="playground"
       aria-labelledby="query-heading"
-      data-result-page={resultPage ? "" : undefined}
       ref={playgroundRef}
     >
       <div className="playground__heading">
