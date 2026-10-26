@@ -52,7 +52,16 @@ describe("caller addresses behind Cloudflare and Railway", () => {
     );
     expect(rateLimitIdentity("2001:db8::1")).toBe("2001:db8:0:0::/64");
     expect(rateLimitIdentity("fe80::1%eth0")).toBe("fe80:0:0:0::/64");
-    expect(rateLimitIdentity("::ffff:203.0.113.20")).toBe("203.0.113.20");
+    // IPv4-mapped callers stay separate IPv4 identities in every notation.
+    for (const [mapped, ipv4] of [
+      ["::ffff:203.0.113.20", "203.0.113.20"],
+      ["::FFFF:cb00:7114", "203.0.113.20"],
+      ["::ffff:cb00:7115", "203.0.113.21"],
+      ["0:0:0:0:0:ffff:cb00:7114", "203.0.113.20"],
+      ["0000:0000:0000:0000:0000:ffff:203.0.113.20", "203.0.113.20"],
+    ] as const) {
+      expect(rateLimitIdentity(mapped), mapped).toBe(ipv4);
+    }
     expect(rateLimitIdentity("203.0.113.20")).toBe("203.0.113.20");
     expect(rateLimitIdentity("anonymous")).toBe("anonymous");
     expect(callerFingerprint(request("2606:4700::1", "2001:db8:1:2::20"))).toBe(

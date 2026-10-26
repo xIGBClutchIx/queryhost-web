@@ -41,29 +41,41 @@ for (const [network, prefix] of [
 export function rateLimitIdentity(address: string): string {
   const plain = address.split("%", 1)[0] ?? address;
   if (isIP(plain) !== 6) return address;
-  const mapped = /^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/iu.exec(plain);
-  if (mapped?.[1] !== undefined) return mapped[1];
-  const [head = "", tail] = plain.toLowerCase().split("::", 2);
-  const left = head === "" ? [] : head.split(":");
-  const right = tail === undefined || tail === "" ? [] : tail.split(":");
-  // An embedded dotted IPv4 tail fills two 16-bit groups.
-  const rightGroups = right.reduce(
-    (count, group) => count + (group.includes(".") ? 2 : 1),
-    0,
-  );
-  const groups =
-    tail === undefined
-      ? left
-      : [
-          ...left,
-          ...Array.from({ length: 8 - left.length - rightGroups }, () => "0"),
-          ...right,
-        ];
+  const groups = ipv6Groups(plain);
+  // An IPv4-mapped address is an IPv4 caller in any notation, dotted or hex.
+  if (
+    groups.slice(0, 5).every((group) => group === 0) &&
+    groups[5] === 0xffff
+  ) {
+    const [high = 0, low = 0] = groups.slice(6);
+    return [high >> 8, high & 0xff, low >> 8, low & 0xff].join(".");
+  }
   const prefix = groups
     .slice(0, 4)
-    .map((group) => group.replace(/^0+(?=.)/u, ""))
+    .map((group) => group.toString(16))
     .join(":");
   return `${prefix}::/64`;
+}
+
+/** The eight 16-bit groups of a valid IPv6 literal, expanding `::` and a dotted tail. */
+function ipv6Groups(address: string): readonly number[] {
+  const [head = "", tail] = address.split("::", 2);
+  const parse = (part: string): number[] =>
+    part === ""
+      ? []
+      : part.split(":").flatMap((group) => {
+          if (!group.includes(".")) return [Number.parseInt(group, 16)];
+          const [a = 0, b = 0, c = 0, d = 0] = group.split(".").map(Number);
+          return [(a << 8) | b, (c << 8) | d];
+        });
+  const left = parse(head);
+  if (tail === undefined) return left;
+  const right = parse(tail);
+  return [
+    ...left,
+    ...Array.from({ length: 8 - left.length - right.length }, () => 0),
+    ...right,
+  ];
 }
 
 /** Resolves a rate-limit identity through Railway and an optional trusted Cloudflare edge. */
