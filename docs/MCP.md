@@ -122,9 +122,11 @@ tests, type checks, verification, and production builds regenerate it automatica
 Development edits to workspace files require re-running this command to refresh
 the bundle. No generated files belong in a commit.
 
-The local plugin manifest is the follow-up 0.2.0 draft, separate from the approved
-0.1.0 package. Its existing demo URL shows inline cards and must be replaced with
-a workspace recording before submitting the draft. Test both entrypoints in a
+The local plugin manifest is version 0.2.0, submitted for review on October 15,
+2026, while 0.1.0 remains the published version; see
+[PluginReleaseAudit.md](PluginReleaseAudit.md). Its existing demo URL shows
+inline cards and should be replaced with a workspace recording in the next
+submission. Test both entrypoints in a
 supported host and record launch, query, and panel use. A local bridge test does
 not prove ChatGPT host availability or publication. The public Minecraft examples
 in the manifest, `mc.hypixel.net` and `play.cubecraft.net`, are third-party servers;
