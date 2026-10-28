@@ -41,9 +41,15 @@ interface Harness {
   readonly setNow: (value: number) => void;
 }
 
+interface HarnessLimits {
+  readonly maxStartsPerCaller?: number;
+  readonly maxNewStartsPerWindow?: number;
+}
+
 function harness(
   fetcher: (call: number) => Promise<Response>,
   maxStartsPerWindow = 10,
+  limits: HarnessLimits = {},
 ): Harness {
   const calls: RequestInit[] = [];
   let now = 1_000;
@@ -51,11 +57,14 @@ function harness(
     cache: POLICY,
     gate: new ProxyGate({
       maxActive: 4,
-      maxStartsPerCaller: maxStartsPerWindow,
+      maxStartsPerCaller: limits.maxStartsPerCaller ?? maxStartsPerWindow,
       maxStartsPerWindow,
-      maxTrackedCallers: 1,
+      maxTrackedCallers: 16,
       windowMs: 3_600_000,
     }),
+    ...(limits.maxNewStartsPerWindow === undefined
+      ? {}
+      : { maxNewStartsPerWindow: limits.maxNewStartsPerWindow }),
     now: () => now,
     query: {
       config: {
@@ -305,9 +314,11 @@ describe("badge cache", () => {
     await service.resolve(MINECRAFT);
     setNow(70_000);
     await expect(service.resolve(MINECRAFT)).resolves.toMatchObject({
-      maxAgeSeconds: 10,
+      maxAgeSeconds: 15,
       state: { kind: "online", online: 12 },
     });
+    // The failure is remembered, so the next viewer waits for it to expire.
+    setNow(80_000);
     // The budget is now spent, so no third query starts.
     await expect(service.resolve(MINECRAFT)).resolves.toMatchObject({
       state: { kind: "online", online: 12 },
@@ -327,7 +338,109 @@ describe("badge cache", () => {
     setNow(1_000 + POLICY.maxStaleMs + 1);
     await expect(
       service.resolve({ ...MINECRAFT, host: "other.example.com" }),
-    ).resolves.toEqual({ maxAgeSeconds: 0, state: { kind: "unavailable" } });
+    ).resolves.toEqual({ maxAgeSeconds: 15, state: { kind: "unavailable" } });
+  });
+
+  it("remembers failed queries briefly instead of retrying per viewer", async () => {
+    const { calls, service, setNow } = harness(() =>
+      Promise.resolve(jsonResponse('{"error":{"code":"OVERLOADED"}}', 429)),
+    );
+    await expect(service.resolve(MINECRAFT)).resolves.toEqual({
+      maxAgeSeconds: 15,
+      state: { kind: "unavailable" },
+    });
+    setNow(11_000);
+    await expect(service.resolve(MINECRAFT)).resolves.toEqual({
+      maxAgeSeconds: 5,
+      state: { kind: "unavailable" },
+    });
+    expect(calls).toHaveLength(1);
+    setNow(16_000);
+    await service.resolve(MINECRAFT);
+    expect(calls).toHaveLength(2);
+  });
+
+  it("remembers thrown and timed-out queries the same way", async () => {
+    const { calls, service } = harness(() =>
+      Promise.reject(new Error("timeout")),
+    );
+    await service.resolve(MINECRAFT);
+    await service.resolve(MINECRAFT);
+    expect(calls).toHaveLength(1);
+  });
+
+  it("caps cache misses per caller", async () => {
+    const { calls, service } = harness(
+      () => Promise.resolve(jsonResponse(ONLINE_BODY)),
+      60,
+      { maxStartsPerCaller: 2 },
+    );
+    for (const host of ["a.example.com", "b.example.com", "c.example.com"]) {
+      await service.resolve({ ...MINECRAFT, host }, "198.51.100.1");
+    }
+    expect(calls).toHaveLength(2);
+    await expect(
+      service.resolve({ ...MINECRAFT, host: "c.example.com" }, "198.51.100.2"),
+    ).resolves.toMatchObject({ state: { kind: "online" } });
+    expect(calls).toHaveLength(3);
+  });
+
+  it("keeps part of the budget for refreshing badges already cached", async () => {
+    const { calls, service, setNow } = harness(
+      () => Promise.resolve(jsonResponse(ONLINE_BODY)),
+      3,
+      { maxNewStartsPerWindow: 2 },
+    );
+    await service.resolve({ ...MINECRAFT, host: "popular.example.com" }, "a");
+    await service.resolve({ ...MINECRAFT, host: "new-1.example.com" }, "b");
+    // New servers have used their share, so this one is turned away.
+    await expect(
+      service.resolve({ ...MINECRAFT, host: "new-2.example.com" }, "c"),
+    ).resolves.toMatchObject({ state: { kind: "unavailable" } });
+    expect(calls).toHaveLength(2);
+    // The popular badge expires and still refreshes from the reserve.
+    setNow(62_000);
+    await service.resolve({ ...MINECRAFT, host: "popular.example.com" }, "d");
+    expect(calls).toHaveLength(3);
+  });
+
+  it("shares one entry for a missing and an explicit default port", async () => {
+    const { calls, service } = harness(() =>
+      Promise.resolve(jsonResponse(ONLINE_BODY)),
+    );
+    const rust: PlaygroundQueryInput = {
+      game: "rust",
+      host: "203.0.113.5",
+      mode: "summary",
+    };
+    await service.resolve(rust);
+    await service.resolve({ ...rust, port: 28015 });
+    expect(calls).toHaveLength(1);
+  });
+
+  it("keeps Minecraft: Java Edition's SRV lookup separate from its default port", async () => {
+    const { calls, service } = harness(() =>
+      Promise.resolve(jsonResponse(ONLINE_BODY)),
+    );
+    await service.resolve(MINECRAFT);
+    await service.resolve({ ...MINECRAFT, port: 25565 });
+    expect(calls).toHaveLength(2);
+    const body = calls[0]?.body;
+    expect(typeof body === "string" ? JSON.parse(body) : body).toEqual(
+      MINECRAFT,
+    );
+  });
+
+  it("caches blocked targets as invalid", async () => {
+    const { service } = harness(() =>
+      Promise.resolve(
+        jsonResponse('{"ok":false,"error":{"code":"TARGET_BLOCKED"}}'),
+      ),
+    );
+    await expect(service.resolve(MINECRAFT)).resolves.toEqual({
+      maxAgeSeconds: 30,
+      state: { kind: "invalid" },
+    });
   });
 
   it("evicts the least recently stored servers beyond its bound", async () => {
@@ -396,7 +509,7 @@ describe("badge route", () => {
       service,
     );
     expect(response.status).toBe(400);
-    expect(response.headers.get("cache-control")).toBe("no-cache");
+    expect(response.headers.get("cache-control")).toBe("public, max-age=300");
     expect(await response.text()).toContain(">invalid server</text>");
     expect(calls).toHaveLength(0);
   });
@@ -419,15 +532,34 @@ describe("badge route", () => {
 });
 
 describe("badge budget", () => {
-  it("is global, so image proxies sharing an address are not throttled per caller", () => {
-    const policy = loadBadgeGatePolicy({});
-    expect(policy.maxStartsPerCaller).toBe(policy.maxStartsPerWindow);
-    expect(policy.maxStartsPerWindow).toBe(60);
+  it("caps each caller and keeps a reserve for refreshes", () => {
+    expect(loadBadgeGatePolicy({})).toMatchObject({
+      maxNewStartsPerWindow: 40,
+      maxStartsPerCaller: 15,
+      maxStartsPerWindow: 60,
+    });
+    expect(
+      loadBadgeGatePolicy({
+        QUERYHOST_WEB_BADGE_MAX_STARTS_PER_CALLER: "30",
+        QUERYHOST_WEB_BADGE_MAX_STARTS_PER_WINDOW: "120",
+        QUERYHOST_WEB_BADGE_REFRESH_RESERVE: "0",
+      }),
+    ).toMatchObject({
+      maxNewStartsPerWindow: 120,
+      maxStartsPerCaller: 30,
+      maxStartsPerWindow: 120,
+    });
   });
 
   it("validates its settings", () => {
     expect(() =>
       loadBadgeGatePolicy({ QUERYHOST_WEB_BADGE_MAX_ACTIVE: "0" }),
+    ).toThrow(RangeError);
+    expect(() =>
+      loadBadgeGatePolicy({ QUERYHOST_WEB_BADGE_REFRESH_RESERVE: "60" }),
+    ).toThrow(RangeError);
+    expect(() =>
+      loadBadgeGatePolicy({ QUERYHOST_WEB_BADGE_MAX_STARTS_PER_CALLER: "61" }),
     ).toThrow(RangeError);
   });
 });

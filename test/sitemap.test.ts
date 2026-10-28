@@ -47,6 +47,7 @@ describe("robots.txt", () => {
 
     expect(robots).toContain("User-agent: *\nAllow: /\n");
     expect(robots).toContain("Disallow: /api/\n");
+    expect(robots).toContain("Disallow: /embed/\n");
     expect(robots).toContain("Disallow: /mcp\n");
     expect(robots).toContain("Sitemap: https://query.host/sitemap.xml\n");
   });

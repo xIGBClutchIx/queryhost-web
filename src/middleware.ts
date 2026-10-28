@@ -13,7 +13,10 @@ export const onRequest = defineMiddleware(async (context, next) => {
   }
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   response.headers.set("X-Content-Type-Options", "nosniff");
-  response.headers.set("X-Frame-Options", "DENY");
+  // Embed cards are the one page other sites may frame; their CSP says so.
+  if (!pathname.startsWith("/embed/")) {
+    response.headers.set("X-Frame-Options", "DENY");
+  }
   if (!response.headers.has("Content-Security-Policy")) {
     response.headers.set(
       "Content-Security-Policy",

@@ -71,14 +71,17 @@ export function usageReportDependencies(): UsageReportDependencies {
 }
 
 /**
- * Badges reuse the public API's query target but have their own cache and a
- * global budget, so image traffic never spends a caller's API allowance.
+ * Badges reuse the public API's query target but have their own cache and
+ * budget, so image traffic never spends a caller's API allowance.
  */
 export function badgeService(): BadgeService {
+  if (badges !== undefined) return badges;
   const api = publicApiDependencies();
-  badges ??= new BadgeService({
+  const policy = loadBadgeGatePolicy();
+  badges = new BadgeService({
     cache: DEFAULT_BADGE_CACHE_POLICY,
-    gate: new ProxyGate(loadBadgeGatePolicy()),
+    gate: new ProxyGate(policy),
+    maxNewStartsPerWindow: policy.maxNewStartsPerWindow,
     now: Date.now,
     // Badge queries are not public API calls, so they leave its usage alone.
     query: {

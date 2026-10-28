@@ -69,15 +69,20 @@ function implementedRoutes(): readonly string[] {
   const root = join(import.meta.dirname, "../src/pages/api/v1");
   return readdirSync(root, { recursive: true, withFileTypes: true })
     .filter((entry) => entry.isFile() && !entry.name.startsWith("[..."))
-    .map((entry) =>
-      relative(root, join(entry.parentPath, entry.name))
+    .flatMap((entry) => {
+      const route = relative(root, join(entry.parentPath, entry.name))
         .split(sep)
         .join("/")
-        .replace(/\.ts$/u, "")
-        // The badge file segment is `{host}[:port].svg`, named `server` in the spec.
-        .replace("[file]", "{server}.svg")
-        .replace(/\[(\w+)\]/gu, "{$1}"),
-    )
+        .replace(/\.ts$/u, "");
+      // The badge file segment is `{host}[:port].svg` or `.json`, named
+      // `server` in the spec.
+      const files = route.includes("[file]")
+        ? [".json", ".svg"].map((extension) =>
+            route.replace("[file]", `{server}${extension}`),
+          )
+        : [route];
+      return files.map((file) => file.replace(/\[(\w+)\]/gu, "{$1}"));
+    })
     .map((route) => `/${route}`)
     .sort();
 }
