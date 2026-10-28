@@ -419,3 +419,122 @@ describe("Share and embed", () => {
     unmount();
   });
 });
+
+describe("result accessibility", () => {
+  it("keeps a long name whole in its title and labels the query path list", () => {
+    const unmount = render(BEDROCK_ONLINE);
+    expect(
+      container.querySelector("#query-result-name")?.getAttribute("title"),
+    ).toBe("HALLOWEEN EVENT, HUNT + MAPS");
+    const path = container.querySelector("#query-path");
+    expect(path?.hasAttribute("aria-labelledby")).toBe(false);
+    expect(path?.querySelector("ol")?.getAttribute("aria-labelledby")).toBe(
+      "query-path-label",
+    );
+    expect(container.querySelector("#query-path-label")?.textContent).toBe(
+      "Query path",
+    );
+    unmount();
+  });
+
+  it("follows a tab its caller owns and reports changes", () => {
+    const onTabChange = vi.fn<(tab: string) => void>();
+    const root = createRoot(container);
+    void act(() => {
+      root.render(
+        <QueryResult
+          games={PLAYGROUND_GAMES}
+          onTabChange={onTabChange}
+          result={BEDROCK_ONLINE}
+          tab="sources"
+        />,
+      );
+    });
+    expect(
+      container
+        .querySelector("#query-tab-sources")
+        ?.getAttribute("aria-selected"),
+    ).toBe("true");
+    click("#query-tab-json");
+    expect(onTabChange).toHaveBeenCalledWith("json");
+    void act(() => {
+      root.unmount();
+    });
+  });
+});
+
+describe("Copy buttons", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    Reflect.deleteProperty(navigator, "clipboard");
+  });
+
+  function copyJson(): HTMLButtonElement {
+    click("#query-tab-json");
+    const button = Array.from(
+      container.querySelectorAll<HTMLButtonElement>(
+        ".query-json-toolbar button",
+      ),
+    ).find((candidate) => candidate.textContent === "Copy JSON");
+    if (button === undefined) throw new Error("Missing Copy JSON");
+    return button;
+  }
+
+  it("reports a missing clipboard, as on an insecure origin, and recovers", async () => {
+    vi.useFakeTimers();
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: undefined,
+    });
+    const unmount = render(BEDROCK_ONLINE);
+    const button = copyJson();
+    await act(async () => {
+      button.click();
+      await Promise.resolve();
+    });
+    expect(button.textContent).toBe("Copy failed");
+    const status = button.nextElementSibling;
+    expect(status?.getAttribute("role")).toBe("status");
+    expect(status?.textContent).toBe("Copy failed");
+    void act(() => {
+      vi.advanceTimersByTime(1_500);
+    });
+    expect(button.textContent).toBe("Copy JSON");
+    expect(status?.textContent).toBe("");
+    unmount();
+  });
+
+  it("reports a clipboard that throws instead of rejecting", async () => {
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: {
+        writeText: () => {
+          throw new Error("Denied.");
+        },
+      },
+    });
+    const unmount = render(BEDROCK_ONLINE);
+    const button = copyJson();
+    await act(async () => {
+      button.click();
+      await Promise.resolve();
+    });
+    expect(button.textContent).toBe("Copy failed");
+    unmount();
+  });
+
+  it("announces a successful copy", async () => {
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText: () => Promise.resolve() },
+    });
+    const unmount = render(BEDROCK_ONLINE);
+    const button = copyJson();
+    await act(async () => {
+      button.click();
+      await Promise.resolve();
+    });
+    expect(button.nextElementSibling?.textContent).toBe("Copied");
+    unmount();
+  });
+});

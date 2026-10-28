@@ -73,16 +73,15 @@ function QueryPath({
 }): ReactNode {
   const pathItems = queryPathItems(result.sources);
   return (
-    <div
-      className="query-path"
-      id="query-path"
-      aria-labelledby="query-path-label"
-      hidden={pathItems.length === 0}
-    >
+    <div className="query-path" id="query-path" hidden={pathItems.length === 0}>
+      {/* Phones hide the label visually; it still names the list. */}
       <span className="query-path__label" id="query-path-label">
         Query path
       </span>
-      <ol style={{ "--query-path-count": String(pathItems.length) }}>
+      <ol
+        aria-labelledby="query-path-label"
+        style={{ "--query-path-count": String(pathItems.length) }}
+      >
         {pathItems.map((item) => (
           <li
             key={item.source}

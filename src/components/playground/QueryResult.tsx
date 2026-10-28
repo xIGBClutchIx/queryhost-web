@@ -35,7 +35,7 @@ const RESULT_TABS = [
   { id: "json", label: "JSON" },
 ] as const;
 
-type ResultTab = (typeof RESULT_TABS)[number]["id"];
+export type ResultTab = (typeof RESULT_TABS)[number]["id"];
 
 const TAB_PREFIX = "query";
 
@@ -47,7 +47,14 @@ interface QueryResultProps {
   readonly input?: PlaygroundQueryInput;
   /** Runs the result's query again; must be stable to keep the result memoized. */
   readonly onRefresh?: (input: PlaygroundQueryInput) => void;
+  /**
+   * Reports tab changes, so a caller holding `tab` can keep the view across a
+   * refresh; must be stable to keep the result memoized.
+   */
+  readonly onTabChange?: (tab: ResultTab) => void;
   readonly result: PlaygroundQueryResponse;
+  /** The active tab when the caller owns it; otherwise the result does. */
+  readonly tab?: ResultTab;
 }
 
 /** The queried address, with its port only when it differs from the profile default. */
@@ -70,9 +77,16 @@ export const QueryResult = memo(function QueryResult({
   games,
   input,
   onRefresh,
+  onTabChange,
   result,
+  tab,
 }: QueryResultProps): ReactNode {
-  const [activeTab, setActiveTab] = useState<ResultTab>("overview");
+  const [ownTab, setOwnTab] = useState<ResultTab>(tab ?? "overview");
+  const activeTab = tab ?? ownTab;
+  const setActiveTab = (next: ResultTab): void => {
+    setOwnTab(next);
+    onTabChange?.(next);
+  };
   const game = games.find((candidate) => candidate.id === result.game);
   const links = useMemo(() => {
     if (input === undefined) return undefined;
@@ -164,7 +178,10 @@ export const QueryResult = memo(function QueryResult({
               {game?.name ?? result.game}
             </span>
           </p>
-          <h2 id="query-result-name">{name}</h2>
+          {/* A long name is cut short with an ellipsis; the title keeps it whole. */}
+          <h2 id="query-result-name" title={name}>
+            {name}
+          </h2>
           {/* Only what the panels below do not show: the address behind a
               reported name, or why the query failed. */}
           <p className="query-result__subtitle" id="query-result-subtitle">
@@ -185,7 +202,7 @@ export const QueryResult = memo(function QueryResult({
         {pinned && (
           <p className="query-result__pinned-name" aria-hidden="true">
             {icon !== undefined && <img src={icon} alt="" />}
-            <span>{name}</span>
+            <span title={name}>{name}</span>
           </p>
         )}
         <Tabs

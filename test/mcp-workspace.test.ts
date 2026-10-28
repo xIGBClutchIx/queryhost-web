@@ -280,6 +280,27 @@ describe("query workspace", () => {
     };
     workspace.result(unsafe);
     expect(document.getElementById("result")?.hidden).toBe(true);
+    // Only the playground and its result pages are links the workspace opens.
+    for (const playgroundUrl of [
+      "https://query.host/api/v1/query",
+      "https://user@query.host/rust/play.example.com",
+    ]) {
+      workspace.result({
+        ...unsafe,
+        structuredContent: { ...unsafe.structuredContent, playgroundUrl },
+      });
+      expect(document.getElementById("result")?.hidden, playgroundUrl).toBe(
+        true,
+      );
+    }
+    workspace.result({
+      ...unsafe,
+      structuredContent: {
+        ...unsafe.structuredContent,
+        playgroundUrl: "https://query.host/minecraft-java/test.example.com",
+      },
+    });
+    expect(document.getElementById("result")?.hidden).toBe(false);
     const failure = output();
     failure.isError = true;
     failure.structuredContent = {

@@ -98,6 +98,8 @@ export type PlaygroundProxyErrorCode =
   | "OVERLOADED"
   | "RATE_LIMITED"
   | "UNAUTHORIZED"
+  /** The browser could not read the web service's response, as a gateway's HTML page. */
+  | "UNEXPECTED_RESPONSE"
   | "UPSTREAM_INVALID"
   | "UPSTREAM_UNAVAILABLE";
 

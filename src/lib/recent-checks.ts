@@ -40,6 +40,28 @@ function isPlainHost(value: JsonValue | undefined): value is string {
   );
 }
 
+/**
+ * One spelling per server: hostnames are case-insensitive, a fully qualified
+ * name's trailing dot names the same host, and the game's default port is the
+ * port a check without one reaches.
+ */
+function normalizedCheck(
+  check: RecentCheck,
+  game: PlaygroundGameDefinition | undefined,
+): RecentCheck {
+  const host = check.host.toLowerCase().replace(/\.$/u, "");
+  const port =
+    check.port === undefined || check.port === game?.defaultPort
+      ? undefined
+      : check.port;
+  return {
+    game: check.game,
+    host,
+    ...(port === undefined ? {} : { port }),
+    ...(check.queryPort === undefined ? {} : { queryPort: check.queryPort }),
+  };
+}
+
 function recentCheck(
   value: JsonValue,
   games: readonly PlaygroundGameDefinition[],
@@ -57,12 +79,16 @@ function recentCheck(
   ) {
     return undefined;
   }
-  return {
-    game: game.id,
-    host,
-    ...(port === undefined ? {} : { port }),
-    ...(queryPort === undefined ? {} : { queryPort }),
-  };
+  const check = normalizedCheck(
+    {
+      game: game.id,
+      host,
+      ...(port === undefined ? {} : { port }),
+      ...(queryPort === undefined ? {} : { queryPort }),
+    },
+    game,
+  );
+  return check.host.length === 0 ? undefined : check;
 }
 
 /** Reads the stored list, dropping anything malformed or for an unknown game. */
@@ -78,16 +104,25 @@ export function parseRecentChecks(
     return [];
   }
   if (!Array.isArray(value)) return [];
-  return value
-    .map((entry) => recentCheck(entry, games))
-    .filter((entry) => entry !== undefined)
-    .slice(0, RECENT_CHECKS_LIMIT);
+  // Lists saved before normalization can hold two spellings of one server.
+  const checks: RecentCheck[] = [];
+  for (const entry of value) {
+    const check = recentCheck(entry, games);
+    if (
+      check !== undefined &&
+      !checks.some((existing) => sameServer(existing, check))
+    ) {
+      checks.push(check);
+    }
+  }
+  return checks.slice(0, RECENT_CHECKS_LIMIT);
 }
 
-function sameServer(left: RecentCheck, right: RecentCheck): boolean {
+/** Compares normalized checks. */
+export function sameServer(left: RecentCheck, right: RecentCheck): boolean {
   return (
     left.game === right.game &&
-    left.host.toLowerCase() === right.host.toLowerCase() &&
+    left.host === right.host &&
     left.port === right.port &&
     left.queryPort === right.queryPort
   );
@@ -97,17 +132,29 @@ function sameServer(left: RecentCheck, right: RecentCheck): boolean {
 export function withRecentCheck(
   checks: readonly RecentCheck[],
   input: PlaygroundQueryInput,
+  games: readonly PlaygroundGameDefinition[],
 ): readonly RecentCheck[] {
-  const check: RecentCheck = {
-    game: input.game,
-    host: input.host,
-    ...(input.port === undefined ? {} : { port: input.port }),
-    ...(input.queryPort === undefined ? {} : { queryPort: input.queryPort }),
-  };
+  const check = normalizedCheck(
+    {
+      game: input.game,
+      host: input.host,
+      ...(input.port === undefined ? {} : { port: input.port }),
+      ...(input.queryPort === undefined ? {} : { queryPort: input.queryPort }),
+    },
+    games.find((candidate) => candidate.id === input.game),
+  );
   return [
     check,
     ...checks.filter((existing) => !sameServer(existing, check)),
   ].slice(0, RECENT_CHECKS_LIMIT);
+}
+
+/** Drops one check, as from its remove control. */
+export function withoutRecentCheck(
+  checks: readonly RecentCheck[],
+  check: RecentCheck,
+): readonly RecentCheck[] {
+  return checks.filter((existing) => !sameServer(existing, check));
 }
 
 /** Storage can be missing or refuse access, as in some private windows. */
