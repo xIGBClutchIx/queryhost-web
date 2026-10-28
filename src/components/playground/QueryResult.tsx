@@ -3,7 +3,6 @@ import type { ReactNode } from "react";
 
 import {
   apiCurlCommand,
-  badgeHtml,
   badgeMarkdown,
   badgeUrl,
 } from "../../lib/badge-url.js";
@@ -90,10 +89,12 @@ export const QueryResult = memo(function QueryResult({
     const badgeTarget = shareUrl(origin, target, games);
     const share: ShareLinks = {
       apiCommand: apiCurlCommand(origin, input),
-      badgeHtml: badgeHtml(gameName, badge, badgeTarget),
       badgeImage: badge.href,
-      badgeLabel: `${gameName} server status`,
+      badgeInput: target,
       badgeMarkdown: badgeMarkdown(gameName, badge, badgeTarget),
+      badgeTarget: badgeTarget.href,
+      gameName,
+      origin,
       result: shareUrl(origin, input, games).href,
     };
     return share;

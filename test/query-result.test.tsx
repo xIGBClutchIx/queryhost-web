@@ -383,7 +383,13 @@ describe("Share and embed", () => {
     ).toBe(
       `${origin}/api/v1/badge/minecraft-bedrock/play.example.com:19133.svg`,
     );
-    const [link, badge, api] = panelCodes();
+    const [link, badge, embed, endpoint, api] = panelCodes();
+    expect(embed).toBe(
+      `<iframe src="${origin}/embed/minecraft-bedrock/play.example.com:19133" title="Minecraft: Bedrock Edition server status" width="360" height="88" style="border:0" loading="lazy"></iframe>`,
+    );
+    expect(endpoint).toBe(
+      `${origin}/api/v1/badge/minecraft-bedrock/play.example.com:19133.json`,
+    );
     expect(link).toBe(
       `${origin}/minecraft-bedrock/play.example.com:19133?mode=summary&timeoutMs=3000`,
     );
@@ -416,6 +422,53 @@ describe("Share and embed", () => {
     });
     expect(container.querySelector("#query-share-panel")).toBeNull();
     expect(document.activeElement?.id).toBe("query-result-share");
+    unmount();
+  });
+
+  it("builds a customised badge, embed, and endpoint", () => {
+    const unmount = render(BEDROCK_ONLINE, {
+      game: "minecraft-bedrock",
+      host: "play.example.com",
+      mode: "summary",
+      port: 19133,
+    });
+    const origin = window.location.origin;
+    const base = `${origin}/api/v1/badge/minecraft-bedrock/play.example.com:19133`;
+    click("#query-result-share");
+    function change(selector: string, value: string, type: string): void {
+      void act(() => {
+        const field = container.querySelector<
+          HTMLInputElement | HTMLSelectElement
+        >(selector);
+        if (field === null) throw new Error(`Missing ${selector}`);
+        field.value = value;
+        field.dispatchEvent(new Event(type, { bubbles: true }));
+      });
+    }
+    change("#share-badge-style", "for-the-badge", "change");
+    change("#share-badge-show", "status", "change");
+    change("#share-badge-theme", "auto", "change");
+    change("#share-badge-label", "My Server", "input");
+    const query = "?style=for-the-badge&show=status&theme=auto&label=My+Server";
+    expect(
+      container.querySelector("#query-share-panel img")?.getAttribute("src"),
+    ).toBe(`${base}.svg${query}`);
+    const [, badge, embed, endpoint] = panelCodes();
+    expect(badge).toContain(`(${base}.svg${query})`);
+    expect(embed).toContain(
+      `src="${origin}/embed/minecraft-bedrock/play.example.com:19133?theme=auto"`,
+    );
+    expect(endpoint).toBe(
+      `${base}.json?style=for-the-badge&show=status&label=My+Server`,
+    );
+
+    change("#share-badge-label", "evil.example/login", "input");
+    const label = container.querySelector("#share-badge-label");
+    expect(label?.getAttribute("aria-invalid")).toBe("true");
+    expect(label?.getAttribute("aria-describedby")).toBe(
+      "share-badge-label-hint",
+    );
+    expect(panelCodes()[1]).not.toContain("label=");
     unmount();
   });
 });

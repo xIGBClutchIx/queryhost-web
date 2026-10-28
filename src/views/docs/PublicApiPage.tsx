@@ -21,6 +21,12 @@ const curlExample = `curl https://query.host/api/v1/query \\
 
 const badgeExample = `[![Minecraft server status](https://query.host/api/v1/badge/minecraft/mc.example.com.svg)](https://query.host/minecraft-java/mc.example.com)`;
 
+const badgeOptionsExample = `https://query.host/api/v1/badge/rust/203.0.113.5:28015.svg?style=for-the-badge&show=players-map&theme=auto&label=My%20Rust%20server`;
+
+const shieldsExample = `https://img.shields.io/endpoint?url=https%3A%2F%2Fquery.host%2Fapi%2Fv1%2Fbadge%2Fminecraft%2Fmc.example.com.json`;
+
+const embedExample = `<iframe src="https://query.host/embed/minecraft-java/mc.example.com" title="Minecraft server status" width="360" height="88" style="border:0" loading="lazy"></iframe>`;
+
 const fetchExample = `const response = await fetch("https://query.host/api/v1/query", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
@@ -207,21 +213,89 @@ export function PublicApiPage(): ReactNode {
         count, or <code>offline</code>. Add <code>:port</code> after the host
         for a non-default game port (bracket IPv6 addresses, as in{" "}
         <code>[2001:db8::1]:27015</code>) and <code>?queryPort=</code> to
-        override the query port. The <strong>Copy badge</strong> button in a
-        query&apos;s JSON view writes this Markdown for you.
+        override the query port. The <strong>Share</strong> menu next to a
+        result builds the badge and copies it as Markdown, HTML, or a URL.
       </p>
       <CodeBlock
         code={badgeExample}
         label="Embed a badge"
         language="Markdown"
       />
+      <p>Optional query parameters change how a badge is drawn:</p>
+      <ul>
+        <li>
+          <code>style</code>: <code>flat</code> (default),{" "}
+          <code>flat-square</code>, or <code>for-the-badge</code>.
+        </li>
+        <li>
+          <code>show</code>: <code>players</code> (default), <code>status</code>{" "}
+          for just online or offline, or <code>players-map</code> to add the
+          server&apos;s map, shortened to 24 characters.
+        </li>
+        <li>
+          <code>theme</code>: <code>dark</code> (default), <code>light</code>,
+          or <code>auto</code>, which follows the viewer&apos;s colour scheme.
+        </li>
+        <li>
+          <code>label</code>: replaces the game name, up to 32 characters of
+          letters, digits, spaces, and simple punctuation (
+          <code>- _ . , : ; ! ? &amp; + &apos; ( ) # |</code>). Anything else,
+          including slashes, <code>@</code>, and quotes, is ignored and the game
+          name is shown.
+        </li>
+      </ul>
       <p>
-        Badges are cached for 60 seconds while online and 30 seconds while
-        offline, and every viewer of a server shares one cached query. Badge
-        views do not count toward your per-IP query limit; uncached badges share
-        their own budget, and when it is spent a badge shows its last known
-        state or <code>unavailable</code>.
+        Unknown values fall back to the default. Options never change the query
+        behind a badge, so every variant of a server shares one cached result.
       </p>
+      <CodeBlock code={badgeOptionsExample} label="Badge options" />
+      <p>
+        A badge is <code>offline</code> when the server did not answer,{" "}
+        <code>invalid server</code> when the address is malformed, private, or
+        blocked, and <code>unavailable</code> when no fresh result could be
+        fetched and none was cached in the last 10 minutes. Badges are cached
+        for 60 seconds while online and 30 seconds while offline, and every
+        viewer of a server shares one cached query. Badge views do not count
+        toward your per-IP query limit; uncached badges share their own budget,
+        of which each address may start 15 queries a minute and new servers may
+        use only part, so badges already in use keep refreshing. When a fresh
+        result cannot be fetched, a badge shows its last known state or{" "}
+        <code>unavailable</code> for up to 15 seconds. Responses carry an{" "}
+        <code>ETag</code>; send it back in <code>If-None-Match</code> for an
+        empty <code>304</code>.
+      </p>
+      <h3 id="shields-endpoint">shields.io endpoint</h3>
+      <p>
+        Change <code>.svg</code> to <code>.json</code> to get the same badge as
+        a{" "}
+        <a href="https://shields.io/badges/endpoint-badge">
+          shields.io endpoint
+        </a>{" "}
+        body (<code>schemaVersion</code>, <code>label</code>,{" "}
+        <code>message</code>, <code>color</code>, <code>labelColor</code>,{" "}
+        <code>isError</code>, <code>cacheSeconds</code>), from the same cache
+        and budget. It takes <code>style</code>, <code>show</code>, and{" "}
+        <code>label</code>; shields.io draws the badge itself.
+      </p>
+      <CodeBlock code={shieldsExample} label="shields.io badge" />
+      <h3 id="embed-card">Embed card</h3>
+      <p>
+        <code>
+          https://query.host/embed/{"{game}"}/{"{host}"}
+        </code>{" "}
+        is a 360×88 status card for an <code>iframe</code>: the server&apos;s
+        icon (Minecraft: Java Edition favicons), name, address, players, and
+        status. It reads the badge&apos;s cached query, runs no scripts, reloads
+        itself every minute, and opens the result page in a new tab when
+        clicked. Add <code>?theme=light</code> or <code>?theme=auto</code> to
+        match your page, and <code>?queryPort=</code> as for badges. It is the
+        only QueryHost page other sites may frame.
+      </p>
+      <CodeBlock
+        code={embedExample}
+        label="Embed a status card"
+        language="HTML"
+      />
       <h2 id="result-links">Result links</h2>
       <p>
         Every query has a page at{" "}
