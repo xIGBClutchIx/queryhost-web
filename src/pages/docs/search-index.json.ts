@@ -5,6 +5,7 @@ import { renderToStaticMarkup } from "preact-render-to-string";
 
 import { buildDocsSearchIndex } from "../../lib/docs-search-index.js";
 import * as changelog from "../../views/docs/ChangelogPage.tsx";
+import * as credits from "../../views/docs/CreditsPage.tsx";
 import * as errors from "../../views/docs/ErrorsPage.tsx";
 import * as games from "../../views/docs/GamesPage.tsx";
 import * as gettingStarted from "../../views/docs/GettingStartedPage.tsx";
@@ -24,6 +25,7 @@ const VIEWS: readonly (readonly [
   FunctionComponent,
 ])[] = [
   [changelog.metadata, changelog.ChangelogPage],
+  [credits.metadata, credits.CreditsPage],
   [errors.metadata, errors.ErrorsPage],
   [games.metadata, games.GamesPage],
   [gettingStarted.metadata, gettingStarted.GettingStartedPage],

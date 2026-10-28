@@ -571,6 +571,18 @@
   margin-top: 0;
 }
 
+.credits-games {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+  gap: var(--space-1-5) var(--space-4);
+  padding: 0;
+  list-style: none;
+}
+
+.credits-games li + li {
+  margin-top: 0;
+}
+
 .reference-group a {
   color: var(--text);
   font-family: "Geist Mono Variable", monospace;
