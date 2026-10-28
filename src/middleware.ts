@@ -12,6 +12,11 @@ export const onRequest = defineMiddleware(async (context, next) => {
     response.headers.set("Cache-Control", cacheControlForPath(pathname));
   }
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  // Browsers ignore HSTS over plain HTTP, so local development is unaffected.
+  response.headers.set(
+    "Strict-Transport-Security",
+    "max-age=63072000; includeSubDomains",
+  );
   response.headers.set("X-Content-Type-Options", "nosniff");
   response.headers.set("X-Frame-Options", "DENY");
   if (!response.headers.has("Content-Security-Policy")) {

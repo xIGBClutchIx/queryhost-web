@@ -34,6 +34,7 @@ export class SurfaceUsage {
   #unavailable = 0;
   readonly #rateLimited: Record<ProxyGateRejectionReason, number> = {
     active: 0,
+    callerActive: 0,
     window: 0,
     caller: 0,
     callers: 0,

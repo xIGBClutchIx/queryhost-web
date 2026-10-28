@@ -202,6 +202,14 @@ describe("preview route", () => {
     expect(drawn).toHaveLength(1);
   });
 
+  it("spends no badge query when drawing is over budget", async () => {
+    const { bodies, service } = harness(ONLINE, 1);
+    await get(service, "rust/one.example.com.png");
+    expect(bodies).toHaveLength(1);
+    const response = await get(service, "rust/two.example.com.png");
+    expect(response.status).toBe(302);
+    expect(bodies).toHaveLength(1);
+  });
   it("rejects invalid servers and other methods without querying", async () => {
     const { bodies, service } = harness(ONLINE);
     for (const path of [

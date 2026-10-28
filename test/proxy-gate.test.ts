@@ -93,6 +93,54 @@ describe("public proxy gate", () => {
     expect(gate.trackedCallers).toBe(1);
   });
 
+  it("keeps one caller from holding every active slot", () => {
+    const gate = new ProxyGate({
+      ...POLICY,
+      maxActive: 3,
+      maxActivePerCaller: 1,
+      maxStartsPerCaller: 5,
+      maxStartsPerWindow: 10,
+    });
+    const first = gate.admit("caller-a", 0);
+    expect(first.accepted).toBe(true);
+    expect(gate.admit("caller-a", 0)).toEqual({
+      accepted: false,
+      reason: "callerActive",
+      retryAfterSeconds: 1,
+    });
+    const other = gate.admit("caller-b", 0);
+    expect(other.accepted).toBe(true);
+    expect(gate.active).toBe(2);
+
+    // Releasing twice frees the caller's slot only once.
+    if (first.accepted) {
+      first.release();
+      first.release();
+    }
+    const again = gate.admit("caller-a", 1);
+    expect(again.accepted).toBe(true);
+    expect(gate.admit("caller-a", 1)).toMatchObject({
+      reason: "callerActive",
+    });
+    if (again.accepted) again.release();
+    if (other.accepted) other.release();
+    expect(gate.active).toBe(0);
+  });
+
+  it("reports start budget without spending it or counting active work", () => {
+    const gate = new ProxyGate({ ...POLICY, maxActive: 1 });
+    expect(gate.hasStartBudget("caller-a", 0)).toBe(true);
+    expect(gate.trackedCallers).toBe(0);
+    const first = gate.admit("caller-a", 0);
+    // The active slot is taken, but the windows still have room.
+    expect(gate.hasStartBudget("caller-a", 0)).toBe(true);
+    if (first.accepted) first.release();
+    gate.admit("caller-a", 0);
+    expect(gate.hasStartBudget("caller-a", 0)).toBe(false);
+    expect(gate.hasStartBudget("caller-b", 0)).toBe(true);
+    expect(gate.hasStartBudget("caller-a", 1_000)).toBe(true);
+  });
+
   it("charges weighted requests against caller and global budgets", () => {
     const gate = new ProxyGate({
       ...POLICY,

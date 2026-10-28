@@ -14,6 +14,7 @@ import { ProxyGate } from "./proxy-gate.js";
 import { localDetect, type PublicDetectDependencies } from "./public-detect.js";
 import {
   createDefaultPublicQueryDependencies,
+  MCP_QUERY_GATE_DEFAULTS,
   type PublicQueryDependencies,
 } from "./public-query.js";
 import {
@@ -26,10 +27,11 @@ const startedAt = Date.now();
 let dependencies: PublicQueryDependencies | undefined;
 let detectDependencies: PublicDetectDependencies | undefined;
 let apiDependencies: PublicQueryDependencies | undefined;
+let mcpDependencies: PublicQueryDependencies | undefined;
 let badges: BadgeService | undefined;
 let previews: PreviewService | undefined;
 
-/** Browser and MCP calls share one process-local admission gate. */
+/** Same-origin playground calls share one process-local admission gate. */
 export function publicQueryDependencies(): PublicQueryDependencies {
   dependencies ??= createDefaultPublicQueryDependencies();
   return dependencies;
@@ -56,15 +58,30 @@ export function publicApiDependencies(): PublicQueryDependencies {
   return apiDependencies;
 }
 
+/**
+ * MCP tool queries get their own gate. Hosted clients such as ChatGPT share a
+ * few egress addresses, so under the playground's per-IP budget every one of
+ * their users would share a single caller's allowance.
+ */
+export function mcpQueryDependencies(): PublicQueryDependencies {
+  mcpDependencies ??= createDefaultPublicQueryDependencies(
+    process.env,
+    "QUERYHOST_WEB_MCP_",
+    MCP_QUERY_GATE_DEFAULTS,
+  );
+  return mcpDependencies;
+}
+
 let reportDependencies: UsageReportDependencies | undefined;
 
-/** Operator usage report over both query surfaces and the games route. */
+/** Operator usage report over the query surfaces and the games route. */
 export function usageReportDependencies(): UsageReportDependencies {
   reportDependencies ??= {
     token: loadUsageReportToken(),
     startedAt,
     playground: publicQueryDependencies(),
     publicApi: publicApiDependencies(),
+    mcp: mcpQueryDependencies(),
     games: publicApiGamesUsage,
   };
   return reportDependencies;

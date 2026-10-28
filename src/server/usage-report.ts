@@ -22,14 +22,17 @@ export interface UsageReportDependencies {
   readonly startedAt: number;
   readonly playground: PublicQueryDependencies;
   readonly publicApi: PublicQueryDependencies;
+  readonly mcp: PublicQueryDependencies;
   readonly games: GamesUsage;
 }
 
 export interface UsageReport {
   readonly startedAt: string;
-  /** Same-origin playground and MCP tool queries, which share one gate. */
+  /** Same-origin playground queries and detections. */
   readonly playground: SurfaceUsageSnapshot;
   readonly publicApi: SurfaceUsageSnapshot;
+  /** MCP tool queries, which have their own gate. */
+  readonly mcp: SurfaceUsageSnapshot;
   readonly games: GamesUsageSnapshot;
   /** The private API's own counters, or `null` when they could not be read. */
   readonly api: JsonValue;
@@ -155,6 +158,7 @@ export async function handleUsageReport(
     startedAt: new Date(dependencies.startedAt).toISOString(),
     playground: dependencies.playground.usage.snapshot(),
     publicApi: dependencies.publicApi.usage.snapshot(),
+    mcp: dependencies.mcp.usage.snapshot(),
     games: dependencies.games.snapshot(),
     api: await upstreamStats(dependencies.playground),
   };

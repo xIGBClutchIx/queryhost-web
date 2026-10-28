@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import type {
   JsonValue,
@@ -10,11 +10,13 @@ import {
   handlePublicQuery,
   loadProxyGatePolicy,
   loadPublicQueryConfig,
+  MCP_QUERY_GATE_DEFAULTS,
   type LocalQueryRunner,
   type ProxyFetcher,
   type PublicQueryDependencies,
 } from "../src/server/public-query.js";
 import { SurfaceUsage } from "../src/server/usage-stats.js";
+import { parseQueryStreamFailure } from "../src/lib/playground-query.js";
 
 const TOKEN = "a".repeat(32);
 const POLICY: ProxyGatePolicy = {
@@ -92,6 +94,81 @@ describe("public query proxy", () => {
     expect(response.status).toBe(502);
     expect(cancelled).toBe(true);
     expect(deps.gate.active).toBe(0);
+  });
+
+  it("relays only public statuses and turns private API statuses into 502", async () => {
+    const body = JSON.stringify({ game: "rust", host: "play.example.com" });
+    for (const status of [200, 400, 413, 429]) {
+      const deps = dependencies(() =>
+        Promise.resolve(
+          new Response('{"error":{"code":"OVERLOADED","message":"x"}}', {
+            headers: { "Content-Type": "application/json" },
+            status,
+          }),
+        ),
+      );
+      const response = await handlePublicQuery(queryRequest(body), deps);
+      expect(response.status, String(status)).toBe(status);
+      expect(deps.usage.snapshot().upstreamStatus).toEqual({
+        [String(status)]: 1,
+      });
+    }
+    for (const status of [401, 404, 415, 500, 503]) {
+      const deps = dependencies(() =>
+        Promise.resolve(
+          new Response(
+            '{"error":{"code":"ORIGIN_UNAUTHORIZED","message":"secret detail"}}',
+            { headers: { "Content-Type": "application/json" }, status },
+          ),
+        ),
+      );
+      const response = await handlePublicQuery(queryRequest(body), deps);
+      expect(response.status, String(status)).toBe(502);
+      const text = await response.text();
+      expect(JSON.parse(text)).toEqual({
+        error: {
+          code: "UPSTREAM_UNAVAILABLE",
+          message: "The query service is temporarily unavailable.",
+        },
+      });
+      expect(text).not.toContain("secret detail");
+      expect(deps.usage.snapshot()).toMatchObject({
+        requests: { forwarded: 0, unavailable: 1 },
+        upstreamStatus: {},
+      });
+      expect(deps.gate.active).toBe(0);
+    }
+  });
+
+  it("limits how many queries one caller runs at once", async () => {
+    const pending: (() => void)[] = [];
+    const deps = dependencies(
+      () =>
+        new Promise((resolve) => {
+          pending.push(() => {
+            resolve(
+              new Response("{}", {
+                headers: { "Content-Type": "application/json" },
+              }),
+            );
+          });
+        }),
+      { ...POLICY, maxActive: 3, maxActivePerCaller: 1 },
+    );
+    const body = JSON.stringify({ game: "rust", host: "play.example.com" });
+    const first = handlePublicQuery(queryRequest(body), deps);
+    const second = await handlePublicQuery(queryRequest(body), deps);
+    expect(second.status).toBe(429);
+    expect(second.headers.get("retry-after")).toBe("1");
+    const other = handlePublicQuery(queryRequest(body, "203.0.113.11"), deps);
+    await vi.waitFor(() => {
+      expect(pending).toHaveLength(2);
+    });
+    expect(deps.gate.active).toBe(2);
+    for (const release of pending) release();
+    expect((await first).status).toBe(200);
+    expect((await other).status).toBe(200);
+    expect(deps.usage.snapshot().rateLimited.callerActive).toBe(1);
   });
   it("canonicalizes validated input and keeps the origin token server-side", async () => {
     const calls: RecordedRequest[] = [];
@@ -442,6 +519,44 @@ describe("public query configuration", () => {
         QUERYHOST_WEB_MAX_STARTS_PER_WINDOW: "8",
       }),
     ).toThrow("cannot exceed");
+    expect(() =>
+      loadProxyGatePolicy({
+        QUERYHOST_WEB_MAX_ACTIVE: "2",
+        QUERYHOST_WEB_MAX_ACTIVE_PER_CALLER: "3",
+      }),
+    ).toThrow("MAX_ACTIVE_PER_CALLER cannot exceed");
+  });
+
+  it("caps each caller's active queries by default and per surface", () => {
+    expect(loadProxyGatePolicy({})).toEqual({
+      maxActive: 8,
+      maxActivePerCaller: 2,
+      maxStartsPerCaller: 8,
+      maxStartsPerWindow: 60,
+      maxTrackedCallers: 2_048,
+      windowMs: 60_000,
+    });
+    // A smaller active limit lowers the default per-caller cap with it.
+    expect(
+      loadProxyGatePolicy({ QUERYHOST_WEB_MAX_ACTIVE: "1" }).maxActivePerCaller,
+    ).toBe(1);
+    expect(
+      loadProxyGatePolicy(
+        {
+          QUERYHOST_WEB_MAX_STARTS_PER_CALLER: "1",
+          QUERYHOST_WEB_MCP_MAX_ACTIVE_PER_CALLER: "2",
+        },
+        "QUERYHOST_WEB_MCP_",
+        MCP_QUERY_GATE_DEFAULTS,
+      ),
+    ).toEqual({
+      maxActive: 4,
+      maxActivePerCaller: 2,
+      maxStartsPerCaller: 30,
+      maxStartsPerWindow: 60,
+      maxTrackedCallers: 2_048,
+      windowMs: 60_000,
+    });
   });
 
   it("counts outcomes by fixed category without recording callers or targets", async () => {
@@ -466,7 +581,13 @@ describe("public query configuration", () => {
     const snapshot = deps.usage.snapshot();
     expect(snapshot).toEqual({
       requests: { invalid: 1, rateLimited: 1, forwarded: 1, unavailable: 0 },
-      rateLimited: { active: 0, window: 0, caller: 1, callers: 0 },
+      rateLimited: {
+        active: 0,
+        callerActive: 0,
+        window: 0,
+        caller: 1,
+        callers: 0,
+      },
       upstreamStatus: { "200": 1 },
       cache: { hit: 1, miss: 0, coalesced: 0 },
     });
@@ -570,10 +691,11 @@ describe("public query configuration", () => {
       });
     });
 
-    it("fails the stream on an invalid line or a missing result", async () => {
+    it("ends the stream with an error line on an invalid line or a missing result", async () => {
       for (const body of [
         '{"type":"started","source":"a2s-info"}\n{"type":"surprise"}\n',
         '{"type":"started","source":"a2s-info"}\n',
+        '{"type":"started","source":"a2s-info"}\n{"type":"error","error":{"code":"UPSTREAM_INVALID","message":"forged"}}\n',
       ]) {
         const deps = dependencies(() =>
           Promise.resolve(
@@ -583,10 +705,98 @@ describe("public query configuration", () => {
           ),
         );
         const response = await handlePublicQuery(streamRequest(), deps);
-        await expect(response.text()).rejects.toThrow();
+        const lines = (await response.text()).trimEnd().split("\n");
+        expect(lines[0]).toBe('{"type":"started","source":"a2s-info"}');
+        expect(JSON.parse(lines.at(-1) ?? "")).toEqual({
+          error: {
+            code: "UPSTREAM_INVALID",
+            message: "The query service returned an invalid response.",
+          },
+          type: "error",
+        });
+        expect(lines).toHaveLength(2);
+        expect(parseQueryStreamFailure(lines.at(-1) ?? "")).toMatchObject({
+          error: { code: "UPSTREAM_INVALID" },
+        });
         expect(deps.gate.active).toBe(0);
         expect(deps.usage.snapshot().requests.unavailable).toBe(1);
       }
+    });
+
+    it("ends the stream with an unavailable line when the upstream read fails", async () => {
+      let pulls = 0;
+      const body = new ReadableStream<Uint8Array>({
+        pull(controller) {
+          pulls += 1;
+          if (pulls === 1) {
+            controller.enqueue(new TextEncoder().encode(`${LINES[0] ?? ""}\n`));
+          } else {
+            controller.error(new Error("connection reset"));
+          }
+        },
+      });
+      const deps = dependencies(() =>
+        Promise.resolve(
+          new Response(body, {
+            headers: { "Content-Type": "application/x-ndjson" },
+          }),
+        ),
+      );
+      const response = await handlePublicQuery(streamRequest(), deps);
+      const lines = (await response.text()).trimEnd().split("\n");
+      expect(lines).toEqual([
+        LINES[0],
+        '{"error":{"code":"UPSTREAM_UNAVAILABLE","message":"The query service is temporarily unavailable."},"type":"error"}',
+      ]);
+      expect(deps.gate.active).toBe(0);
+      expect(deps.usage.snapshot().requests).toMatchObject({
+        forwarded: 0,
+        unavailable: 1,
+      });
+    });
+
+    it("ends a failed local stream with an unavailable line", async () => {
+      const gate = new ProxyGate(POLICY);
+      const usage = new SurfaceUsage();
+      const response = await handlePublicQuery(streamRequest(), {
+        config: {
+          maxBodyBytes: 2_048,
+          target: { kind: "local" },
+          upstreamTimeoutMs: 7_000,
+        },
+        fetcher: () =>
+          Promise.reject(new Error("The hosted API should not be called.")),
+        gate,
+        queryRunner: (input) => {
+          input.onSource?.({ source: "a2s-info", type: "started" });
+          return Promise.reject(new Error("internal detail"));
+        },
+        usage,
+      });
+      const text = await response.text();
+      expect(text).not.toContain("internal detail");
+      expect(JSON.parse(text.trimEnd().split("\n").at(-1) ?? "")).toMatchObject(
+        { error: { code: "UPSTREAM_UNAVAILABLE" }, type: "error" },
+      );
+      expect(gate.active).toBe(0);
+      expect(usage.snapshot().requests.unavailable).toBe(1);
+    });
+
+    it("hides private API statuses from streamed requests too", async () => {
+      const deps = dependencies(() =>
+        Promise.resolve(
+          new Response('{"error":{"code":"INTERNAL_ERROR","message":"x"}}', {
+            headers: { "Content-Type": "application/json" },
+            status: 500,
+          }),
+        ),
+      );
+      const response = await handlePublicQuery(streamRequest(), deps);
+      expect(response.status).toBe(502);
+      expect(await response.json()).toMatchObject({
+        error: { code: "UPSTREAM_UNAVAILABLE" },
+      });
+      expect(deps.gate.active).toBe(0);
     });
 
     it("releases admission when the caller cancels the stream", async () => {

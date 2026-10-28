@@ -1,9 +1,4 @@
-import type {
-  QueryErrorCode,
-  QuerySourceName,
-  QuerySourceStatus,
-  QueryWarningCode,
-} from "queryhost";
+import type { QueryErrorCode } from "queryhost";
 import {
   GAME_ALIASES,
   GAME_IDS,
@@ -12,12 +7,16 @@ import {
   type SupportLevel,
 } from "queryhost/registry";
 
-import type {
-  HostedCacheStatus,
-  JsonObject,
-} from "../lib/playground-contracts.js";
+import type { JsonObject } from "../lib/playground-contracts.js";
 import { QUERYHOST_VERSION } from "../lib/package-version.js";
 import { canonicalUrl, documentationHref } from "../lib/site.js";
+import {
+  CACHE_STATUSES,
+  QUERY_ERROR_CODES,
+  QUERY_SOURCE_NAMES,
+  QUERY_SOURCE_STATUSES,
+  QUERY_WARNING_CODES,
+} from "./result-vocabulary.js";
 
 /** Error codes the public API's `{ error: { code, message } }` bodies use. */
 export type PublicApiErrorCode =
@@ -30,9 +29,8 @@ export type PublicApiErrorCode =
   | "UPSTREAM_INVALID"
   | "UPSTREAM_UNAVAILABLE";
 
-// The library exports these unions only as types. Keying each table by its
-// union makes typecheck fail when a library release adds or removes a member,
-// so the spec cannot drift from the package it documents.
+// Keyed by union like the tables in result-vocabulary.ts, so typecheck fails
+// when a member is added or removed and the spec cannot drift.
 const PUBLIC_API_ERROR_CODES: Readonly<Record<PublicApiErrorCode, true>> = {
   BAD_REQUEST: true,
   BODY_TOO_LARGE: true,
@@ -43,25 +41,6 @@ const PUBLIC_API_ERROR_CODES: Readonly<Record<PublicApiErrorCode, true>> = {
   UPSTREAM_INVALID: true,
   UPSTREAM_UNAVAILABLE: true,
 };
-const QUERY_ERROR_CODES: Readonly<Record<QueryErrorCode, true>> = {
-  ABORTED: true,
-  CONNECTION_FAILED: true,
-  DNS_FAILED: true,
-  INTERNAL_ERROR: true,
-  INVALID_INPUT: true,
-  MALFORMED_RESPONSE: true,
-  RESPONSE_TOO_LARGE: true,
-  TARGET_BLOCKED: true,
-  TIMEOUT: true,
-};
-const QUERY_WARNING_CODES: Readonly<Record<QueryWarningCode, true>> = {
-  PARTIAL_RESULT: true,
-  PLAYER_LIST_UNAVAILABLE: true,
-  SOURCE_BLOCKED: true,
-  SOURCE_FAILED: true,
-  SOURCE_MALFORMED: true,
-  SOURCE_TIMEOUT: true,
-};
 const GAME_PROTOCOLS: Readonly<Record<GameProtocol, true>> = {
   a2s: true,
   "a2s-unreal": true,
@@ -71,36 +50,6 @@ const GAME_PROTOCOLS: Readonly<Record<GameProtocol, true>> = {
   satisfactory: true,
   "vintage-story": true,
   eco: true,
-};
-const QUERY_SOURCE_NAMES: Readonly<Record<QuerySourceName, true>> = {
-  "a2s-info": true,
-  "a2s-player": true,
-  "a2s-rules": true,
-  "eco-frontpage": true,
-  "minecraft-srv": true,
-  "minecraft-slp": true,
-  "minecraft-legacy-ping": true,
-  "minecraft-query": true,
-  "minecraft-bedrock-raknet": true,
-  "minecraft-bedrock-nethernet": true,
-  "fivem-info": true,
-  "fivem-dynamic": true,
-  "fivem-players": true,
-  "redm-info": true,
-  "redm-dynamic": true,
-  "redm-players": true,
-  "satisfactory-lightweight": true,
-  "satisfactory-health": true,
-  "vintage-story-query": true,
-};
-const QUERY_SOURCE_STATUSES: Readonly<Record<QuerySourceStatus, true>> = {
-  ok: true,
-  timeout: true,
-  blocked: true,
-  malformed: true,
-  unsupported: true,
-  "not-requested": true,
-  failed: true,
 };
 const GAME_CAPABILITIES: Readonly<Record<GameCapability, true>> = {
   summary: true,
@@ -115,11 +64,6 @@ const SUPPORT_LEVELS: Readonly<Record<SupportLevel, true>> = {
   supported: true,
   conditional: true,
   unsupported: true,
-};
-const CACHE_STATUSES: Readonly<Record<HostedCacheStatus, true>> = {
-  coalesced: true,
-  hit: true,
-  miss: true,
 };
 
 /** Error codes listed in the spec, in documentation order. */
@@ -368,7 +312,7 @@ function buildSchemas(): JsonObject {
     },
     QueryStreamLine: {
       description:
-        "One line of a streamed query. `started` and `completed` report a source as it runs; exactly one `result` line ends the stream.",
+        "One line of a streamed query. `started` and `completed` report a source as it runs; exactly one `result` line ends the stream, or an `error` line with an `ApiError` body (`UPSTREAM_UNAVAILABLE` or `UPSTREAM_INVALID`) when the stream fails after it started.",
       oneOf: [
         {
           properties: {
@@ -392,6 +336,21 @@ function buildSchemas(): JsonObject {
             type: { const: "result", type: "string" },
           },
           required: ["type", "result"],
+          type: "object",
+        },
+        {
+          properties: {
+            error: {
+              properties: {
+                code: { type: "string" },
+                message: { type: "string" },
+              },
+              required: ["code", "message"],
+              type: "object",
+            },
+            type: { const: "error", type: "string" },
+          },
+          required: ["type", "error"],
           type: "object",
         },
       ],
@@ -532,11 +491,25 @@ function buildPaths(): JsonObject {
     },
     "/openapi.json": {
       get: {
+        description:
+          "Returns this document. Responses may be reused for 5 minutes; send the `ETag` back in `If-None-Match` to get an empty `304` when it is unchanged.",
         operationId: "getOpenApi",
+        parameters: [
+          {
+            in: "header",
+            name: "If-None-Match",
+            required: false,
+            schema: { type: "string" },
+          },
+        ],
         responses: {
           "200": {
             content: jsonContent({ type: "object" }),
             description: "This document.",
+            headers: {
+              ...CORS_ORIGIN,
+              ETag: { schema: { type: "string" } },
+            },
           },
           "304": { description: "The document is unchanged." },
           "405": notAllowed,
@@ -572,7 +545,7 @@ function buildPaths(): JsonObject {
               "application/x-ndjson": { schema: ref("QueryStreamLine") },
             },
             description:
-              "The query result, or a progress stream of one `QueryStreamLine` per line ending with it. Streams carry no `Age` or `x-queryhost-cache` header; read `cache` in the result line.",
+              "The query result, or a progress stream of one `QueryStreamLine` per line ending with it. A stream that fails after it started ends with an `error` line instead. Streams carry no `Age` or `x-queryhost-cache` header; read `cache` in the result line.",
             headers: {
               ...CORS_ORIGIN,
               Age: {
@@ -596,7 +569,7 @@ function buildPaths(): JsonObject {
             { headers: RETRY_AFTER },
           ),
           "502": errorResponse(
-            "The query service is unreachable or answered badly (`UPSTREAM_UNAVAILABLE`, `UPSTREAM_INVALID`).",
+            "The query service is unreachable, failed, or answered badly (`UPSTREAM_UNAVAILABLE`, `UPSTREAM_INVALID`).",
           ),
         },
         summary: "Query a server",

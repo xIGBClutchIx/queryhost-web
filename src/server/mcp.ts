@@ -25,7 +25,7 @@ import {
   MCP_CARD_URI,
   mcpCardHtml,
 } from "./mcp-card-resource.js";
-import { readBoundedText } from "./bounded-text.js";
+import { BodyTooLargeError, readBoundedText } from "./bounded-text.js";
 import {
   callerFingerprint,
   handlePublicQuery,
@@ -235,6 +235,9 @@ export async function handleMcpRequest(
     try {
       body = await readBoundedText(request.body, 16_384, signal);
     } catch (error) {
+      if (error instanceof BodyTooLargeError) {
+        return errorResponse(413, "MCP request exceeds the byte limit.");
+      }
       // The strict decoder rejects invalid UTF-8 with a TypeError: a client error.
       if (error instanceof TypeError && !signal.aborted) {
         return errorResponse(400, "MCP request body must be UTF-8 JSON.");
@@ -430,14 +433,12 @@ export async function handleMcpRequest(
     });
     response.headers.set("Cache-Control", "no-store");
     return response;
-  } catch (error) {
+  } catch {
     return errorResponse(
-      error instanceof RangeError ? 413 : signal.aborted ? 408 : 500,
-      error instanceof RangeError
-        ? "MCP request exceeds the byte limit."
-        : signal.aborted
-          ? "MCP request was cancelled or timed out."
-          : "MCP request could not complete.",
+      signal.aborted ? 408 : 500,
+      signal.aborted
+        ? "MCP request was cancelled or timed out."
+        : "MCP request could not complete.",
     );
   } finally {
     try {

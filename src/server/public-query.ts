@@ -18,6 +18,7 @@ import type {
   PlaygroundProxyErrorCode,
   PlaygroundProxyErrorResponse,
   PlaygroundQueryInput,
+  PlaygroundQueryStreamFailure,
   PlaygroundQueryStreamLine,
 } from "../lib/playground-contracts.js";
 import {
@@ -184,26 +185,55 @@ export function loadPublicQueryConfig(
   };
 }
 
+/** Defaults for one caller-boundary policy before environment overrides. */
+export type ProxyGateDefaults = Required<ProxyGatePolicy>;
+
+/** The playground's and public API's per-IP budget. */
+export const QUERY_GATE_DEFAULTS: ProxyGateDefaults = {
+  maxActive: 8,
+  maxActivePerCaller: 2,
+  maxStartsPerCaller: 8,
+  maxStartsPerWindow: 60,
+  maxTrackedCallers: 2_048,
+  windowMs: 60_000,
+};
+
+/**
+ * MCP tool queries. Hosted clients such as ChatGPT reach the service from a
+ * few shared egress addresses, so one "caller" stands for many users: the
+ * per-caller bounds sit closer to the global ones, and the small global budget
+ * keeps the surface from adding much load beside the other two.
+ */
+export const MCP_QUERY_GATE_DEFAULTS: ProxyGateDefaults = {
+  maxActive: 4,
+  maxActivePerCaller: 4,
+  maxStartsPerCaller: 30,
+  maxStartsPerWindow: 60,
+  maxTrackedCallers: 2_048,
+  windowMs: 60_000,
+};
+
 /**
  * Reads one caller-boundary policy. The playground uses `QUERYHOST_WEB_`;
- * the public API reads the same names under its own prefix so the two
+ * the public API and MCP read the same names under their own prefixes so the
  * surfaces never share a budget.
  */
 export function loadProxyGatePolicy(
   environment: NodeJS.ProcessEnv = process.env,
   prefix = "QUERYHOST_WEB_",
+  defaults: ProxyGateDefaults = QUERY_GATE_DEFAULTS,
 ): ProxyGatePolicy {
   const maxStartsPerWindow = integerEnvironment(
     environment,
     `${prefix}MAX_STARTS_PER_WINDOW`,
-    60,
+    defaults.maxStartsPerWindow,
     1,
     10_000,
   );
   const maxStartsPerCaller = integerEnvironment(
     environment,
     `${prefix}MAX_STARTS_PER_CALLER`,
-    8,
+    defaults.maxStartsPerCaller,
     1,
     1_000,
   );
@@ -212,27 +242,41 @@ export function loadProxyGatePolicy(
       `${prefix}MAX_STARTS_PER_CALLER cannot exceed ${prefix}MAX_STARTS_PER_WINDOW.`,
     );
   }
+  const maxActive = integerEnvironment(
+    environment,
+    `${prefix}MAX_ACTIVE`,
+    defaults.maxActive,
+    1,
+    128,
+  );
+  const maxActivePerCaller = integerEnvironment(
+    environment,
+    `${prefix}MAX_ACTIVE_PER_CALLER`,
+    Math.min(defaults.maxActivePerCaller, maxActive),
+    1,
+    128,
+  );
+  if (maxActivePerCaller > maxActive) {
+    throw new RangeError(
+      `${prefix}MAX_ACTIVE_PER_CALLER cannot exceed ${prefix}MAX_ACTIVE.`,
+    );
+  }
   return {
-    maxActive: integerEnvironment(
-      environment,
-      `${prefix}MAX_ACTIVE`,
-      8,
-      1,
-      128,
-    ),
+    maxActive,
+    maxActivePerCaller,
     maxStartsPerCaller,
     maxStartsPerWindow,
     maxTrackedCallers: integerEnvironment(
       environment,
       `${prefix}MAX_TRACKED_CALLERS`,
-      2_048,
+      defaults.maxTrackedCallers,
       1,
       100_000,
     ),
     windowMs: integerEnvironment(
       environment,
       `${prefix}START_WINDOW_MS`,
-      60_000,
+      defaults.windowMs,
       1_000,
       3_600_000,
     ),
@@ -460,6 +504,56 @@ function forwardedHeaders(upstream: Response): Headers {
   return headers;
 }
 
+/**
+ * Statuses a public caller may see from the query service: a result, its
+ * input and size refusals, and capacity. Anything else (an origin-token `401`,
+ * a `404`, a `5xx`) is the private API's own concern and becomes a `502`.
+ */
+const RELAYED_UPSTREAM_STATUSES: ReadonlySet<number> = new Set([
+  200, 400, 413, 429,
+]);
+
+function unavailableResponse(): Response {
+  return jsonResponse(
+    502,
+    "UPSTREAM_UNAVAILABLE",
+    "The query service is temporarily unavailable.",
+  );
+}
+
+/** Relays a buffered JSON answer from the query service, or a `502` for a status callers never see. */
+async function relayJsonResponse(
+  upstream: Response,
+  dependencies: QueryTargetDependencies,
+  signal: AbortSignal,
+): Promise<Response> {
+  if (!RELAYED_UPSTREAM_STATUSES.has(upstream.status)) {
+    await upstream.body?.cancel().catch(() => undefined);
+    dependencies.usage?.recordUnavailable();
+    return unavailableResponse();
+  }
+  if (
+    !(upstream.headers.get("content-type") ?? "").startsWith("application/json")
+  ) {
+    await upstream.body?.cancel().catch(() => undefined);
+    dependencies.usage?.recordUnavailable();
+    return jsonResponse(
+      502,
+      "UPSTREAM_INVALID",
+      "The query service returned an invalid response.",
+    );
+  }
+  const body = await readBoundedText(upstream.body, MAX_UPSTREAM_BYTES, signal);
+  dependencies.usage?.recordForwarded(
+    upstream.status,
+    upstream.headers.get("x-queryhost-cache"),
+  );
+  return new Response(body, {
+    headers: forwardedHeaders(upstream),
+    status: upstream.status,
+  });
+}
+
 function localQueryResponse(result: QueryResult): Response {
   return new Response(
     JSON.stringify({
@@ -509,35 +603,10 @@ export async function forwardQuery(
       redirect: "error",
       signal,
     });
-    const contentType = upstream.headers.get("content-type") ?? "";
-    if (!contentType.startsWith("application/json")) {
-      dependencies.usage?.recordUnavailable();
-      return jsonResponse(
-        502,
-        "UPSTREAM_INVALID",
-        "The query service returned an invalid response.",
-      );
-    }
-    const body = await readBoundedText(
-      upstream.body,
-      MAX_UPSTREAM_BYTES,
-      signal,
-    );
-    dependencies.usage?.recordForwarded(
-      upstream.status,
-      upstream.headers.get("x-queryhost-cache"),
-    );
-    return new Response(body, {
-      headers: forwardedHeaders(upstream),
-      status: upstream.status,
-    });
+    return await relayJsonResponse(upstream, dependencies, signal);
   } catch {
     dependencies.usage?.recordUnavailable();
-    return jsonResponse(
-      502,
-      "UPSTREAM_UNAVAILABLE",
-      "The query service is temporarily unavailable.",
-    );
+    return unavailableResponse();
   }
 }
 
@@ -576,9 +645,40 @@ type LocalQueryStreamLine =
     };
 
 function encodeLine(
-  line: LocalQueryStreamLine | PlaygroundQueryStreamLine,
+  line:
+    | LocalQueryStreamLine
+    | PlaygroundQueryStreamLine
+    | PlaygroundQueryStreamFailure,
 ): Uint8Array {
   return new TextEncoder().encode(`${JSON.stringify(line)}\n`);
+}
+
+const STREAM_UNAVAILABLE: PlaygroundQueryStreamFailure = {
+  error: {
+    code: "UPSTREAM_UNAVAILABLE",
+    message: "The query service is temporarily unavailable.",
+  },
+  type: "error",
+};
+const STREAM_INVALID: PlaygroundQueryStreamFailure = {
+  error: {
+    code: "UPSTREAM_INVALID",
+    message: "The query service returned an invalid response.",
+  },
+  type: "error",
+};
+
+/** Ends a started stream with a final error line instead of a result. */
+function failStream(
+  controller: ReadableStreamDefaultController<Uint8Array>,
+  line: PlaygroundQueryStreamFailure,
+): void {
+  try {
+    controller.enqueue(encodeLine(line));
+    controller.close();
+  } catch {
+    // The caller has gone.
+  }
 }
 
 /** Streams a local library query, used when no hosted API is configured. */
@@ -634,11 +734,7 @@ function localQueryStream(
           },
           () => {
             dependencies.usage?.recordUnavailable();
-            try {
-              controller.error(new Error("The local query failed."));
-            } catch {
-              // Already cancelled.
-            }
+            failStream(controller, STREAM_UNAVAILABLE);
           },
         )
         .finally(end);
@@ -695,8 +791,17 @@ function relayQueryStream(
       end(!sawResult);
     },
     pull: async (controller) => {
+      // A read that fails, or a deadline, means the service is unavailable;
+      // anything else that stops the relay is a bad stream.
+      let unavailable = false;
       try {
-        const chunk = await reader.read();
+        let chunk: ReadableStreamReadResult<Uint8Array>;
+        try {
+          chunk = await reader.read();
+        } catch (error) {
+          unavailable = true;
+          throw error;
+        }
         if (chunk.done) {
           relay(controller, splitter.flush());
           if (!sawResult) throw new Error("The stream ended without a result.");
@@ -710,8 +815,17 @@ function relayQueryStream(
         }
         relay(controller, splitter.push(chunk.value));
       } catch {
-        end(!sawResult);
-        controller.error(new Error("The query stream failed."));
+        const failed = !sawResult;
+        end(failed);
+        if (!failed) {
+          // The result already reached the caller; drop what followed it.
+          controller.close();
+          return;
+        }
+        failStream(
+          controller,
+          unavailable || signal.aborted ? STREAM_UNAVAILABLE : STREAM_INVALID,
+        );
       }
     },
   });
@@ -762,35 +876,11 @@ export async function forwardQueryStream(
         { headers: streamHeaders(), status: 200 },
       );
     }
-    if (!contentType.startsWith("application/json")) {
-      dependencies.usage?.recordUnavailable();
-      return jsonResponse(
-        502,
-        "UPSTREAM_INVALID",
-        "The query service returned an invalid response.",
-      );
-    }
     // Errors such as an overloaded query service, or an API without streaming, answer in JSON.
-    const body = await readBoundedText(
-      upstream.body,
-      MAX_UPSTREAM_BYTES,
-      signal,
-    );
-    dependencies.usage?.recordForwarded(
-      upstream.status,
-      upstream.headers.get("x-queryhost-cache"),
-    );
-    return new Response(body, {
-      headers: forwardedHeaders(upstream),
-      status: upstream.status,
-    });
+    return await relayJsonResponse(upstream, dependencies, signal);
   } catch {
     dependencies.usage?.recordUnavailable();
-    return jsonResponse(
-      502,
-      "UPSTREAM_UNAVAILABLE",
-      "The query service is temporarily unavailable.",
-    );
+    return unavailableResponse();
   } finally {
     if (!streaming) finish();
   }
@@ -894,11 +984,14 @@ export async function handlePublicQuery(
 export function createDefaultPublicQueryDependencies(
   environment: NodeJS.ProcessEnv = process.env,
   gatePrefix?: string,
+  gateDefaults?: ProxyGateDefaults,
 ): PublicQueryDependencies {
   return {
     config: loadPublicQueryConfig(environment),
     fetcher: fetch,
-    gate: new ProxyGate(loadProxyGatePolicy(environment, gatePrefix)),
+    gate: new ProxyGate(
+      loadProxyGatePolicy(environment, gatePrefix, gateDefaults),
+    ),
     queryRunner: (input) => query(input),
     usage: new SurfaceUsage(),
   };

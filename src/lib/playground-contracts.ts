@@ -95,6 +95,7 @@ export type PlaygroundProxyErrorCode =
   | "METHOD_NOT_ALLOWED"
   | "NETWORK_ERROR"
   | "NOT_FOUND"
+  | "OVERLOADED"
   | "RATE_LIMITED"
   | "UNAUTHORIZED"
   | "UPSTREAM_INVALID"
@@ -105,4 +106,13 @@ export interface PlaygroundProxyErrorResponse {
     readonly code: PlaygroundProxyErrorCode;
     readonly message: string;
   };
+}
+
+/**
+ * The last line of a stream the web service could not finish, sent in place of
+ * the `result` line with the error body a JSON request would get.
+ */
+export interface PlaygroundQueryStreamFailure {
+  readonly type: "error";
+  readonly error: PlaygroundProxyErrorResponse["error"];
 }

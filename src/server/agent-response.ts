@@ -3,50 +3,27 @@ import type {
   PlaygroundProxyErrorResponse,
   PlaygroundQueryResponse,
 } from "../lib/playground-contracts.js";
+import {
+  CACHE_STATUSES,
+  PROXY_ERROR_CODES,
+  QUERY_ERROR_CODES,
+  QUERY_SOURCE_NAMES,
+  QUERY_SOURCE_STATUSES,
+  QUERY_WARNING_CODES,
+  vocabulary,
+} from "./result-vocabulary.js";
 
-const sourceName = z.enum([
-  "a2s-info",
-  "a2s-player",
-  "a2s-rules",
-  "eco-frontpage",
-  "minecraft-srv",
-  "minecraft-slp",
-  "minecraft-legacy-ping",
-  "minecraft-query",
-  "minecraft-bedrock-raknet",
-  "minecraft-bedrock-nethernet",
-  "fivem-info",
-  "fivem-dynamic",
-  "fivem-players",
-  "redm-info",
-  "redm-dynamic",
-  "redm-players",
-  "satisfactory-lightweight",
-  "satisfactory-health",
-  "vintage-story-query",
-]);
+// Every enum comes from a table keyed by the library's union, so a library
+// release that adds a value fails typecheck instead of making valid results
+// fail this schema as `UPSTREAM_INVALID`.
+const sourceName = z.enum(vocabulary(QUERY_SOURCE_NAMES));
 const source = z.object({
   source: sourceName,
-  status: z.enum([
-    "ok",
-    "timeout",
-    "blocked",
-    "malformed",
-    "unsupported",
-    "not-requested",
-    "failed",
-  ]),
+  status: z.enum(vocabulary(QUERY_SOURCE_STATUSES)),
   rttMs: z.number().nonnegative().optional(),
 });
 const warning = z.object({
-  code: z.enum([
-    "PARTIAL_RESULT",
-    "PLAYER_LIST_UNAVAILABLE",
-    "SOURCE_BLOCKED",
-    "SOURCE_FAILED",
-    "SOURCE_MALFORMED",
-    "SOURCE_TIMEOUT",
-  ]),
+  code: z.enum(vocabulary(QUERY_WARNING_CODES)),
   message: z.string(),
   source: sourceName.optional(),
 });
@@ -56,7 +33,7 @@ const base = z.object({
   sources: z.array(source),
   warnings: z.array(warning),
   cache: z.object({
-    status: z.enum(["coalesced", "hit", "miss"]),
+    status: z.enum(vocabulary(CACHE_STATUSES)),
     ageMs: z.number().nonnegative(),
     ttlMs: z.number().nonnegative(),
   }),
@@ -84,17 +61,7 @@ const queryResponse = z.discriminatedUnion("ok", [
   base.extend({
     ok: z.literal(false),
     error: z.object({
-      code: z.enum([
-        "ABORTED",
-        "CONNECTION_FAILED",
-        "DNS_FAILED",
-        "INTERNAL_ERROR",
-        "INVALID_INPUT",
-        "MALFORMED_RESPONSE",
-        "RESPONSE_TOO_LARGE",
-        "TARGET_BLOCKED",
-        "TIMEOUT",
-      ]),
+      code: z.enum(vocabulary(QUERY_ERROR_CODES)),
       message: z.string(),
       source: sourceName.optional(),
     }),
@@ -102,15 +69,7 @@ const queryResponse = z.discriminatedUnion("ok", [
 ]);
 const proxyResponse = z.object({
   error: z.object({
-    code: z.enum([
-      "BAD_REQUEST",
-      "BODY_TOO_LARGE",
-      "METHOD_NOT_ALLOWED",
-      "NETWORK_ERROR",
-      "RATE_LIMITED",
-      "UPSTREAM_INVALID",
-      "UPSTREAM_UNAVAILABLE",
-    ]),
+    code: z.enum(vocabulary(PROXY_ERROR_CODES)),
     message: z.string(),
   }),
 });

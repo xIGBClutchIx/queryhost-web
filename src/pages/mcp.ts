@@ -4,11 +4,11 @@ import {
   handleMcpRequest,
   type McpDependencies,
 } from "../server/mcp.js";
-import { publicQueryDependencies } from "../server/query-dependencies.js";
+import { mcpQueryDependencies } from "../server/query-dependencies.js";
 
 let dependencies: McpDependencies | undefined;
 
 export const ALL: APIRoute = ({ request }) => {
-  dependencies ??= createMcpDependencies(publicQueryDependencies());
+  dependencies ??= createMcpDependencies(mcpQueryDependencies());
   return handleMcpRequest(request, dependencies);
 };
