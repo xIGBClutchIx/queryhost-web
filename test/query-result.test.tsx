@@ -377,18 +377,13 @@ describe("Share and embed", () => {
         .querySelector("#query-result-share")
         ?.getAttribute("aria-expanded"),
     ).toBe("true");
-    // The badge image loads only once the menu is open.
-    expect(
-      container.querySelector("#query-share-panel img")?.getAttribute("src"),
-    ).toBe(
-      `${origin}/api/v1/badge/minecraft-bedrock/play.example.com:19133.svg`,
-    );
-    const [link, badge, embed, endpoint, api] = panelCodes();
+    // The menu opens on the link tab, focused, and loads no badge or card yet.
+    expect(document.activeElement?.id).toBe("share-tab-link");
+    expect(container.querySelector("#query-share-panel img")).toBeNull();
+    expect(container.querySelector("#query-share-panel iframe")).toBeNull();
+    const [link, badge, embed, api] = panelCodes();
     expect(embed).toBe(
       `<iframe src="${origin}/embed/minecraft-bedrock/play.example.com:19133" title="Minecraft: Bedrock Edition server status" width="360" height="88" style="border:0" loading="lazy"></iframe>`,
-    );
-    expect(endpoint).toBe(
-      `${origin}/api/v1/badge/minecraft-bedrock/play.example.com:19133.json`,
     );
     expect(link).toBe(
       `${origin}/minecraft-bedrock/play.example.com:19133?mode=summary&timeoutMs=3000`,
@@ -400,14 +395,32 @@ describe("Share and embed", () => {
       `curl ${origin}/api/v1/query -H 'Content-Type: application/json' -d '{"game":"minecraft-bedrock","host":"play.example.com","port":19133,"mode":"summary"}'`,
     );
 
+    click("#share-tab-badge");
+    expect(
+      container.querySelector("#share-panel-badge")?.hasAttribute("hidden"),
+    ).toBe(false);
+    expect(
+      container.querySelector("#query-share-panel img")?.getAttribute("src"),
+    ).toBe(
+      `${origin}/api/v1/badge/minecraft-bedrock/play.example.com:19133.svg`,
+    );
     click('#query-share-panel [role="radio"]:nth-child(2)');
     expect(panelCodes()[1]).toBe(
       `<a href="${origin}/minecraft-bedrock/play.example.com:19133"><img src="${origin}/api/v1/badge/minecraft-bedrock/play.example.com:19133.svg" alt="Minecraft: Bedrock Edition server status"></a>`,
     );
+    click('#query-share-panel [role="radio"]:nth-child(4)');
+    expect(panelCodes()[1]).toBe(
+      `${origin}/api/v1/badge/minecraft-bedrock/play.example.com:19133.json`,
+    );
+
+    click("#share-tab-embed");
+    expect(
+      container.querySelector("#query-share-panel iframe")?.getAttribute("src"),
+    ).toBe(`${origin}/embed/minecraft-bedrock/play.example.com:19133`);
 
     await act(async () => {
       container
-        .querySelector<HTMLButtonElement>("#query-share-panel button")
+        .querySelector<HTMLButtonElement>("#share-panel-link button")
         ?.click();
       await Promise.resolve();
     });
@@ -435,6 +448,7 @@ describe("Share and embed", () => {
     const origin = window.location.origin;
     const base = `${origin}/api/v1/badge/minecraft-bedrock/play.example.com:19133`;
     click("#query-result-share");
+    click("#share-tab-badge");
     function change(selector: string, value: string, type: string): void {
       void act(() => {
         const field = container.querySelector<
@@ -453,14 +467,20 @@ describe("Share and embed", () => {
     expect(
       container.querySelector("#query-share-panel img")?.getAttribute("src"),
     ).toBe(`${base}.svg${query}`);
-    const [, badge, embed, endpoint] = panelCodes();
+    const [, badge, embed] = panelCodes();
     expect(badge).toContain(`(${base}.svg${query})`);
     expect(embed).toContain(
       `src="${origin}/embed/minecraft-bedrock/play.example.com:19133?theme=auto"`,
     );
-    expect(endpoint).toBe(
+    click('#query-share-panel [role="radio"]:nth-child(4)');
+    expect(panelCodes()[1]).toBe(
       `${base}.json?style=for-the-badge&show=status&label=My+Server`,
     );
+    // The embed tab's theme is the badge's, so either picker changes both.
+    expect(
+      container.querySelector<HTMLSelectElement>("#share-badge-embed-theme")
+        ?.value,
+    ).toBe("auto");
 
     change("#share-badge-label", "evil.example/login", "input");
     const label = container.querySelector("#share-badge-label");

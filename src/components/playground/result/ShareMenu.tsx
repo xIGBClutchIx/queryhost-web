@@ -18,6 +18,7 @@ import {
   type BadgeTheme,
 } from "../../../lib/badge-url.js";
 import type { PlaygroundQueryInput } from "../../../lib/playground-contracts.js";
+import { TabPanel, Tabs } from "../../Tabs.js";
 import { CopyButton } from "./CopyButton.js";
 
 /** Everything the menu offers for one result; every value is already absolute. */
@@ -35,10 +36,20 @@ export interface ShareLinks {
   readonly result: string;
 }
 
+const SHARE_TABS = [
+  { id: "link", label: "Link" },
+  { id: "badge", label: "Badge" },
+  { id: "embed", label: "Embed" },
+  { id: "api", label: "API" },
+] as const;
+
+type ShareTab = (typeof SHARE_TABS)[number]["id"];
+
 const BADGE_FORMATS = [
   { id: "markdown", label: "Markdown" },
   { id: "html", label: "HTML" },
   { id: "url", label: "URL" },
+  { id: "shields", label: "shields.io" },
 ] as const;
 
 type BadgeFormat = (typeof BADGE_FORMATS)[number]["id"];
@@ -74,14 +85,27 @@ function badgeText(
   format: BadgeFormat,
   gameName: string,
   badge: URL,
+  endpoint: URL,
   target: URL,
 ): string {
-  return format === "markdown"
-    ? badgeMarkdown(gameName, badge, target)
-    : format === "html"
-      ? badgeHtml(gameName, badge, target)
-      : badge.href;
+  switch (format) {
+    case "markdown":
+      return badgeMarkdown(gameName, badge, target);
+    case "html":
+      return badgeHtml(gameName, badge, target);
+    case "url":
+      return badge.href;
+    case "shields":
+      return endpoint.href;
+  }
 }
+
+const FORMAT_NOTES: Readonly<Record<BadgeFormat, string>> = {
+  html: "Shows this server's live status on a website.",
+  markdown: "Shows this server's live status in a README.",
+  shields: "A shields.io endpoint, for shields' own badge styles.",
+  url: "The badge image on its own.",
+};
 
 function Choice<T extends string>({
   choices,
@@ -120,9 +144,9 @@ function Choice<T extends string>({
 }
 
 /**
- * A disclosure beside the result name with the result link, a status badge
- * builder with three copy formats, an embeddable status card, the shields.io
- * endpoint, and the same query as a public API call.
+ * A disclosure beside the result name. Its tabs hold the result link, a
+ * status badge builder with four copy formats (including the shields.io
+ * endpoint), an embeddable status card, and the same query as a public API call.
  */
 export function ShareMenu({
   idSuffix = "",
@@ -134,7 +158,9 @@ export function ShareMenu({
 }): ReactNode {
   const panelId = `query-share-panel${idSuffix}`;
   const fieldPrefix = `share-badge${idSuffix}`;
+  const tabPrefix = `share${idSuffix}`;
   const [open, setOpen] = useState(false);
+  const [tab, setTab] = useState<ShareTab>("link");
   const [format, setFormat] = useState<BadgeFormat>("markdown");
   const [style, setStyle] = useState<BadgeStyle>(DEFAULT_BADGE_OPTIONS.style);
   const [show, setShow] = useState<BadgeShow>(DEFAULT_BADGE_OPTIONS.show);
@@ -181,16 +207,10 @@ export function ShareMenu({
   };
   const target = new URL(links.badgeTarget);
   const badge = badgeUrl(links.origin, links.badgeInput, options);
-  const badgeCode = badgeText(format, links.gameName, badge, target);
-  const embed = embedHtml(
-    links.gameName,
-    embedUrl(links.origin, links.badgeInput, theme),
-  );
-  const endpoint = badgeEndpointUrl(
-    links.origin,
-    links.badgeInput,
-    options,
-  ).href;
+  const endpoint = badgeEndpointUrl(links.origin, links.badgeInput, options);
+  const badgeCode = badgeText(format, links.gameName, badge, endpoint, target);
+  const embedSource = embedUrl(links.origin, links.badgeInput, theme);
+  const embed = embedHtml(links.gameName, embedSource);
   const labelHintId = `${fieldPrefix}-label-hint`;
 
   return (
@@ -230,17 +250,34 @@ export function ShareMenu({
           role="dialog"
           aria-label="Share and embed"
         >
-          <section>
-            <h3>Result link</h3>
+          <Tabs
+            className="share-menu__tabs"
+            label="Share options"
+            idPrefix={tabPrefix}
+            tabs={SHARE_TABS}
+            active={tab}
+            onChange={setTab}
+          />
+          <TabPanel
+            className="share-menu__section"
+            idPrefix={tabPrefix}
+            id="link"
+            active={tab}
+          >
             <div className="share-menu__row">
               <code>{links.result}</code>
               <CopyButton label="Copy" text={links.result} />
             </div>
             <p>Opens this check again, with a live preview card in chats.</p>
-          </section>
-          <section>
+          </TabPanel>
+          <TabPanel
+            className="share-menu__section"
+            idPrefix={tabPrefix}
+            id="badge"
+            active={tab}
+          >
             <div className="share-menu__heading">
-              <h3>Status badge</h3>
+              <h3>Copy as</h3>
               <div
                 className="share-menu__formats"
                 role="radiogroup"
@@ -287,14 +324,16 @@ export function ShareMenu({
                 ))}
               </div>
             </div>
-            <div className="share-menu__badge">
-              {/* Loaded only while the menu is open, so results never spend the badge budget. */}
-              <img
-                src={badge.href}
-                alt={`${links.gameName} server status`}
-                height={style === "for-the-badge" ? 28 : 20}
-              />
-            </div>
+            {/* Loaded only while this tab shows, so results never spend the badge budget. */}
+            {tab === "badge" && (
+              <div className="share-menu__badge">
+                <img
+                  src={badge.href}
+                  alt={`${links.gameName} server status`}
+                  height={style === "for-the-badge" ? 28 : 20}
+                />
+              </div>
+            )}
             <div className="share-menu__row">
               <code>{badgeCode}</code>
               <CopyButton label="Copy" text={badgeCode} />
@@ -348,35 +387,55 @@ export function ShareMenu({
                 one is ignored.
               </p>
             ) : (
-              <p>
-                Shows this server's live status in a README or on a website.
-              </p>
+              <p>{FORMAT_NOTES[format]}</p>
             )}
-          </section>
-          <section>
-            <h3>Embed card</h3>
+          </TabPanel>
+          <TabPanel
+            className="share-menu__section"
+            idPrefix={tabPrefix}
+            id="embed"
+            active={tab}
+          >
+            {/* Framed only while this tab shows, so hidden tabs load nothing. */}
+            {tab === "embed" && (
+              <div className="share-menu__embed">
+                <iframe
+                  src={embedSource.href}
+                  title={`${links.gameName} server status preview`}
+                  width={360}
+                  height={88}
+                />
+              </div>
+            )}
             <div className="share-menu__row">
               <code>{embed}</code>
               <CopyButton label="Copy" text={embed} />
             </div>
-            <p>
-              A 360×88 status card for web pages, following the badge theme.
-            </p>
-          </section>
-          <section>
-            <h3>shields.io endpoint</h3>
-            <div className="share-menu__row">
-              <code>{endpoint}</code>
-              <CopyButton label="Copy" text={endpoint} />
+            <div className="share-menu__options">
+              <Choice
+                choices={THEME_CHOICES}
+                id={`${fieldPrefix}-embed-theme`}
+                label="Theme"
+                onChange={setTheme}
+                value={theme}
+              />
             </div>
-          </section>
-          <section>
-            <h3>Public API</h3>
+            <p>
+              A 360×88 status card for web pages. It refreshes every minute.
+            </p>
+          </TabPanel>
+          <TabPanel
+            className="share-menu__section"
+            idPrefix={tabPrefix}
+            id="api"
+            active={tab}
+          >
             <div className="share-menu__row">
               <code>{links.apiCommand}</code>
               <CopyButton label="Copy" text={links.apiCommand} />
             </div>
-          </section>
+            <p>Runs the same query through the public API.</p>
+          </TabPanel>
         </div>
       )}
     </div>
