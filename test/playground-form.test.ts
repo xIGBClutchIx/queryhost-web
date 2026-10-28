@@ -15,6 +15,8 @@ import {
   minecraftSummary,
   selectGame,
   shareUrl,
+  splitAddress,
+  withSplitHost,
 } from "../src/lib/playground-form.js";
 import { PLAYGROUND_GAMES } from "../src/lib/playground-games.js";
 import { resultFormSearch, splitTarget } from "../src/lib/result-url.js";
@@ -207,6 +209,49 @@ describe("playground query input", () => {
     for (const host of ["http://a", "a b", "[::1]", "a%b", "user@a"]) {
       expect(formQueryInput({ ...initial, host }).kind).toBe("invalid");
     }
+  });
+
+  it("splits a pasted address into its host and port", () => {
+    for (const [pasted, host, port] of [
+      ["play.example.com:25566", "play.example.com", "25566"],
+      ["[2001:db8::1]:25566", "2001:db8::1", "25566"],
+      ["[2001:db8::1]", "2001:db8::1", "25565"],
+      ["2001:db8::1", "2001:db8::1", "25565"],
+      ["https://play.example.com/", "play.example.com", "25565"],
+      ["minecraft://play.example.com:25570", "play.example.com", "25570"],
+      [" play.example.com ", " play.example.com ", "25565"],
+    ] as const) {
+      expect(withSplitHost({ ...initial, host: pasted }), pasted).toMatchObject(
+        { host, port },
+      );
+    }
+    // A port given in the host wins over the port field's default.
+    const split = withSplitHost({ ...initial, host: "a.example:30000" });
+    expect(formQueryInput(split)).toMatchObject({
+      input: { host: "a.example", port: 30_000 },
+      kind: "valid",
+    });
+    // A plain host keeps its state object, so nothing re-renders.
+    const plain = { ...initial, host: "play.example.com" };
+    expect(withSplitHost(plain)).toBe(plain);
+  });
+
+  it("leaves addresses it cannot split for validation to explain", () => {
+    for (const host of [
+      "https://play.example.com/servers",
+      "https://user@play.example.com",
+      "play.example.com:port",
+      "play.example.com:",
+    ]) {
+      expect(splitAddress(host), host).toBeUndefined();
+      const state = withSplitHost({ ...initial, host });
+      expect(state.host).toBe(host);
+    }
+    expect(
+      formQueryInput(
+        withSplitHost({ ...initial, host: "https://play.example.com/servers" }),
+      ).kind,
+    ).toBe("invalid");
   });
 
   it("never sends a separate query port for generic A2S", () => {

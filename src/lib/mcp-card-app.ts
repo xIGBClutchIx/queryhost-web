@@ -275,7 +275,8 @@ export function startMcpCards(): void {
         const url = new URL(text(envelope["playgroundUrl"]));
         if (
           url.origin === "https://query.host" &&
-          url.pathname === "/" &&
+          // The playground itself or one result page.
+          /^\/(?:[a-z\d-]+\/[^/]+)?$/u.test(url.pathname) &&
           !url.username &&
           !url.password
         ) {

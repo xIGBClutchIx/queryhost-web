@@ -11,6 +11,8 @@ export const SHARE_IMAGE = {
 } as const;
 /** Homepage headline, shared by the visible hero and the page title. */
 export const HOME_HEADLINE = "Look up any game server";
+/** The homepage's document title, as the base layout renders it. */
+export const HOME_TITLE = `${HOME_HEADLINE} · QueryHost`;
 /** Homepage subline, shared by the visible hero and the meta and Open Graph descriptions. */
 export const HOME_SUMMARY =
   "Check its live status right in your browser. Developers can run the same queries with the QueryHost library and API.";

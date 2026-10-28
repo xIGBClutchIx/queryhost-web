@@ -46,29 +46,47 @@ describe("shared agent tools", () => {
     ).toEqual(response);
   });
   it("preserves confirmed zero, empty and false values and provides an encoded share link", () => {
-    const output = agentQueryResult(INPUT, SUCCESS);
+    const output = agentQueryResult(INPUT, SUCCESS, PLAYGROUND_GAMES);
     expect(output.result).toEqual(SUCCESS);
     expect(output.summary).toContain("players online: 0");
     expect(output.summary).toContain("query RTT: 0 ms");
-    expect(new URL(output.playgroundUrl).searchParams.get("host")).toBe(
-      INPUT.host,
+    // The canonical result page, not the legacy `?game=&host=` link.
+    expect(output.playgroundUrl).toBe(
+      "https://query.host/minecraft-java/play.example.com",
     );
-    const missing = agentQueryResult(INPUT, { ...SUCCESS, server: {} });
+    expect(
+      agentQueryResult(
+        { game: "rust", host: "::1", port: 28016, mode: "summary" },
+        SUCCESS,
+        PLAYGROUND_GAMES,
+      ).playgroundUrl,
+    ).toBe("https://query.host/rust/[::1]:28016?mode=summary");
+    const missing = agentQueryResult(
+      INPUT,
+      { ...SUCCESS, server: {} },
+      PLAYGROUND_GAMES,
+    );
     expect(missing.summary).not.toContain("players");
     expect(missing.summary).not.toContain("RTT");
   });
 
   it("returns partial warnings and never calls a failed query offline", () => {
     expect(
-      agentQueryResult(INPUT, {
-        ...SUCCESS,
-        partial: true,
-        warnings: [{ code: "SOURCE_TIMEOUT", message: "Timed out." }],
-      }).summary,
+      agentQueryResult(
+        INPUT,
+        {
+          ...SUCCESS,
+          partial: true,
+          warnings: [{ code: "SOURCE_TIMEOUT", message: "Timed out." }],
+        },
+        PLAYGROUND_GAMES,
+      ).summary,
     ).toContain("partial result");
-    const result = agentQueryResult(INPUT, {
-      error: { code: "UPSTREAM_UNAVAILABLE", message: "Unavailable." },
-    });
+    const result = agentQueryResult(
+      INPUT,
+      { error: { code: "UPSTREAM_UNAVAILABLE", message: "Unavailable." } },
+      PLAYGROUND_GAMES,
+    );
     expect(result.summary).toContain("Query failed");
     expect(result.summary).not.toContain("offline");
   });
@@ -134,6 +152,30 @@ describe("shared agent tools", () => {
     expect(calls).toBe(0);
     await tool.execute({ game: "a2s", host: INPUT.host, port: 27015 });
     expect(calls).toBe(1);
+  });
+
+  it("defaults each query to its game's recommended mode", async () => {
+    const calls: PlaygroundQueryInput[] = [];
+    const tool = queryHostAgentTools(PLAYGROUND_GAMES, {
+      queryGameServer: (input) => {
+        calls.push(input);
+        return Promise.resolve(SUCCESS);
+      },
+    }).find((candidate) => candidate.name === "query_game_server");
+    if (tool === undefined) throw new Error("Missing query tool.");
+    for (const game of PLAYGROUND_GAMES) {
+      await tool.execute({
+        game: game.id,
+        host: INPUT.host,
+        ...(game.id === "a2s" ? { port: 27015 } : {}),
+      });
+    }
+    expect(calls.map((input) => input.mode)).toEqual(
+      PLAYGROUND_GAMES.map((game) => game.defaultMode),
+    );
+    expect(new Set(calls.map((input) => input.mode)).size).toBeGreaterThan(1);
+    await tool.execute({ ...INPUT, mode: "full" });
+    expect(calls.at(-1)?.mode).toBe("full");
   });
 
   it("stops a comparison on cancellation before starting later queries", async () => {

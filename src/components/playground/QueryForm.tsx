@@ -5,7 +5,12 @@ import type {
   PlaygroundGameChoice,
   PlaygroundGameDefinition,
 } from "../../lib/playground-contracts.js";
-import { findGame, gameFields, selectGame } from "../../lib/playground-form.js";
+import {
+  findGame,
+  gameFields,
+  selectGame,
+  withSplitHost,
+} from "../../lib/playground-form.js";
 import type {
   PlaygroundFormState,
   PlaygroundTimeout,
@@ -105,6 +110,20 @@ export function QueryForm({
             value={form.host}
             onChange={(event) => {
               update({ host: event.currentTarget.value });
+            }}
+            onPaste={(event) => {
+              // A whole pasted address, like `play.example.com:25566`, fills
+              // in both fields; pasting into part of the host stays literal.
+              const input = event.currentTarget;
+              const replacesAll =
+                input.selectionStart === 0 &&
+                input.selectionEnd === input.value.length;
+              const text = event.clipboardData?.getData("text") ?? "";
+              if (!replacesAll || text.length === 0) return;
+              const next = withSplitHost({ ...form, host: text });
+              if (next.host === text) return;
+              event.preventDefault();
+              update({ host: next.host, port: next.port });
             }}
           />
           <kbd className="field__shortcut" aria-hidden="true">

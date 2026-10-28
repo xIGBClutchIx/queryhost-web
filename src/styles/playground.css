@@ -174,6 +174,53 @@
   color: var(--text-strong);
 }
 
+/* The remove control tucks into its chip's end, so each check reads as one pill. */
+.playground-recent__item {
+  display: inline-flex;
+  align-items: center;
+}
+
+.playground-recent__item .playground-examples__chip {
+  padding-right: calc(var(--space-3) + var(--space-5));
+}
+
+.playground-recent__remove {
+  display: inline-grid;
+  width: var(--space-6);
+  height: var(--space-6);
+  place-items: center;
+  padding: 0;
+  margin-left: calc(-1 * (var(--space-6) + var(--space-1-5)));
+  border: 0;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--faint);
+  cursor: pointer;
+  transition:
+    color var(--duration-base) ease,
+    background var(--duration-base) ease;
+}
+
+.playground-recent__remove:hover,
+.playground-recent__remove:focus-visible {
+  background: var(--surface-subtle);
+  color: var(--text-strong);
+}
+
+.playground-recent__remove svg {
+  width: 0.75rem;
+  height: 0.75rem;
+  fill: none;
+  stroke: currentcolor;
+  stroke-linecap: round;
+  stroke-width: 1.75;
+}
+
+/* Below a result, the examples and recent checks stay one step away. */
+.query-output + .playground-discovery {
+  margin-top: var(--space-6);
+}
+
 .playground-coverage {
   margin: var(--space-4) 0 0;
   color: var(--faint);
@@ -629,7 +676,6 @@
   /* Revealed output lands below the sticky header. */
   scroll-margin-top: calc(var(--header-height) + var(--space-4));
 }
-
 .query-request-error {
   display: flex;
   gap: var(--space-3);
@@ -652,11 +698,29 @@
   font-size: var(--text-lg);
 }
 
-.query-request-error > p:last-child {
+.query-request-error__message {
   max-width: 58ch;
   margin: 0;
   color: var(--muted);
   font-size: var(--text-sm);
+}
+
+.query-request-error__retry {
+  margin-top: var(--space-4);
+  padding: var(--space-1-5) var(--space-3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-strong);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+}
+
+.query-request-error__retry:hover,
+.query-request-error__retry:focus-visible {
+  border-color: var(--accent);
 }
 
 .query-request-error {

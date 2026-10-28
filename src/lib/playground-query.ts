@@ -194,6 +194,30 @@ export function isPlaygroundProxyErrorResponse(
 const UNEXPECTED_RESPONSE =
   "The QueryHost web service returned an unexpected response.";
 
+/**
+ * A response the playground cannot read, such as a proxy's HTML error page or a
+ * body that fails validation. It is reported as `UNEXPECTED_RESPONSE`, not as a
+ * network failure.
+ */
+export class UnexpectedResponseError extends Error {
+  public readonly code = "UNEXPECTED_RESPONSE";
+
+  public constructor() {
+    super(UNEXPECTED_RESPONSE);
+    this.name = "UnexpectedResponseError";
+  }
+}
+
+/** Reads a JSON body; anything else, like a gateway's HTML page, is unexpected. */
+async function responseJson(response: Response): Promise<JsonValue> {
+  const text = await response.text();
+  try {
+    return JSON.parse(text) as JsonValue;
+  } catch {
+    throw new UnexpectedResponseError();
+  }
+}
+
 /** Reports the progress lines of a streamed query until its single result line. */
 async function readQueryStream(
   body: ReadableStream<Uint8Array>,
@@ -204,7 +228,7 @@ async function readQueryStream(
   let result: PlaygroundQueryResponse | undefined;
   const handle = (lines: readonly string[]): void => {
     for (const line of lines) {
-      if (result !== undefined) throw new Error(UNEXPECTED_RESPONSE);
+      if (result !== undefined) throw new UnexpectedResponseError();
       const parsed = parseQueryStreamLine(line);
       if (parsed.type === "result") {
         result = parsed.result;
@@ -225,7 +249,7 @@ async function readQueryStream(
   } finally {
     reader.releaseLock();
   }
-  if (result === undefined) throw new Error(UNEXPECTED_RESPONSE);
+  if (result === undefined) throw new UnexpectedResponseError();
   return result;
 }
 
@@ -264,18 +288,18 @@ export async function requestPlaygroundQuery(
     } catch (error) {
       // Cancellation keeps its own error; anything else is a malformed stream.
       if (signal.aborted) throw error;
-      throw new Error(UNEXPECTED_RESPONSE);
+      throw new UnexpectedResponseError();
     }
   }
-  const body = JSON.parse(await response.text()) as JsonValue;
+  const body = await responseJson(response);
   if (!response.ok) {
     if (!isPlaygroundProxyErrorResponse(body)) {
-      throw new Error(UNEXPECTED_RESPONSE);
+      throw new UnexpectedResponseError();
     }
     return { body, kind: "proxy-error" };
   }
   if (!isPlaygroundQueryResponse(body)) {
-    throw new Error(UNEXPECTED_RESPONSE);
+    throw new UnexpectedResponseError();
   }
   return { body, kind: "query" };
 }
@@ -314,15 +338,15 @@ export async function requestPlaygroundDetect(
     method: "POST",
     signal,
   });
-  const body = JSON.parse(await response.text()) as JsonValue;
+  const body = await responseJson(response);
   if (!response.ok) {
     if (!isPlaygroundProxyErrorResponse(body)) {
-      throw new Error(UNEXPECTED_RESPONSE);
+      throw new UnexpectedResponseError();
     }
     return { body, kind: "proxy-error" };
   }
   if (!isObject(body) || !Array.isArray(body.probes)) {
-    throw new Error(UNEXPECTED_RESPONSE);
+    throw new UnexpectedResponseError();
   }
   if (body.ok === false && isCodeMessage(body.error) && isObject(body.error)) {
     const { code, message } = body.error;
@@ -333,11 +357,11 @@ export async function requestPlaygroundDetect(
   const game = games.find((candidate) => candidate.id === body.game);
   const result = body.result;
   if (body.ok !== true || game === undefined || !isObject(result)) {
-    throw new Error(UNEXPECTED_RESPONSE);
+    throw new UnexpectedResponseError();
   }
   const query: JsonValue = { ...result, cache: LIVE_QUERY };
   if (!isPlaygroundQueryResponse(query) || query.game !== game.id) {
-    throw new Error(UNEXPECTED_RESPONSE);
+    throw new UnexpectedResponseError();
   }
   const matchedPort = matchedProbePort(body.probes);
   return {

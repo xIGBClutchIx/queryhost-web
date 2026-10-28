@@ -143,9 +143,7 @@ describe("query playground island", () => {
     await flush();
     expect(
       JSON.parse(localStorage.getItem("queryhost:recent-checks") ?? ""),
-    ).toEqual([
-      { game: "minecraft-java", host: "play.example.com", port: 25_565 },
-    ]);
+    ).toEqual([{ game: "minecraft-java", host: "play.example.com" }]);
 
     // A fresh page shows the list on the idle home screen.
     void act(() => {
@@ -309,7 +307,10 @@ describe("query playground island", () => {
     expect(element<HTMLInputElement>("#query-host").value).toBe(
       "mc.hypixel.net",
     );
-    expect(container.querySelector(".playground-examples")).toBeNull();
+    // The examples move below the result, still one step away.
+    const discovery = element("#playground-discovery");
+    expect(discovery.previousElementSibling?.id).toBe("query-output");
+    expect(discovery.querySelector(".playground-examples")).not.toBeNull();
   });
 
   it("focuses the host field on / unless another field is being edited", () => {
@@ -528,7 +529,7 @@ describe("query playground island", () => {
 
     expect(container.querySelector("#query-result")).toBeNull();
     expect(element("#query-request-error").textContent).toContain(
-      "NETWORK_ERROR",
+      "UNEXPECTED_RESPONSE",
     );
     expect(element("#query-request-error").textContent).toContain(
       "unexpected response",
@@ -626,7 +627,7 @@ describe("query playground island", () => {
       root.render(<QueryPlayground games={PLAYGROUND_GAMES} search="" />);
     });
     void act(() => {
-      setInput(element("#query-host"), "https://play.example.com");
+      setInput(element("#query-host"), "https://play.example.com/servers");
     });
     void act(() => {
       element<HTMLFormElement>("#query-form").requestSubmit();
@@ -785,7 +786,7 @@ describe("revealing finished output", () => {
     await flush();
 
     expect(element("#query-request-error").textContent).toContain(
-      "NETWORK_ERROR",
+      "UNEXPECTED_RESPONSE",
     );
     expect(scrollIntoView).toHaveBeenCalledOnce();
   });
@@ -844,10 +845,10 @@ describe("query playground viewport fit", () => {
   beforeEach(() => {
     contentBottom = 600;
     // jsdom has no layout: the playground starts at 0 and its last child, the
-    // output, ends at `contentBottom`.
+    // examples and recent checks below the output, ends at `contentBottom`.
     vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(
       function (this: Element) {
-        const bottom = this.id === "query-output" ? contentBottom : 0;
+        const bottom = this.id === "playground-discovery" ? contentBottom : 0;
         return new DOMRect(0, 0, 800, bottom);
       },
     );
