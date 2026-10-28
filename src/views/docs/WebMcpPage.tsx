@@ -10,52 +10,55 @@ export const metadata = {
   eyebrow: "Agent collaboration",
   title: "MCP and WebMCP tools",
   description:
-    "Use QueryHost's public playground with a compatible browser agent while keeping the result visible and controllable in the page.",
+    "Connect AI agents to QueryHost through the remote MCP server at /mcp, or use the playground with a compatible browser agent while the result stays visible in the page.",
 } as const satisfies DocsPageMetadata;
 
 export function WebMcpPage(): ReactNode {
   return (
     <DocsLayout {...metadata}>
       <h2 id="available-tools">Available tools</h2>
-      <table className="data-table">
-        <thead>
-          <tr>
-            <th>Tool</th>
-            <th>Purpose</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>
-              <code>list_supported_games</code>
-            </td>
-            <td>
-              Lists canonical game IDs, ports, recommended modes, and capability
-              support from the installed QueryHost registry.
-            </td>
-          </tr>
-          <tr>
-            <td>
-              <code>query_game_server</code>
-            </td>
-            <td>
-              Queries a public game server through the same bounded route as the
-              human playground, renders it in the page, and returns a summary,
-              playground link, and complete structured result to the agent.
-            </td>
-          </tr>
-          <tr>
-            <td>
-              <code>compare_game_servers</code>
-            </td>
-            <td>
-              Queries two to four servers sequentially and returns ordered
-              results, including individual failures, warnings, and source
-              details.
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      <div className="table-scroll">
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th>Tool</th>
+              <th>Purpose</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <code>list_supported_games</code>
+              </td>
+              <td>
+                Lists canonical game IDs, ports, recommended modes, and
+                capability support from the installed QueryHost registry.
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <code>query_game_server</code>
+              </td>
+              <td>
+                Queries a public game server through the same bounded route as
+                the human playground, renders it in the page, and returns a
+                summary, playground link, and complete structured result to the
+                agent.
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <code>compare_game_servers</code>
+              </td>
+              <td>
+                Queries two to four servers sequentially and returns ordered
+                results, including individual failures, warnings, and source
+                details.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
       <h2 id="shared-workflow">People and agents share one result</h2>
       <p>
         For remote clients such as ChatGPT, connect to{" "}

@@ -16,6 +16,10 @@ const SAMPLES: readonly (readonly [string, string])[] = [
   ],
   ["html", '<a class="button" href="/docs/">Docs</a>'],
   ["css", ".code-block { color: var(--code-text); margin: 0 auto; }"],
+  [
+    "markdown",
+    "[![Status](https://query.host/api/v1/badge/rust/play.example.com.svg)](https://query.host/rust/play.example.com)",
+  ],
 ];
 
 describe("highlightCode", () => {

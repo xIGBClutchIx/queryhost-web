@@ -51,6 +51,17 @@ function DocsSearchDialog(): ReactNode {
           data-docs-search-input=""
         />
         <kbd className="docs-search__escape">Esc</kbd>
+        {/* Phones have no Escape key, so they get a visible close control instead. */}
+        <button
+          className="docs-search__close"
+          type="button"
+          aria-label="Close search"
+          data-docs-search-close=""
+        >
+          <svg viewBox="0 0 16 16" aria-hidden="true">
+            <path d="m4.5 4.5 7 7m0-7-7 7" />
+          </svg>
+        </button>
       </div>
       <ul
         className="docs-search__results"

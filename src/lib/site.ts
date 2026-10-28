@@ -22,6 +22,22 @@ export function documentationHref(pathname = "/"): string {
   return cleanPath === "/" ? "/docs/" : `/docs${cleanPath}`;
 }
 
+/**
+ * The canonical form of a slashless page path, as in `/docs/games` to `/docs/games/`, so each
+ * page has one URL. Only documentation and policy pages qualify: API routes, `/mcp`, `/health`,
+ * files, and `/{game}/{target}` result pages keep the path they were given.
+ */
+export function trailingSlashRedirect(pathname: string): string | undefined {
+  if (pathname.endsWith("/")) return undefined;
+  const page =
+    pathname === "/docs" ||
+    pathname.startsWith("/docs/") ||
+    pathname === "/privacy" ||
+    pathname === "/terms";
+  const file = pathname.slice(pathname.lastIndexOf("/")).includes(".");
+  return page && !file ? `${pathname}/` : undefined;
+}
+
 /** Returns the production URL search engines and link previews should use. */
 export function canonicalUrl(pathname: string): string {
   return new URL(pathname, `https://${SITE_HOSTNAME}`).href;

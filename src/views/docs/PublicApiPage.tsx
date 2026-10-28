@@ -34,7 +34,7 @@ if (response.status === 429) {
 
 const result = await response.json();
 if (result.ok) {
-  console.log(result.data.players.online);
+  console.log(result.server.players?.online);
 }`;
 
 const streamExample = `const response = await fetch("https://query.host/api/v1/query", {
@@ -47,12 +47,15 @@ const streamExample = `const response = await fetch("https://query.host/api/v1/q
 });
 
 // Refusals such as 429 stay ordinary JSON.
-if (response.headers.get("Content-Type")?.startsWith("application/x-ndjson")) {
+const isStream = response.headers
+  .get("Content-Type")
+  ?.startsWith("application/x-ndjson");
+if (isStream && response.body !== null) {
   const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
   let pending = "";
   for (let chunk = await reader.read(); !chunk.done; chunk = await reader.read()) {
     const lines = (pending + chunk.value).split("\\n");
-    pending = lines.pop();
+    pending = lines.pop() ?? "";
     for (const line of lines.filter(Boolean)) {
       const event = JSON.parse(line);
       if (event.type === "started") console.log("querying", event.source);
@@ -91,66 +94,68 @@ export function PublicApiPage(): ReactNode {
         cache. It accepts the same input as the library&apos;s{" "}
         <code>query()</code> function, and no other fields.
       </p>
-      <table className="data-table">
-        <thead>
-          <tr>
-            <th>Field</th>
-            <th>Type</th>
-            <th>Notes</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>
-              <code>game</code>
-            </td>
-            <td>string</td>
-            <td>Required. A supported game ID or alias.</td>
-          </tr>
-          <tr>
-            <td>
-              <code>host</code>
-            </td>
-            <td>string</td>
-            <td>Required. A public hostname or IP address, not a URL.</td>
-          </tr>
-          <tr>
-            <td>
-              <code>port</code>
-            </td>
-            <td>integer</td>
-            <td>
-              Game port, 1 through 65,535. Required for generic <code>a2s</code>
-              .
-            </td>
-          </tr>
-          <tr>
-            <td>
-              <code>queryPort</code>
-            </td>
-            <td>integer</td>
-            <td>Overrides the profile&apos;s query port.</td>
-          </tr>
-          <tr>
-            <td>
-              <code>mode</code>
-            </td>
-            <td>
-              <code>summary</code> or <code>full</code>
-            </td>
-            <td>
-              Defaults to <code>full</code>.
-            </td>
-          </tr>
-          <tr>
-            <td>
-              <code>timeoutMs</code>
-            </td>
-            <td>integer</td>
-            <td>1 through 5,000. Defaults to 5,000.</td>
-          </tr>
-        </tbody>
-      </table>
+      <div className="table-scroll">
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th>Field</th>
+              <th>Type</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <code>game</code>
+              </td>
+              <td>string</td>
+              <td>Required. A supported game ID or alias.</td>
+            </tr>
+            <tr>
+              <td>
+                <code>host</code>
+              </td>
+              <td>string</td>
+              <td>Required. A public hostname or IP address, not a URL.</td>
+            </tr>
+            <tr>
+              <td>
+                <code>port</code>
+              </td>
+              <td>integer</td>
+              <td>
+                Game port, 1 through 65,535. Required for generic{" "}
+                <code>a2s</code>.
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <code>queryPort</code>
+              </td>
+              <td>integer</td>
+              <td>Overrides the profile&apos;s query port.</td>
+            </tr>
+            <tr>
+              <td>
+                <code>mode</code>
+              </td>
+              <td>
+                <code>summary</code> or <code>full</code>
+              </td>
+              <td>
+                Defaults to <code>full</code>.
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <code>timeoutMs</code>
+              </td>
+              <td>integer</td>
+              <td>1 through 5,000. Defaults to 5,000.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
       <CodeBlock code={curlExample} label="Query with curl" language="shell" />
       <CodeBlock
         code={fetchExample}
@@ -285,7 +290,7 @@ export function PublicApiPage(): ReactNode {
         <p>
           The API is free and runs on a small budget. Cache results on your
           side, do not scan address ranges, and see the{" "}
-          <a href="/terms">terms</a>. For heavy or private use, run the{" "}
+          <a href="/terms/">terms</a>. For heavy or private use, run the{" "}
           <code>queryhost</code> library yourself.
         </p>
       </Callout>

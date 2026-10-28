@@ -131,6 +131,35 @@ function headingId(text: string): string {
     .replace(/\s+/g, "-");
 }
 
+const ENTITIES: Readonly<Record<string, string>> = {
+  amp: "&",
+  gt: ">",
+  lt: "<",
+  quot: '"',
+  "#39": "'",
+  "#x27": "'",
+};
+
+/** Collapses trusted rendered HTML to its plain text. */
+export function plainText(html: string): string {
+  return html
+    .replace(/<[^>]*>/g, "")
+    .replace(/&(amp|gt|lt|quot|#39|#x27);/g, (_match, name: string) => {
+      return ENTITIES[name] ?? "";
+    })
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
+ * A generated page's summary: the plain text of its first paragraph outside the quoted
+ * signature, or empty.
+ */
+export function apiReferenceSummary(html: string): string {
+  const prose = html.replace(/<blockquote>[\s\S]*?<\/blockquote>/g, "");
+  return plainText(/<p>([\s\S]*?)<\/p>/.exec(prose)?.[1] ?? "");
+}
+
 export function renderApiReference(
   page: ApiReferencePage,
   referencePrefix: string,
@@ -142,6 +171,10 @@ export function renderApiReference(
   );
   const renderer = new Renderer();
   renderer.code = ({ lang, text }) => highlightCode(text, lang ?? "text");
+  // Wide tables scroll in a wrapper so they keep their table semantics.
+  const renderTable = renderer.table.bind(renderer);
+  renderer.table = (token) =>
+    `<div class="table-scroll">${renderTable(token)}</div>\n`;
   // Generated pages link to members as `#appid`, so headings need matching ids.
   const usedIds = new Map<string, number>();
   renderer.heading = function ({ depth, text, tokens }) {

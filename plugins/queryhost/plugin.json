@@ -29,8 +29,8 @@
         ],
         "logo": "./assets/logo.svg",
         "composerIcon": "./assets/logo.svg",
-        "privacyPolicyURL": "https://query.host/privacy",
-        "termsOfServiceURL": "https://query.host/terms"
+        "privacyPolicyURL": "https://query.host/privacy/",
+        "termsOfServiceURL": "https://query.host/terms/"
       },
       "review": {
         "demo_recording_url": "https://query.host/media/queryhost-chatgpt-demo.mp4",

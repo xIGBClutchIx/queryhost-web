@@ -1,3 +1,4 @@
+import { Fragment } from "preact";
 import type { ReactNode } from "react";
 
 import { Callout } from "../../components/Callout.js";
@@ -26,76 +27,80 @@ export function QueryingPage(): ReactNode {
   return (
     <DocsLayout {...metadata}>
       <h2 id="input">Query input</h2>
-      <table className="data-table">
-        <thead>
-          <tr>
-            <th>Field</th>
-            <th>Required</th>
-            <th>Meaning</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>
-              <code>game</code>
-            </td>
-            <td>Yes</td>
-            <td>Canonical game ID or accepted alias.</td>
-          </tr>
-          <tr>
-            <td>
-              <code>host</code>
-            </td>
-            <td>Yes</td>
-            <td>DNS hostname or IP literal. URL syntax is rejected.</td>
-          </tr>
-          <tr>
-            <td>
-              <code>port</code>
-            </td>
-            <td>No*</td>
-            <td>
-              Game or service port. The registry default is used when omitted.
-            </td>
-          </tr>
-          <tr>
-            <td>
-              <code>queryPort</code>
-            </td>
-            <td>No</td>
-            <td>
-              Explicit protocol query destination when it differs from the game
-              port.
-            </td>
-          </tr>
-          <tr>
-            <td>
-              <code>mode</code>
-            </td>
-            <td>No</td>
-            <td>
-              <code>summary</code> skips optional enrichment; <code>full</code>{" "}
-              requests it.
-            </td>
-          </tr>
-          <tr>
-            <td>
-              <code>timeoutMs</code>
-            </td>
-            <td>No</td>
-            <td>
-              Global deadline from 1 through 30,000 ms; defaults to 5,000 ms.
-            </td>
-          </tr>
-          <tr>
-            <td>
-              <code>signal</code>
-            </td>
-            <td>No</td>
-            <td>Caller cancellation propagated to outstanding operations.</td>
-          </tr>
-        </tbody>
-      </table>
+      <div className="table-scroll">
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th>Field</th>
+              <th>Required</th>
+              <th>Meaning</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <code>game</code>
+              </td>
+              <td>Yes</td>
+              <td>Canonical game ID or accepted alias.</td>
+            </tr>
+            <tr>
+              <td>
+                <code>host</code>
+              </td>
+              <td>Yes</td>
+              <td>DNS hostname or IP literal. URL syntax is rejected.</td>
+            </tr>
+            <tr>
+              <td>
+                <code>port</code>
+              </td>
+              <td>
+                Only for <code>a2s</code>
+              </td>
+              <td>
+                Game or service port. The registry default is used when omitted.
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <code>queryPort</code>
+              </td>
+              <td>No</td>
+              <td>
+                Explicit protocol query destination when it differs from the
+                game port.
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <code>mode</code>
+              </td>
+              <td>No</td>
+              <td>
+                <code>summary</code> skips optional enrichment;{" "}
+                <code>full</code> requests it.
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <code>timeoutMs</code>
+              </td>
+              <td>No</td>
+              <td>
+                Global deadline from 1 through 30,000 ms; defaults to 5,000 ms.
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <code>signal</code>
+              </td>
+              <td>No</td>
+              <td>Caller cancellation propagated to outstanding operations.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
       <p>
         Generic <code>a2s</code> queries require <code>port</code>, which is the
         actual A2S query destination. They do not accept <code>queryPort</code>.
@@ -126,33 +131,40 @@ export function QueryingPage(): ReactNode {
         Aliases are input conveniences. Successful and failed results always use
         the canonical ID.
       </p>
-      <table className="data-table">
-        <thead>
-          <tr>
-            <th>Game</th>
-            <th>Canonical ID</th>
-            <th>Aliases</th>
-          </tr>
-        </thead>
-        <tbody>
-          {GAMES.map((game) => {
-            const aliases = aliasesForGame(game.id);
-            return (
-              <tr key={game.id}>
-                <td>{game.name}</td>
-                <td>
-                  <code>{game.id}</code>
-                </td>
-                <td>
-                  {aliases.length === 0
-                    ? "None"
-                    : aliases.map((alias) => <code key={alias}>{alias}</code>)}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+      <div className="table-scroll">
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th>Game</th>
+              <th>Canonical ID</th>
+              <th>Aliases</th>
+            </tr>
+          </thead>
+          <tbody>
+            {GAMES.map((game) => {
+              const aliases = aliasesForGame(game.id);
+              return (
+                <tr key={game.id}>
+                  <td>{game.name}</td>
+                  <td>
+                    <code>{game.id}</code>
+                  </td>
+                  <td>
+                    {aliases.length === 0
+                      ? "None"
+                      : aliases.map((alias, index) => (
+                          <Fragment key={alias}>
+                            {index > 0 && ", "}
+                            <code>{alias}</code>
+                          </Fragment>
+                        ))}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
       <h2 id="live">Live by default</h2>
       <p>
         The library performs live network work for every call. It has no hidden

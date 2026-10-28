@@ -2,20 +2,20 @@
 import BaseLayout from "../../../layouts/BaseLayout.astro";
 import { apiReferencePage } from "../../../lib/api-reference.js";
 import {
-  API_REFERENCE_DESCRIPTION,
+  apiReferenceDescription,
   ApiReferencePage,
 } from "../../../views/docs/ApiReferencePage.tsx";
 
 const page = apiReferencePage(Astro.params.slug ?? "");
 if (page === undefined) {
-  return Astro.redirect("/404/", 302);
+  return Astro.rewrite("/404/");
 }
 ---
 
 <BaseLayout
   bodyClass="docs-page"
   title={page.title}
-  description={API_REFERENCE_DESCRIPTION}
+  description={apiReferenceDescription(page)}
 >
   <ApiReferencePage page={page} />
 </BaseLayout>

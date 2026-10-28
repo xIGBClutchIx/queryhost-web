@@ -5,6 +5,7 @@ import css from "shiki/langs/css.mjs";
 import html from "shiki/langs/html.mjs";
 import javascript from "shiki/langs/javascript.mjs";
 import json from "shiki/langs/json.mjs";
+import markdown from "shiki/langs/markdown.mjs";
 import shellscript from "shiki/langs/shellscript.mjs";
 import typescript from "shiki/langs/typescript.mjs";
 import githubDark from "shiki/themes/github-dark.mjs";
@@ -14,6 +15,7 @@ type HighlightLanguage =
   | "html"
   | "javascript"
   | "json"
+  | "markdown"
   | "shellscript"
   | "typescript"
   | SpecialLanguage;
@@ -25,6 +27,8 @@ const LANGUAGE_ALIASES: Readonly<Record<string, HighlightLanguage>> = {
   javascript: "javascript",
   js: "javascript",
   json: "json",
+  markdown: "markdown",
+  md: "markdown",
   shell: "shellscript",
   sh: "shellscript",
   text: "text",
@@ -41,7 +45,7 @@ let highlighter: HighlighterCore | undefined;
 function getHighlighter(): HighlighterCore {
   highlighter ??= createHighlighterCoreSync({
     engine: createJavaScriptRegexEngine(),
-    langs: [typescript, javascript, json, shellscript, html, css],
+    langs: [typescript, javascript, json, markdown, shellscript, html, css],
     themes: [githubDark],
   });
   return highlighter;

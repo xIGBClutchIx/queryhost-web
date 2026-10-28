@@ -48,9 +48,11 @@ export function ResultsPage(): ReactNode {
       </p>
       <h2 id="raw">Untouched protocol data</h2>
       <p>
-        <code>rawData</code> is optional and intentionally separate. Current A2S
-        profiles use it for the exact Rules map when that source succeeds.
-        Interpreted values remain in <code>data</code>; raw keys are not
+        <code>rawData</code> is optional and intentionally separate. A2S
+        profiles, DayZ and Arma 3 included, use it for the exact Rules map when
+        that source succeeds. Satisfactory keeps its server state, flags,
+        sub-states, and health there, and Eco its name and description as
+        served. Interpreted values remain in <code>data</code>; raw keys are not
         promoted into the normalized server contract.
       </p>
       <h2 id="partial">Partial success</h2>
