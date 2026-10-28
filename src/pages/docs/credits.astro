@@ -1,0 +1,12 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { CreditsPage, metadata } from "../../views/docs/CreditsPage.tsx";
+---
+
+<BaseLayout
+  bodyClass="docs-page"
+  title={metadata.title}
+  description={metadata.description}
+>
+  <CreditsPage />
+</BaseLayout>

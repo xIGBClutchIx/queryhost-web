@@ -9,6 +9,7 @@ import { documentationHref } from "../src/lib/site.js";
 import { QUERYHOST_VERSION } from "../src/lib/package-version.js";
 import { ApiReferencePage } from "../src/views/docs/ApiReferencePage.js";
 import * as changelog from "../src/views/docs/ChangelogPage.js";
+import * as credits from "../src/views/docs/CreditsPage.js";
 import * as errors from "../src/views/docs/ErrorsPage.js";
 import * as games from "../src/views/docs/GamesPage.js";
 import * as gettingStarted from "../src/views/docs/GettingStartedPage.js";
@@ -24,6 +25,7 @@ import { TermsPage } from "../src/views/TermsPage.js";
 
 const DOCS_VIEWS = [
   [changelog.metadata, changelog.ChangelogPage],
+  [credits.metadata, credits.CreditsPage],
   [errors.metadata, errors.ErrorsPage],
   [games.metadata, games.GamesPage],
   [gettingStarted.metadata, gettingStarted.GettingStartedPage],

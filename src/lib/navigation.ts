@@ -30,7 +30,10 @@ export const DOCUMENTATION_NAVIGATION: readonly NavigationSection[] = [
   },
   {
     label: "Reference",
-    items: [{ href: "/reference/", label: "API reference" }],
+    items: [
+      { href: "/reference/", label: "API reference" },
+      { href: "/credits/", label: "Credits" },
+    ],
   },
 ] as const;
 
