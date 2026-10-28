@@ -8,6 +8,12 @@ import {
 } from "queryhost/registry";
 
 import type { JsonObject } from "../lib/playground-contracts.js";
+import {
+  BADGE_SHOWS,
+  BADGE_STYLES,
+  BADGE_THEMES,
+  MAX_BADGE_LABEL_LENGTH,
+} from "../lib/badge-url.js";
 import { QUERYHOST_VERSION } from "../lib/package-version.js";
 import { canonicalUrl, documentationHref } from "../lib/site.js";
 import {
@@ -387,6 +393,34 @@ function buildSchemas(): JsonObject {
       },
       type: "object",
     },
+    ShieldsEndpoint: {
+      additionalProperties: false,
+      description:
+        "A [shields.io endpoint](https://shields.io/badges/endpoint-badge) body. Colours are hex without `#`.",
+      properties: {
+        cacheSeconds: integer(1),
+        color: { type: "string" },
+        isError: {
+          description: "True for `invalid server` and `unavailable`.",
+          type: "boolean",
+        },
+        label: { type: "string" },
+        labelColor: { type: "string" },
+        message: { type: "string" },
+        schemaVersion: { const: 1, type: "integer" },
+        style: { enum: ["flat-square", "for-the-badge"], type: "string" },
+      },
+      required: [
+        "schemaVersion",
+        "label",
+        "message",
+        "color",
+        "labelColor",
+        "isError",
+        "cacheSeconds",
+      ],
+      type: "object",
+    },
     SupportLevel: openEnum(
       Object.keys(SUPPORT_LEVELS),
       "Whether a capability is guaranteed, source-dependent, or unavailable.",
@@ -412,54 +446,158 @@ function resultBaseProperties(): JsonObject {
   };
 }
 
+const BADGE_STATES =
+  "The status reads the player count (or `online`), `offline` when the server did not answer, `invalid server` when the address is malformed, private, or blocked, or `unavailable` when no fresh result could be fetched and none is cached from the last 10 minutes. Badges are cached for 60 seconds online and 30 offline and share their own budget instead of the per-IP query limit; when a fresh result cannot be fetched the badge shows its last known state or `unavailable` for up to 15 seconds.";
+
+function badgeParameters(withTheme: boolean): JsonObject[] {
+  const option = (
+    name: string,
+    values: readonly [string, ...string[]],
+    description: string,
+  ): JsonObject => ({
+    description: `${description} Unknown values use the default.`,
+    in: "query",
+    name,
+    required: false,
+    schema: { default: values[0], enum: [...values], type: "string" },
+  });
+  return [
+    { in: "path", name: "game", required: true, schema: ref("GameInput") },
+    {
+      description:
+        "`host`, `host:port`, or a bracketed IPv6 address with an optional port, as in `[2001:db8::1]:27015`.",
+      in: "path",
+      name: "server",
+      required: true,
+      schema: { type: "string" },
+    },
+    {
+      description: "Overrides the profile's query port.",
+      in: "query",
+      name: "queryPort",
+      required: false,
+      schema: port("Query port."),
+    },
+    option("style", BADGE_STYLES, "Badge shape."),
+    option(
+      "show",
+      BADGE_SHOWS,
+      "`players`, `status` (online or offline only), or `players-map` (adds the reported map, shortened to 24 characters).",
+    ),
+    ...(withTheme
+      ? [
+          option(
+            "theme",
+            BADGE_THEMES,
+            "`auto` follows the viewer's colour scheme with a media query.",
+          ),
+        ]
+      : []),
+    {
+      description: `Replaces the game name: up to ${MAX_BADGE_LABEL_LENGTH} characters of letters, digits, spaces, and \`- _ . , : ; ! ? & + ' ( ) # |\`. Control and bidirectional characters are removed; any other label is ignored.`,
+      in: "query",
+      name: "label",
+      required: false,
+      schema: { maxLength: MAX_BADGE_LABEL_LENGTH, type: "string" },
+    },
+    {
+      in: "header",
+      name: "If-None-Match",
+      required: false,
+      schema: { type: "string" },
+    },
+  ];
+}
+
+function badgeOperations(
+  format: "json" | "svg",
+  notAllowed: JsonObject,
+): JsonObject {
+  const content =
+    format === "svg"
+      ? { "image/svg+xml": { schema: { type: "string" } } }
+      : jsonContent(ref("ShieldsEndpoint"));
+  const headers = {
+    ...CORS_ORIGIN,
+    "Cache-Control": {
+      description: "`public, max-age=` the seconds until the badge may change.",
+      schema: { type: "string" },
+    },
+    ETag: { schema: { type: "string" } },
+  };
+  const responses = {
+    "200": {
+      content,
+      description:
+        format === "svg" ? "The badge." : "A shields.io endpoint body.",
+      headers,
+    },
+    "304": { description: "The badge is unchanged.", headers },
+    "400": {
+      content,
+      description: "An `invalid server` badge for a malformed server or game.",
+    },
+    "404": errorResponse("The path does not end in `.svg` or `.json`."),
+    "405": notAllowed,
+  };
+  const get =
+    format === "svg"
+      ? {
+          description: `Returns an SVG badge with the game name (or \`label\`) and the server's status. ${BADGE_STATES}`,
+          operationId: "getBadge",
+          summary: "Server status badge",
+        }
+      : {
+          description: `Returns the badge as a [shields.io endpoint](https://shields.io/badges/endpoint-badge) body, from the same cache and budget as the SVG. ${BADGE_STATES}`,
+          operationId: "getBadgeEndpoint",
+          summary: "shields.io endpoint badge",
+        };
+  const suffix = format === "svg" ? "Badge" : "BadgeEndpoint";
+  return {
+    get: {
+      ...get,
+      parameters: badgeParameters(format === "svg"),
+      responses,
+      tags: ["Badges"],
+    },
+    head: {
+      description: "Same as GET without a body.",
+      operationId: `head${suffix}`,
+      parameters: badgeParameters(format === "svg"),
+      responses: {
+        "200": { description: "The badge headers.", headers },
+        "304": { description: "The badge is unchanged." },
+        "400": { description: "The server or game is malformed." },
+      },
+      summary: `${get.summary} headers`,
+      tags: ["Badges"],
+    },
+    options: {
+      description: "CORS preflight; any origin may fetch badges.",
+      operationId: `options${suffix}`,
+      parameters: badgeParameters(format === "svg").slice(0, 2),
+      responses: {
+        "204": {
+          description: "Allowed methods and headers.",
+          headers: {
+            ...CORS_ORIGIN,
+            "Access-Control-Allow-Methods": {
+              schema: { const: "GET, HEAD, OPTIONS", type: "string" },
+            },
+          },
+        },
+      },
+      summary: `${get.summary} preflight`,
+      tags: ["Badges"],
+    },
+  };
+}
+
 function buildPaths(): JsonObject {
   const notAllowed = errorResponse("The route does not allow this method.");
   return {
-    "/badge/{game}/{server}.svg": {
-      get: {
-        description:
-          "Returns an SVG badge with the game name and player count, or `offline`. Badges are cached and share one global budget instead of the per-IP query limit; when it is spent the badge shows its last known state or `unavailable`.",
-        operationId: "getBadge",
-        parameters: [
-          {
-            in: "path",
-            name: "game",
-            required: true,
-            schema: ref("GameInput"),
-          },
-          {
-            description:
-              "`host`, `host:port`, or a bracketed IPv6 address with an optional port, as in `[2001:db8::1]:27015`.",
-            in: "path",
-            name: "server",
-            required: true,
-            schema: { type: "string" },
-          },
-          {
-            description: "Overrides the profile's query port.",
-            in: "query",
-            name: "queryPort",
-            required: false,
-            schema: port("Query port."),
-          },
-        ],
-        responses: {
-          "200": {
-            content: { "image/svg+xml": { schema: { type: "string" } } },
-            description: "The badge.",
-            headers: CORS_ORIGIN,
-          },
-          "400": {
-            content: { "image/svg+xml": { schema: { type: "string" } } },
-            description: "An `invalid` badge for a malformed server or game.",
-          },
-          "404": errorResponse("The path does not end in `.svg`."),
-          "405": notAllowed,
-        },
-        summary: "Server status badge",
-        tags: ["Badges"],
-      },
-    },
+    "/badge/{game}/{server}.json": badgeOperations("json", notAllowed),
+    "/badge/{game}/{server}.svg": badgeOperations("svg", notAllowed),
     "/games": {
       get: {
         description:
@@ -604,7 +742,11 @@ export function buildOpenApiDocument(): JsonObject {
     tags: [
       { description: "Live server queries.", name: "Query" },
       { description: "Supported games from the registry.", name: "Games" },
-      { description: "Embeddable SVG status badges.", name: "Badges" },
+      {
+        description:
+          "Embeddable status badges, as SVG or a shields.io endpoint.",
+        name: "Badges",
+      },
       { description: "This description.", name: "Meta" },
     ],
   };

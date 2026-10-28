@@ -2,16 +2,36 @@ import { useEffect, useRef, useState } from "react";
 import type { TargetedKeyboardEvent } from "preact";
 import type { ReactNode } from "react";
 
+import {
+  badgeEndpointUrl,
+  badgeHtml,
+  badgeLabelText,
+  badgeMarkdown,
+  badgeUrl,
+  DEFAULT_BADGE_OPTIONS,
+  embedHtml,
+  embedUrl,
+  MAX_BADGE_LABEL_LENGTH,
+  type BadgeOptions,
+  type BadgeShow,
+  type BadgeStyle,
+  type BadgeTheme,
+} from "../../../lib/badge-url.js";
+import type { PlaygroundQueryInput } from "../../../lib/playground-contracts.js";
 import { CopyButton } from "./CopyButton.js";
 
 /** Everything the menu offers for one result; every value is already absolute. */
 export interface ShareLinks {
   readonly apiCommand: string;
-  readonly badgeHtml: string;
+  /** The default badge, as copied from the JSON view. */
   readonly badgeImage: string;
   readonly badgeMarkdown: string;
-  /** Accessible name of the badge image. */
-  readonly badgeLabel: string;
+  /** The server the badge and embed card describe: game, host, and ports only. */
+  readonly badgeInput: PlaygroundQueryInput;
+  /** Where badges and the embed card link to. */
+  readonly badgeTarget: string;
+  readonly gameName: string;
+  readonly origin: string;
   readonly result: string;
 }
 
@@ -23,17 +43,86 @@ const BADGE_FORMATS = [
 
 type BadgeFormat = (typeof BADGE_FORMATS)[number]["id"];
 
-function badgeText(links: ShareLinks, format: BadgeFormat): string {
+const STYLE_CHOICES: readonly {
+  readonly id: BadgeStyle;
+  readonly label: string;
+}[] = [
+  { id: "flat", label: "Flat" },
+  { id: "flat-square", label: "Flat square" },
+  { id: "for-the-badge", label: "For the badge" },
+];
+
+const SHOW_CHOICES: readonly {
+  readonly id: BadgeShow;
+  readonly label: string;
+}[] = [
+  { id: "players", label: "Players" },
+  { id: "status", label: "Status only" },
+  { id: "players-map", label: "Players and map" },
+];
+
+const THEME_CHOICES: readonly {
+  readonly id: BadgeTheme;
+  readonly label: string;
+}[] = [
+  { id: "dark", label: "Dark" },
+  { id: "light", label: "Light" },
+  { id: "auto", label: "Match viewer" },
+];
+
+function badgeText(
+  format: BadgeFormat,
+  gameName: string,
+  badge: URL,
+  target: URL,
+): string {
   return format === "markdown"
-    ? links.badgeMarkdown
+    ? badgeMarkdown(gameName, badge, target)
     : format === "html"
-      ? links.badgeHtml
-      : links.badgeImage;
+      ? badgeHtml(gameName, badge, target)
+      : badge.href;
+}
+
+function Choice<T extends string>({
+  choices,
+  id,
+  label,
+  onChange,
+  value,
+}: {
+  readonly choices: readonly { readonly id: T; readonly label: string }[];
+  readonly id: string;
+  readonly label: string;
+  readonly onChange: (value: T) => void;
+  readonly value: T;
+}): ReactNode {
+  return (
+    <label className="share-menu__field" htmlFor={id}>
+      <span>{label}</span>
+      <select
+        id={id}
+        value={value}
+        onChange={(event) => {
+          const next = choices.find(
+            (choice) => choice.id === event.currentTarget.value,
+          );
+          if (next !== undefined) onChange(next.id);
+        }}
+      >
+        {choices.map((choice) => (
+          <option key={choice.id} value={choice.id}>
+            {choice.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
 }
 
 /**
- * A disclosure beside the result name with the result link, an embeddable
- * status badge in three formats, and the same query as a public API call.
+ * A disclosure beside the result name with the result link, a status badge
+ * builder with three copy formats, an embeddable status card, the shields.io
+ * endpoint, and the same query as a public API call.
  */
 export function ShareMenu({
   idSuffix = "",
@@ -44,8 +133,13 @@ export function ShareMenu({
   readonly links: ShareLinks;
 }): ReactNode {
   const panelId = `query-share-panel${idSuffix}`;
+  const fieldPrefix = `share-badge${idSuffix}`;
   const [open, setOpen] = useState(false);
   const [format, setFormat] = useState<BadgeFormat>("markdown");
+  const [style, setStyle] = useState<BadgeStyle>(DEFAULT_BADGE_OPTIONS.style);
+  const [show, setShow] = useState<BadgeShow>(DEFAULT_BADGE_OPTIONS.show);
+  const [theme, setTheme] = useState<BadgeTheme>(DEFAULT_BADGE_OPTIONS.theme);
+  const [labelInput, setLabelInput] = useState("");
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -75,6 +169,29 @@ export function ShareMenu({
     setOpen(false);
     triggerRef.current?.focus();
   }
+
+  const label =
+    labelInput.trim() === "" ? undefined : badgeLabelText(labelInput);
+  const labelRejected = labelInput.trim() !== "" && label === undefined;
+  const options: Partial<BadgeOptions> = {
+    show,
+    style,
+    theme,
+    ...(label === undefined ? {} : { label }),
+  };
+  const target = new URL(links.badgeTarget);
+  const badge = badgeUrl(links.origin, links.badgeInput, options);
+  const badgeCode = badgeText(format, links.gameName, badge, target);
+  const embed = embedHtml(
+    links.gameName,
+    embedUrl(links.origin, links.badgeInput, theme),
+  );
+  const endpoint = badgeEndpointUrl(
+    links.origin,
+    links.badgeInput,
+    options,
+  ).href;
+  const labelHintId = `${fieldPrefix}-label-hint`;
 
   return (
     <div
@@ -172,13 +289,86 @@ export function ShareMenu({
             </div>
             <div className="share-menu__badge">
               {/* Loaded only while the menu is open, so results never spend the badge budget. */}
-              <img src={links.badgeImage} alt={links.badgeLabel} height={20} />
+              <img
+                src={badge.href}
+                alt={`${links.gameName} server status`}
+                height={style === "for-the-badge" ? 28 : 20}
+              />
             </div>
             <div className="share-menu__row">
-              <code>{badgeText(links, format)}</code>
-              <CopyButton label="Copy" text={badgeText(links, format)} />
+              <code>{badgeCode}</code>
+              <CopyButton label="Copy" text={badgeCode} />
             </div>
-            <p>Shows this server's live status in a README or on a website.</p>
+            <div className="share-menu__options">
+              <Choice
+                choices={STYLE_CHOICES}
+                id={`${fieldPrefix}-style`}
+                label="Style"
+                onChange={setStyle}
+                value={style}
+              />
+              <Choice
+                choices={SHOW_CHOICES}
+                id={`${fieldPrefix}-show`}
+                label="Shows"
+                onChange={setShow}
+                value={show}
+              />
+              <Choice
+                choices={THEME_CHOICES}
+                id={`${fieldPrefix}-theme`}
+                label="Theme"
+                onChange={setTheme}
+                value={theme}
+              />
+              <label
+                className="share-menu__field"
+                htmlFor={`${fieldPrefix}-label`}
+              >
+                <span>Label</span>
+                <input
+                  id={`${fieldPrefix}-label`}
+                  type="text"
+                  value={labelInput}
+                  maxLength={MAX_BADGE_LABEL_LENGTH}
+                  placeholder={links.gameName}
+                  autoComplete="off"
+                  spellcheck={false}
+                  aria-invalid={labelRejected}
+                  aria-describedby={labelRejected ? labelHintId : undefined}
+                  onInput={(event) => {
+                    setLabelInput(event.currentTarget.value);
+                  }}
+                />
+              </label>
+            </div>
+            {labelRejected ? (
+              <p className="share-menu__hint" id={labelHintId} role="status">
+                Labels use letters, digits, spaces, and simple punctuation; this
+                one is ignored.
+              </p>
+            ) : (
+              <p>
+                Shows this server's live status in a README or on a website.
+              </p>
+            )}
+          </section>
+          <section>
+            <h3>Embed card</h3>
+            <div className="share-menu__row">
+              <code>{embed}</code>
+              <CopyButton label="Copy" text={embed} />
+            </div>
+            <p>
+              A 360×88 status card for web pages, following the badge theme.
+            </p>
+          </section>
+          <section>
+            <h3>shields.io endpoint</h3>
+            <div className="share-menu__row">
+              <code>{endpoint}</code>
+              <CopyButton label="Copy" text={endpoint} />
+            </div>
           </section>
           <section>
             <h3>Public API</h3>

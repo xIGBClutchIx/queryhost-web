@@ -1,3 +1,5 @@
+import type { BadgeShow, BadgeStyle, BadgeTheme } from "../lib/badge-url.js";
+
 /** What a status badge reports about one server. */
 export type BadgeState =
   | {
@@ -5,8 +7,12 @@ export type BadgeState =
       readonly partial: boolean;
       readonly online?: number;
       readonly max?: number;
-      /** The server's reported name; link previews show it, badges do not. */
+      /** The server's reported name; link previews and embed cards show it, badges do not. */
       readonly name?: string;
+      /** The reported map, without control characters. */
+      readonly map?: string;
+      /** A validated 64×64 PNG data URL, for Minecraft: Java Edition. */
+      readonly favicon?: string;
     }
   | { readonly kind: "offline" }
   | { readonly kind: "unavailable" }
@@ -17,18 +23,71 @@ interface BadgeTone {
   readonly text: string;
 }
 
+interface BadgePalette {
+  readonly label: BadgeTone;
+  readonly online: BadgeTone;
+  readonly partial: BadgeTone;
+  readonly muted: BadgeTone;
+}
+
 // The site's dark palette (see src/styles/base.css). Badges render as plain
 // images on third-party pages, so the values are literal rather than tokens.
-const LABEL_TONE: BadgeTone = { background: "#10191d", text: "#dce7e4" };
-const ONLINE_TONE: BadgeTone = { background: "#55d7ba", text: "#04201a" };
-const PARTIAL_TONE: BadgeTone = { background: "#e2a95f", text: "#2a1c08" };
-const MUTED_TONE: BadgeTone = { background: "#364a50", text: "#f3f8f6" };
+const DARK_PALETTE: BadgePalette = {
+  label: { background: "#10191d", text: "#dce7e4" },
+  muted: { background: "#364a50", text: "#f3f8f6" },
+  online: { background: "#55d7ba", text: "#04201a" },
+  partial: { background: "#e2a95f", text: "#2a1c08" },
+};
 
-const HEIGHT = 20;
-const PADDING = 7;
-const DOT_SPACE = 10;
-const FONT_SIZE = 11;
+// Deeper status colours keep white text above 4.5:1 on light pages.
+const LIGHT_PALETTE: BadgePalette = {
+  label: { background: "#e4ecea", text: "#10191d" },
+  muted: { background: "#5d6e73", text: "#ffffff" },
+  online: { background: "#137a63", text: "#ffffff" },
+  partial: { background: "#8f5614", text: "#ffffff" },
+};
+
+/** The palette a theme draws with; `auto` starts dark and switches by media query. */
+export function badgePalette(theme: BadgeTheme): BadgePalette {
+  return theme === "light" ? LIGHT_PALETTE : DARK_PALETTE;
+}
+
+interface BadgeMetrics {
+  readonly height: number;
+  readonly padding: number;
+  readonly dotSpace: number;
+  readonly fontSize: number;
+  readonly radius: number;
+  readonly textY: number;
+  readonly uppercase: boolean;
+}
+
+const FLAT_METRICS: BadgeMetrics = {
+  dotSpace: 10,
+  fontSize: 11,
+  height: 20,
+  padding: 7,
+  radius: 4,
+  textY: 14,
+  uppercase: false,
+};
+
+const STYLE_METRICS: Readonly<Record<BadgeStyle, BadgeMetrics>> = {
+  flat: FLAT_METRICS,
+  "flat-square": { ...FLAT_METRICS, radius: 0 },
+  "for-the-badge": {
+    dotSpace: 12,
+    fontSize: 10,
+    height: 28,
+    padding: 10,
+    radius: 0,
+    textY: 18,
+    uppercase: true,
+  },
+};
+
 const MAX_LABEL_LENGTH = 40;
+const MAX_MAP_LENGTH = 24;
 const COUNT_FORMAT = new Intl.NumberFormat("en-US");
 
 // Approximate Verdana advance widths at 11px. `textLength` pins the rendered
@@ -118,6 +177,21 @@ function textWidth(text: string): number {
   return Math.ceil(width);
 }
 
+/** Width of drawn text; uppercase bold text at 10px runs wider than the 11px table. */
+function drawnWidth(text: string, metrics: BadgeMetrics): number {
+  if (!metrics.uppercase) {
+    return textWidth(text);
+  }
+  return Math.ceil(textWidth(text) * 0.98 + Array.from(text).length * 1.2);
+}
+
+function truncate(text: string, maximum: number): string {
+  const characters = Array.from(text);
+  return characters.length > maximum
+    ? `${characters.slice(0, maximum - 1).join("")}…`
+    : text;
+}
+
 function escapeXml(text: string): string {
   return text
     .replaceAll("&", "&amp;")
@@ -152,54 +226,125 @@ export function badgeStatusText(state: BadgeState): string {
   }
 }
 
-function statusTone(state: BadgeState): BadgeTone {
-  if (state.kind === "online") {
-    return state.partial ? PARTIAL_TONE : ONLINE_TONE;
+/** The status half of a badge for a `show` option. */
+export function badgeMessage(state: BadgeState, show: BadgeShow): string {
+  if (show === "status") {
+    return state.kind === "online" ? "online" : badgeStatusText(state);
   }
-  return MUTED_TONE;
+  const status = badgeStatusText(state);
+  if (show === "players-map" && state.kind === "online") {
+    const map = state.map?.trim();
+    if (map !== undefined && map.length > 0) {
+      return `${status} · ${truncate(map, MAX_MAP_LENGTH)}`;
+    }
+  }
+  return status;
+}
+
+/** Which palette entry colours the status half. */
+export function statusToneKey(
+  state: BadgeState,
+): "online" | "partial" | "muted" {
+  if (state.kind === "online") {
+    return state.partial ? "partial" : "online";
+  }
+  return "muted";
+}
+
+/** Light-theme overrides for `theme=auto`, keyed by the classes below. */
+function autoThemeStyle(state: BadgeState): string {
+  const tone = LIGHT_PALETTE[statusToneKey(state)];
+  const label = LIGHT_PALETTE.label;
+  return `<style>@media (prefers-color-scheme:light){.lb{fill:${label.background}}.lt{fill:${label.text}}.sb{fill:${tone.background}}.st{fill:${tone.text}}}</style>`;
+}
+
+function classAttribute(name: string, themed: boolean): string {
+  return themed ? ` class="${name}"` : "";
 }
 
 function textElement(
   text: string,
   x: number,
+  y: number,
   width: number,
   color: string,
+  className: string,
 ): string {
-  return `<text x="${x}" y="14" fill="${color}" textLength="${width}" lengthAdjust="spacingAndGlyphs">${escapeXml(text)}</text>`;
+  return `<text${className} x="${x}" y="${y}" fill="${color}" textLength="${width}" lengthAdjust="spacingAndGlyphs">${escapeXml(text)}</text>`;
+}
+
+/** How one badge is drawn; omitted fields use the default flat, dark, player-count badge. */
+export interface BadgeRenderOptions {
+  readonly style?: BadgeStyle;
+  readonly show?: BadgeShow;
+  readonly theme?: BadgeTheme;
 }
 
 /**
- * Renders a self-contained status badge: the game name on the left and the
+ * Renders a self-contained status badge: the label on the left and the
  * server's state on the right. All text is escaped, and the SVG references no
- * external resources, scripts, or fonts.
+ * external resources, scripts, or fonts; `theme=auto` adds only an inline
+ * colour-scheme media query.
  */
-export function renderBadgeSvg(label: string, state: BadgeState): string {
-  const safeLabel =
-    label.length > MAX_LABEL_LENGTH
-      ? `${label.slice(0, MAX_LABEL_LENGTH - 1)}…`
-      : label;
-  const status = badgeStatusText(state);
-  const tone = statusTone(state);
-  const labelTextWidth = textWidth(safeLabel);
-  const statusTextWidth = textWidth(status);
-  const labelWidth = labelTextWidth + PADDING * 2;
-  const statusWidth = DOT_SPACE + statusTextWidth + PADDING * 2;
+export function renderBadgeSvg(
+  label: string,
+  state: BadgeState,
+  options: BadgeRenderOptions = {},
+): string {
+  const metrics = STYLE_METRICS[options.style ?? "flat"];
+  const theme = options.theme ?? "dark";
+  const themed = theme === "auto";
+  const palette = badgePalette(theme);
+  const labelTone = palette.label;
+  const tone = palette[statusToneKey(state)];
+  const safeLabel = truncate(label, MAX_LABEL_LENGTH);
+  const status = badgeMessage(state, options.show ?? "players");
+  const shownLabel = metrics.uppercase ? safeLabel.toUpperCase() : safeLabel;
+  const shownStatus = metrics.uppercase ? status.toUpperCase() : status;
+  const { dotSpace, height, padding } = metrics;
+  const labelTextWidth = drawnWidth(shownLabel, metrics);
+  const statusTextWidth = drawnWidth(shownStatus, metrics);
+  const labelWidth = labelTextWidth + padding * 2;
+  const statusWidth = dotSpace + statusTextWidth + padding * 2;
   const width = labelWidth + statusWidth;
   const title = escapeXml(`${safeLabel}, ${status}`);
-  const statusX = labelWidth + PADDING + DOT_SPACE;
+  const statusX = labelWidth + padding + dotSpace;
+  const fontWeight = metrics.uppercase ? ` font-weight="bold"` : "";
+  const rects = [
+    `<rect${classAttribute("lb", themed)} width="${labelWidth}" height="${height}" fill="${labelTone.background}"/>`,
+    `<rect${classAttribute("sb", themed)} x="${labelWidth}" width="${statusWidth}" height="${height}" fill="${tone.background}"/>`,
+  ];
 
   return [
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${HEIGHT}" viewBox="0 0 ${width} ${HEIGHT}" role="img" aria-label="${title}">`,
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" role="img" aria-label="${title}">`,
     `<title>${title}</title>`,
-    `<clipPath id="r"><rect width="${width}" height="${HEIGHT}" rx="4"/></clipPath>`,
-    `<g clip-path="url(#r)">`,
-    `<rect width="${labelWidth}" height="${HEIGHT}" fill="${LABEL_TONE.background}"/>`,
-    `<rect x="${labelWidth}" width="${statusWidth}" height="${HEIGHT}" fill="${tone.background}"/>`,
-    `</g>`,
-    `<circle cx="${labelWidth + PADDING + 3}" cy="10" r="3" fill="${tone.text}"/>`,
-    `<g font-family="Verdana,Geneva,DejaVu Sans,sans-serif" font-size="${FONT_SIZE}">`,
-    textElement(safeLabel, PADDING, labelTextWidth, LABEL_TONE.text),
-    textElement(status, statusX, statusTextWidth, tone.text),
+    themed ? autoThemeStyle(state) : "",
+    ...(metrics.radius > 0
+      ? [
+          `<clipPath id="r"><rect width="${width}" height="${height}" rx="${metrics.radius}"/></clipPath>`,
+          `<g clip-path="url(#r)">`,
+          ...rects,
+          `</g>`,
+        ]
+      : rects),
+    `<circle${classAttribute("st", themed)} cx="${labelWidth + padding + 3}" cy="${height / 2}" r="3" fill="${tone.text}"/>`,
+    `<g font-family="Verdana,Geneva,DejaVu Sans,sans-serif" font-size="${metrics.fontSize}"${fontWeight}>`,
+    textElement(
+      shownLabel,
+      padding,
+      metrics.textY,
+      labelTextWidth,
+      labelTone.text,
+      classAttribute("lt", themed),
+    ),
+    textElement(
+      shownStatus,
+      statusX,
+      metrics.textY,
+      statusTextWidth,
+      tone.text,
+      classAttribute("st", themed),
+    ),
     `</g>`,
     `</svg>`,
   ].join("");

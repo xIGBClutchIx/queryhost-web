@@ -64,14 +64,16 @@ export class ProxyGate {
 
   /**
    * Admits one request that counts as `cost` starts in both windows, such as a
-   * detection that may probe several protocols.
+   * detection that may probe several protocols. A lower `windowLimit` stops
+   * this request early in the global window, leaving the rest for others.
    */
   public admit(
     caller: string,
     now: number = Date.now(),
     cost = 1,
+    windowLimit: number = this.#policy.maxStartsPerWindow,
   ): ProxyGateResult {
-    const rejection = this.#check(caller, now, cost);
+    const rejection = this.#check(caller, now, cost, windowLimit);
     if (rejection !== undefined) {
       return rejection;
     }
@@ -128,6 +130,7 @@ export class ProxyGate {
     caller: string,
     now: number,
     cost: number,
+    windowLimit: number,
   ): ProxyGateRejection | undefined {
     this.#refresh(now);
 
@@ -143,15 +146,19 @@ export class ProxyGate {
       return { accepted: false, reason: "callerActive", retryAfterSeconds: 1 };
     }
 
-    return this.#checkBudget(caller, now, cost);
+    return this.#checkBudget(caller, now, cost, windowLimit);
   }
 
   #checkBudget(
     caller: string,
     now: number,
     cost: number,
+    windowLimit: number = this.#policy.maxStartsPerWindow,
   ): ProxyGateRejection | undefined {
-    if (this.#globalCount + cost > this.#policy.maxStartsPerWindow) {
+    if (
+      this.#globalCount + cost >
+      Math.min(windowLimit, this.#policy.maxStartsPerWindow)
+    ) {
       return {
         accepted: false,
         reason: "window",

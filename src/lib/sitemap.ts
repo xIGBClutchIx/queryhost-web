@@ -46,12 +46,14 @@ ${entries}
 
 /**
  * The robots.txt document: everything is crawlable except the machine
- * endpoints, which serve no pages and would only spend query capacity.
+ * endpoints and embed cards, which serve no pages of their own and would only
+ * spend query capacity.
  */
 export function renderRobots(): string {
   return `User-agent: *
 Allow: /
 Disallow: /api/
+Disallow: /embed/
 Disallow: /mcp
 
 Sitemap: ${canonicalUrl("/sitemap.xml")}
