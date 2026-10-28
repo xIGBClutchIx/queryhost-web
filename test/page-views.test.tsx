@@ -3,11 +3,17 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import { Callout } from "../src/components/Callout.js";
-import { apiReferencePage } from "../src/lib/api-reference.js";
+import {
+  API_REFERENCE_PAGES,
+  apiReferencePage,
+} from "../src/lib/api-reference.js";
 import { adjacentDocumentationPages } from "../src/lib/navigation.js";
 import { documentationHref } from "../src/lib/site.js";
 import { QUERYHOST_VERSION } from "../src/lib/package-version.js";
-import { ApiReferencePage } from "../src/views/docs/ApiReferencePage.js";
+import {
+  apiReferenceDescription,
+  ApiReferencePage,
+} from "../src/views/docs/ApiReferencePage.js";
 import * as changelog from "../src/views/docs/ChangelogPage.js";
 import * as credits from "../src/views/docs/CreditsPage.js";
 import * as errors from "../src/views/docs/ErrorsPage.js";
@@ -90,13 +96,16 @@ describe("server-rendered documentation views", () => {
   });
 
   it("reserves a contents column only on pages with several sections", () => {
-    const querying_ = render(<querying.QueryingPage />);
-    expect(querying_).toContain('class="docs-shell docs-shell--contents"');
-    expect(querying_).toContain("data-doc-toc");
+    for (const html of [
+      render(<querying.QueryingPage />),
+      render(<changelog.ChangelogPage />),
+    ]) {
+      expect(html).toContain('class="docs-shell docs-shell--contents"');
+      expect(html).toContain("data-doc-toc");
+    }
     for (const html of [
       render(<games.GamesPage />),
       render(<referenceIndex.ReferenceIndexPage />),
-      render(<changelog.ChangelogPage />),
     ]) {
       expect(html).toContain('class="docs-shell"');
       expect(html).not.toContain("data-doc-toc");
@@ -128,6 +137,73 @@ describe("server-rendered documentation views", () => {
   });
 });
 
+describe("documentation content", () => {
+  it("anchors each changelog release by its version", () => {
+    const html = render(<changelog.ChangelogPage />);
+    expect(html).toMatch(/<h2 id="v1\.8\.0"><a href="[^"]+">1\.8\.0<\/a>/);
+    // Only releases are anchored; their repeated subsection headings are not.
+    expect(html).not.toMatch(/<h3 id=/);
+  });
+
+  it("describes each API reference page by its symbol summary", () => {
+    const page = apiReferencePage("functions/isGameId");
+    if (page === undefined) throw new Error("Missing reference page.");
+    expect(apiReferenceDescription(page)).toBe(
+      "Returns whether an arbitrary string is a registered game identifier.",
+    );
+    const longest = API_REFERENCE_PAGES.map(apiReferenceDescription).reduce(
+      (left, right) => (right.length > left.length ? right : left),
+    );
+    expect(longest.length).toBeLessThanOrEqual(160);
+  });
+
+  it("lists every query, detection, and warning code", () => {
+    const html = render(<errors.ErrorsPage />);
+    for (const code of [
+      "ABORTED",
+      "CONNECTION_FAILED",
+      "DNS_FAILED",
+      "INTERNAL_ERROR",
+      "INVALID_INPUT",
+      "MALFORMED_RESPONSE",
+      "RESPONSE_TOO_LARGE",
+      "TARGET_BLOCKED",
+      "TIMEOUT",
+      "NOT_DETECTED",
+      "PARTIAL_RESULT",
+      "SOURCE_TIMEOUT",
+    ]) {
+      expect(html).toContain(`<th scope="row"><code>${code}</code></th>`);
+    }
+  });
+
+  it("separates game aliases and keeps tables in scroll wrappers", () => {
+    const html = render(<querying.QueryingPage />);
+    expect(html).toMatch(/<code>[\w-]+<\/code>, <code>[\w-]+<\/code>/);
+    expect(html).not.toContain("No*");
+    for (const view of [
+      render(<publicApi.PublicApiPage />),
+      html,
+      render(<webMcp.WebMcpPage />),
+      render(<errors.ErrorsPage />),
+    ]) {
+      expect(view.split('<table class="data-table"').length).toBe(
+        view.split('<div class="table-scroll"><table class="data-table"')
+          .length,
+      );
+    }
+  });
+
+  it("derives the capability header groups from the capability columns", () => {
+    const html = render(<games.GamesPage />);
+    expect(html).toContain('<th scope="colgroup" colspan="3">Core</th>');
+    expect(html).toContain('<th scope="colgroup">Discovery</th>');
+    expect(html).toContain(
+      '<span aria-hidden="true">—</span><span class="sr-only">Not applicable</span>',
+    );
+  });
+});
+
 describe("callouts", () => {
   it("marks warnings with a distinct glyph", () => {
     const info = render(<Callout title="Note">Body</Callout>);
@@ -141,6 +217,22 @@ describe("callouts", () => {
     );
     expect(warning).toContain(
       '<div class="callout__mark" aria-hidden="true">!</div>',
+    );
+  });
+
+  it("titles notes without headings and names their tone for screen readers", () => {
+    const info = render(<Callout title="Note title">Body</Callout>);
+    const warning = render(
+      <Callout title="Careful" tone="warning">
+        Body
+      </Callout>,
+    );
+    expect(info).not.toMatch(/<h\d/);
+    expect(info).toContain(
+      '<p class="callout__title"><span class="sr-only">Note: </span>Note title</p>',
+    );
+    expect(warning).toContain(
+      '<span class="sr-only">Warning: </span>Careful</p>',
     );
   });
 });

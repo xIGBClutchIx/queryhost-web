@@ -6,6 +6,7 @@ import { CHANGELOG_HTML } from "../../lib/changelog.js";
 
 export const metadata = {
   activeHref: "/changelog/",
+  contents: true,
   title: "Changelog",
   description: "Release history for the QueryHost query library.",
 } as const satisfies DocsPageMetadata;

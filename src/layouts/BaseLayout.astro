@@ -26,9 +26,12 @@ const {
   title,
 } = Astro.props;
 const pageTitle = title === "QueryHost" ? title : `${title} · QueryHost`;
-// Error pages render under the requested path, which is not a page to index.
+// Error pages render under the requested path, which is not a page to index. A
+// route that rewrites to the 404 page renders it with a 200 status of its own.
 const canonical =
-  Astro.response.status === 200 ? canonicalUrl(Astro.url.pathname) : undefined;
+  Astro.response.status === 200 && !/^\/404\/?$/.test(Astro.url.pathname)
+    ? canonicalUrl(Astro.url.pathname)
+    : undefined;
 // Link previews fetch the image from another origin, so it must be absolute.
 const shareImage = canonicalUrl(image.path);
 ---

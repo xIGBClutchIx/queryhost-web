@@ -16,7 +16,8 @@ export function NotFoundPage(): ReactNode {
         <p className="eyebrow">404</p>
         <h1>That page is not here.</h1>
         <p>
-          The path may have moved, or it may belong to a later QueryHost slice.
+          The link may be mistyped, or the page may have moved. The
+          documentation lists everything QueryHost offers.
         </p>
         <a className="button button--primary" href={documentationHref()}>
           Open documentation

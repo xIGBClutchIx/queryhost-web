@@ -3,6 +3,8 @@
 import {
   API_REFERENCE_PAGES,
   apiReferenceLabel,
+  apiReferenceSummary,
+  plainText,
   renderApiReference,
 } from "./api-reference.js";
 import { gameAnchor } from "./docs-search.js";
@@ -28,25 +30,6 @@ interface Heading {
 
 /** Body text kept per section: enough to match its key terms without shipping prose. */
 const KEYWORD_LENGTH = 400;
-
-const ENTITIES: Readonly<Record<string, string>> = {
-  amp: "&",
-  gt: ">",
-  lt: "<",
-  quot: '"',
-  "#39": "'",
-  "#x27": "'",
-};
-
-function plainText(html: string): string {
-  return html
-    .replace(/<[^>]*>/g, "")
-    .replace(/&(amp|gt|lt|quot|#39|#x27);/g, (_match, name: string) => {
-      return ENTITIES[name] ?? "";
-    })
-    .replace(/\s+/g, " ")
-    .trim();
-}
 
 function keywords(text: string): string {
   return text.slice(0, KEYWORD_LENGTH).toLowerCase();
@@ -144,8 +127,7 @@ function referenceEntries(): readonly DocsSearchEntry[] {
       // "Interface: QueryOptions" names the symbol's kind, shown as its context.
       const kind = /^(\w[\w ]*):/.exec(page.title)?.[1] ?? "Reference";
       const html = renderApiReference(page, prefix);
-      // The summary is the generated page's first paragraph.
-      const summary = plainText(/<p>([\s\S]*?)<\/p>/.exec(html)?.[1] ?? "");
+      const summary = apiReferenceSummary(html);
       const symbol: DocsSearchEntry = {
         context: kind,
         href,

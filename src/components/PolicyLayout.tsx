@@ -23,8 +23,8 @@ export function PolicyLayout({
         <p className="policy-date">Effective {effective}</p>
         {children}
         <nav className="policy-links" aria-label="Service policies">
-          <a href="/privacy">Privacy policy</a>
-          <a href="/terms">Terms of service</a>
+          <a href="/privacy/">Privacy policy</a>
+          <a href="/terms/">Terms of service</a>
           <a href="mailto:lockerzmodding@gmail.com">Contact</a>
         </nav>
       </main>

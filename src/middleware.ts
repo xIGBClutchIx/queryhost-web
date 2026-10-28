@@ -1,11 +1,19 @@
 import { defineMiddleware } from "astro:middleware";
 
-import { cacheControlForPath } from "./lib/site.js";
+import { cacheControlForPath, trailingSlashRedirect } from "./lib/site.js";
 
 export const onRequest = defineMiddleware(async (context, next) => {
   const pathname = context.url.pathname;
 
-  const response = await next();
+  // Pages answer only at their trailing-slash URL, which is also their canonical one.
+  const slashed = trailingSlashRedirect(pathname);
+  const response =
+    slashed === undefined
+      ? await next()
+      : new Response(null, {
+          headers: { Location: `${slashed}${context.url.search}` },
+          status: 301,
+        });
   // A route that sets its own caching or CSP (status badges) keeps it; every
   // other response gets the site policy.
   if (!response.headers.has("Cache-Control")) {
