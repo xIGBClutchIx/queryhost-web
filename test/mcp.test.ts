@@ -13,6 +13,20 @@ import {
 import { WORKSPACE_URI } from "../src/server/mcp-workspace-resource.js";
 import { FULL_RESULT_KEY } from "../src/lib/mcp-workspace-contract.js";
 import { SurfaceUsage } from "../src/server/usage-stats.js";
+import { parseAgentResponse } from "../src/server/agent-response.js";
+import {
+  PROXY_ERROR_CODES,
+  QUERY_ERROR_CODES,
+  QUERY_SOURCE_NAMES,
+  QUERY_SOURCE_STATUSES,
+  QUERY_WARNING_CODES,
+  vocabulary,
+} from "../src/server/result-vocabulary.js";
+import {
+  mcpQueryDependencies,
+  publicApiDependencies,
+  publicQueryDependencies,
+} from "../src/server/query-dependencies.js";
 
 function setup(body?: string) {
   const calls: RequestInit[] = [];
@@ -320,7 +334,15 @@ describe("remote MCP", () => {
     }
   });
 
-  it("shares query admission with browser calls", async () => {
+  it("gives MCP tool queries their own gate and usage counters", () => {
+    const mcp = mcpQueryDependencies();
+    expect(mcp.gate).not.toBe(publicQueryDependencies().gate);
+    expect(mcp.gate).not.toBe(publicApiDependencies().gate);
+    expect(mcp.usage).not.toBe(publicQueryDependencies().usage);
+    expect(mcpQueryDependencies()).toBe(mcp);
+  });
+
+  it("refuses tool queries when its query gate is full", async () => {
     const { calls, dependencies } = setup();
     const lease1 = dependencies.queries.gate.admit("browser1");
     const lease2 = dependencies.queries.gate.admit("browser2");
@@ -425,5 +447,67 @@ describe("remote MCP", () => {
     });
     expect((await handleMcpRequest(request, dependencies)).status).toBe(408);
     expect(dependencies.requests.active).toBe(0);
+  });
+
+  it("answers 413 only for an oversized body, not any range error", async () => {
+    const { dependencies } = setup();
+    const failing = {
+      ...dependencies,
+      get games(): typeof dependencies.games {
+        throw new RangeError("Unrelated range failure.");
+      },
+    };
+    const response = await handleMcpRequest(rpc("tools/list"), failing);
+    expect(response.status).toBe(500);
+    expect(await response.json()).toMatchObject({
+      error: { message: "MCP request could not complete." },
+    });
+    expect(dependencies.requests.active).toBe(0);
+  });
+
+  it("accepts every result value and service error code the contract allows", () => {
+    const sources = vocabulary(QUERY_SOURCE_NAMES).map((source, index) => {
+      const statuses = vocabulary(QUERY_SOURCE_STATUSES);
+      return { source, status: statuses[index % statuses.length] };
+    });
+    const warnings = vocabulary(QUERY_WARNING_CODES).map((code) => ({
+      code,
+      message: "Warning.",
+    }));
+    const base = {
+      cache: { ageMs: 0, status: "hit", ttlMs: 0 },
+      durationMs: 1,
+      game: "minecraft-java",
+      sources,
+      warnings,
+    };
+    expect(
+      parseAgentResponse(
+        JSON.stringify({
+          ...base,
+          data: {},
+          ok: true,
+          partial: true,
+          server: {},
+        }),
+        "minecraft-java",
+      ),
+    ).toMatchObject({ ok: true });
+    for (const code of vocabulary(QUERY_ERROR_CODES)) {
+      expect(
+        parseAgentResponse(
+          JSON.stringify({ ...base, error: { code, message: "x" }, ok: false }),
+          "minecraft-java",
+        ),
+      ).toMatchObject({ error: { code } });
+    }
+    for (const code of vocabulary(PROXY_ERROR_CODES)) {
+      expect(
+        parseAgentResponse(
+          JSON.stringify({ error: { code, message: "x" } }),
+          "minecraft-java",
+        ),
+      ).toEqual({ error: { code, message: "x" } });
+    }
   });
 });

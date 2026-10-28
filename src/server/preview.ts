@@ -56,7 +56,9 @@ export function loadPreviewGatePolicy(
     10_000,
   );
   return {
-    // Drawing is synchronous, so at most one is ever active.
+    // resvg draws synchronously on the event loop (tens of milliseconds for a
+    // 1200×630 card), so at most one is ever active and this window bounds the
+    // total blocking time. Raise it only alongside a measured CPU budget.
     maxActive: 1,
     maxStartsPerCaller: maxStartsPerWindow,
     maxStartsPerWindow,
@@ -167,6 +169,17 @@ export class PreviewService {
       input.game !== "a2s"
         ? { ...input, port: game.defaultPort }
         : input;
+    // With no drawing budget left the result is the fallback image either way,
+    // so it never spends a badge query first. This gives up reusing a drawn
+    // image while the budget is spent, which is rare and short-lived.
+    if (
+      !this.#dependencies.gate.hasStartBudget(
+        PREVIEW_CALLER,
+        this.#dependencies.now(),
+      )
+    ) {
+      return { maxAgeSeconds: 0 };
+    }
     const { maxAgeSeconds, state } =
       await this.#dependencies.badges.resolve(query);
     const card = previewCard(input, game, state);

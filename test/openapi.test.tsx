@@ -12,10 +12,15 @@ import {
   OPENAPI_ERROR_CODES,
   OPENAPI_QUERY_ERROR_CODES,
 } from "../src/server/openapi.js";
+import { ProxyGate } from "../src/server/proxy-gate.js";
 import {
+  handlePublicApiGames,
   handlePublicApiNotFound,
   handlePublicApiOpenApi,
+  handlePublicApiQuery,
 } from "../src/server/public-api.js";
+import type { ProxyFetcher } from "../src/server/public-query.js";
+import { GamesUsage, SurfaceUsage } from "../src/server/usage-stats.js";
 import { PublicApiPage } from "../src/views/docs/PublicApiPage.js";
 
 const API_URL = "https://query.host/api/v1";
@@ -161,6 +166,102 @@ describe("OpenAPI document", () => {
       };
       expect(OPENAPI_ERROR_CODES).toContain(body.error.code);
     }
+  });
+
+  it("documents exactly the statuses and validators the handlers return", async () => {
+    const documented = (path: string, method: string): readonly string[] =>
+      [...keys(at(document, "paths", path, method, "responses"))].sort();
+    const statuses = (responses: readonly Response[]): readonly string[] =>
+      [...new Set(responses.map((response) => String(response.status)))].sort();
+
+    for (const [path, handler] of [
+      [
+        "/games",
+        (request: Request) => handlePublicApiGames(request, new GamesUsage()),
+      ],
+      ["/openapi.json", handlePublicApiOpenApi],
+    ] as const) {
+      const ok = handler(new Request(`${API_URL}${path}`));
+      const etag = ok.headers.get("etag") ?? "";
+      const responses = [
+        ok,
+        handler(
+          new Request(`${API_URL}${path}`, {
+            headers: { "If-None-Match": etag },
+          }),
+        ),
+        handler(new Request(`${API_URL}${path}`, { method: "POST" })),
+      ];
+      expect(statuses(responses), path).toEqual(documented(path, "get"));
+      expect(etag, path).not.toBe("");
+      expect(
+        keys(at(document, "paths", path, "get", "responses", "200", "headers")),
+        path,
+      ).toContain("ETag");
+      expect(
+        JSON.stringify(at(document, "paths", path, "get", "parameters")),
+        path,
+      ).toContain("If-None-Match");
+    }
+
+    const upstream =
+      (status: number): ProxyFetcher =>
+      () =>
+        Promise.resolve(
+          Response.json(
+            status === 200
+              ? { ok: true }
+              : { error: { code: "X", message: "x" } },
+            { status },
+          ),
+        );
+    const query = (
+      fetcher: ProxyFetcher,
+      init: RequestInit = {},
+      maxStartsPerCaller = 8,
+    ): Promise<Response> =>
+      handlePublicApiQuery(
+        new Request(`${API_URL}/query`, {
+          body: JSON.stringify({ game: "rust", host: "play.example.com" }),
+          headers: { "Content-Type": "application/json" },
+          method: "POST",
+          ...init,
+        }),
+        {
+          config: {
+            maxBodyBytes: 2_048,
+            target: {
+              apiBaseUrl: "http://api.railway.internal:3000",
+              apiOriginToken: "a".repeat(32),
+              kind: "hosted",
+            },
+            upstreamTimeoutMs: 7_000,
+          },
+          fetcher,
+          gate: new ProxyGate({
+            maxActive: 2,
+            maxStartsPerCaller,
+            maxStartsPerWindow: 8,
+            maxTrackedCallers: 8,
+            windowMs: 60_000,
+          }),
+          queryRunner: () => Promise.reject(new Error("unused")),
+          usage: new SurfaceUsage(),
+        },
+      );
+    const responses = await Promise.all([
+      query(upstream(200)),
+      query(upstream(200), { body: "{" }),
+      query(upstream(200), { method: "GET", body: null }),
+      query(upstream(200), { body: "x".repeat(2_049) }),
+      query(upstream(200), { headers: { "Content-Type": "text/plain" } }),
+      query(upstream(429)),
+      query(upstream(200), {}, 0),
+      query(upstream(500)),
+      query(upstream(401)),
+      query(() => Promise.reject(new Error("down"))),
+    ]);
+    expect(statuses(responses)).toEqual(documented("/query", "post"));
   });
 
   it("links the spec from the Public API page", () => {

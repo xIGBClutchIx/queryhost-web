@@ -58,6 +58,7 @@ if (response.headers.get("Content-Type")?.startsWith("application/x-ndjson")) {
       if (event.type === "started") console.log("querying", event.source);
       if (event.type === "completed") console.log(event.report);
       if (event.type === "result") console.log(event.result.ok);
+      if (event.type === "error") console.error(event.error.code);
     }
   }
 }`;
@@ -187,7 +188,15 @@ export function PublicApiPage(): ReactNode {
         <code>Age</code> or <code>x-queryhost-cache</code> header, so read{" "}
         <code>cache</code> from the result. Validation errors and{" "}
         <code>429</code> refusals are sent before the stream starts and stay
-        ordinary JSON.
+        ordinary JSON. If the query service fails after the stream has started,
+        it ends with an <code>error</code> line instead of a result, carrying
+        the same <code>{"{ code, message }"}</code> a JSON error would, such as{" "}
+        <code>
+          {
+            '{"type":"error","error":{"code":"UPSTREAM_UNAVAILABLE","message":"..."}}'
+          }
+        </code>
+        .
       </p>
       <h2 id="games">List games</h2>
       <p>
@@ -237,6 +246,7 @@ export function PublicApiPage(): ReactNode {
       <h2 id="limits">Limits</h2>
       <ul>
         <li>8 queries per IP address each minute.</li>
+        <li>2 queries running at once per IP address.</li>
         <li>60 queries per minute across all public API callers.</li>
         <li>
           Results are cached for up to 10 seconds, so polling faster than that

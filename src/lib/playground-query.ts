@@ -194,20 +194,43 @@ export function isPlaygroundProxyErrorResponse(
 const UNEXPECTED_RESPONSE =
   "The QueryHost web service returned an unexpected response.";
 
-/** Reports the progress lines of a streamed query until its single result line. */
+/**
+ * Reads the `error` line the web service sends in place of a result when a
+ * started stream cannot finish, or `undefined` for any other line.
+ */
+export function parseQueryStreamFailure(
+  line: string,
+): PlaygroundProxyErrorResponse | undefined {
+  const value = JSON.parse(line) as JsonValue;
+  if (
+    isObject(value) &&
+    value.type === "error" &&
+    isPlaygroundProxyErrorResponse(value)
+  ) {
+    return { error: value.error };
+  }
+  return undefined;
+}
+
+/** Reports the progress lines of a streamed query until its single result or error line. */
 async function readQueryStream(
   body: ReadableStream<Uint8Array>,
   onProgress: (event: QuerySourceEvent) => void,
-): Promise<PlaygroundQueryResponse> {
+): Promise<PlaygroundRequestResult> {
   const reader = body.getReader();
   const splitter = new QueryStreamLineSplitter();
-  let result: PlaygroundQueryResponse | undefined;
+  let result: PlaygroundRequestResult | undefined;
   const handle = (lines: readonly string[]): void => {
     for (const line of lines) {
       if (result !== undefined) throw new Error(UNEXPECTED_RESPONSE);
+      const failure = parseQueryStreamFailure(line);
+      if (failure !== undefined) {
+        result = { body: failure, kind: "proxy-error" };
+        continue;
+      }
       const parsed = parseQueryStreamLine(line);
       if (parsed.type === "result") {
-        result = parsed.result;
+        result = { body: parsed.result, kind: "query" };
       } else {
         onProgress(parsed);
       }
@@ -257,10 +280,7 @@ export async function requestPlaygroundQuery(
     response.headers.get("content-type")?.startsWith(QUERY_STREAM_MEDIA_TYPE)
   ) {
     try {
-      return {
-        body: await readQueryStream(response.body, onProgress),
-        kind: "query",
-      };
+      return await readQueryStream(response.body, onProgress);
     } catch (error) {
       // Cancellation keeps its own error; anything else is a malformed stream.
       if (signal.aborted) throw error;

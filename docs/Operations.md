@@ -13,7 +13,7 @@ The public QueryHost application is one Railway Node.js service that hosts the p
 - `query.host` attached to the public web service; documentation is served under `/docs/` (the former `docs.query.host` domain was removed on October 7, 2026)
 - no public domain on the API service
 
-The web service receives `QUERYHOST_API_BASE_URL` and `QUERYHOST_API_ORIGIN_TOKEN` as server-only variables. The token should reference the API service variable inside Railway rather than being copied into browser-visible configuration. Caller-admission variables remain bounded and should be changed only alongside their tests.
+The web service receives `QUERYHOST_API_BASE_URL` and `QUERYHOST_API_ORIGIN_TOKEN` as server-only variables. The token should reference the API service variable inside Railway rather than being copied into browser-visible configuration. Caller-admission variables remain bounded and should be changed only alongside their tests. The playground reads them as `QUERYHOST_WEB_*`, the public API as `QUERYHOST_WEB_PUBLIC_API_*`, and MCP tool queries as `QUERYHOST_WEB_MCP_*`; names and defaults are listed on the Hosted service documentation page and in [MCP](MCP.md#hosting-and-limits).
 
 The Railway workspace uses a $5 compute email alert and a $10 compute hard limit. The hard limit intentionally stops workloads instead of allowing an open-ended bill. Recheck these workspace-wide values before placing unrelated projects in the same workspace.
 
@@ -21,7 +21,7 @@ The Railway workspace uses a $5 compute email alert and a $10 compute hard limit
 
 Cloudflare's proxied DNS record supplies HTTP traffic analytics while Railway continues to host the application. Caller rate limits accept `CF-Connecting-IP` only when Railway's `X-Real-IP` identifies a Cloudflare proxy address from the published ranges in `src/server/client-address.ts`; direct origin requests cannot select their identity with that header. MCP preserves these headers when forwarding a tool query internally. Keep those ranges current with Cloudflare's published IPv4 and IPv6 lists.
 
-`GET /api/stats` reports aggregate counters since the web process started: for the playground (including MCP tool queries) and the public API separately, requests rejected as invalid, rate limited by gate bound (`active`, `window`, `caller`, `callers`), forwarded by upstream status and cache outcome, and unavailable; full versus `304` responses from `/api/v1/games`; and, under `api`, the private API's own `GET /stats` (`null` if it cannot be read). Every key comes from a closed set, so the report never contains targets, callers, or results, and it resets on restart.
+`GET /api/stats` reports aggregate counters since the web process started: for the playground, the public API, and MCP tool queries separately, requests rejected as invalid, rate limited by gate bound (`active`, `callerActive`, `window`, `caller`, `callers`), forwarded by upstream status and cache outcome, and unavailable; full versus `304` responses from `/api/v1/games`; and, under `api`, the private API's own `GET /stats` (`null` if it cannot be read). Every key comes from a closed set, so the report never contains targets, callers, or results, and it resets on restart.
 
 The route answers `404` unless `QUERYHOST_WEB_STATS_TOKEN` (32 to 256 characters, server-only) is set, and then requires `Authorization: Bearer <token>`:
 
@@ -49,7 +49,7 @@ registered-WebMCP-tools audit provides an independent discovery check.
 
 For remote MCP releases, connect an MCP client to `/mcp`, verify initialization,
 list all three tools, and exercise structured query and comparison results. Confirm
-`Cache-Control: no-store`, cancellation, invalid-input rejection, and shared caller
+`Cache-Control: no-store`, cancellation, invalid-input rejection, and MCP caller
 limits. See [MCP connection and limits](MCP.md) before creating a ChatGPT connection.
 
 Do not use arbitrary public game servers for deployment tests. Use a server owned by the project operator or explicitly approved for testing.
@@ -74,7 +74,7 @@ This service pins an exact `queryhost` version. The `QueryHost release` workflow
 
 The pull request carries the pin, the lockfile, prose that names the old pin, the library changelog entries, and any new game IDs. GitHub does not start pull-request workflows for pull requests opened by `GITHUB_TOKEN`, so the workflow dispatches CI on the branch itself. It needs **Allow GitHub Actions to create and approve pull requests** enabled under Settings, Actions, General. Merging still deploys, so review and merge it by hand.
 
-A release that adds a `QuerySourceName` fails typecheck on that pull request until the source has a label in `src/lib/query-path.ts`, an entry in `src/server/openapi.ts`, and a value in the MCP schema in `src/server/agent-response.ts`. Push those to the release branch before merging.
+A release that adds a `QuerySourceName` fails typecheck on that pull request until the source has a label in `src/lib/query-path.ts`, and an entry in `src/server/result-vocabulary.ts`, which feeds both the OpenAPI document and the MCP result schema. New warning, error, or source-status codes fail typecheck there the same way. Push those to the release branch before merging.
 
 ## Rollback
 
