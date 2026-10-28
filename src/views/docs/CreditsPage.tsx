@@ -23,8 +23,8 @@ export function CreditsPage(): ReactNode {
     <DocsLayout {...metadata}>
       <h2 id="created-by">Created by</h2>
       <p>
-        QueryHost is designed, built, and run by Clutch (
-        <a href="https://github.com/xIGBClutchIx">xIGBClutchIx</a>).
+        QueryHost is designed, built, and run by{" "}
+        <a href="https://clutchy.me">Clutch</a>.
       </p>
       <h2 id="games">Games</h2>
       <p>
