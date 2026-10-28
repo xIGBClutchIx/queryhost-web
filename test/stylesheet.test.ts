@@ -122,10 +122,31 @@ describe("stylesheet layout", () => {
     expect(rule).toContain("overflow-x: auto;");
   });
 
-  it("keeps the capability table a table on phones so its game column stays sticky", () => {
-    const phone = docs.slice(docs.indexOf("@media (max-width: 34rem)"));
-    const rule = /\n  \.capability-table \{([^}]*)\}/.exec(phone)?.[1];
-    expect(rule).toContain("display: table;");
+  it("scrolls wide tables in a wrapper instead of turning them into blocks", () => {
+    const rule = /\n\.table-scroll \{([^}]*)\}/.exec(docs)?.[1];
+    expect(rule).toContain("position: relative;");
+    expect(rule).toContain("overflow-x: auto;");
+    expect(rules).not.toMatch(/table \{[^}]*display: block;/);
+  });
+
+  it("marks the active search result in forced-colors mode", () => {
+    const forced = docs.slice(docs.indexOf("@media (forced-colors: active)"));
+    expect(forced).toMatch(
+      /\.docs-search__option\[aria-selected="true"\] \.docs-search__link \{[^}]*outline:/,
+    );
+  });
+
+  it("prints documentation without the site chrome", () => {
+    const print = docs.slice(docs.indexOf("@media print"));
+    for (const selector of [
+      ".docs-sidebar",
+      ".docs-mobile-nav",
+      ".doc-pager",
+      ".docs-search",
+    ]) {
+      expect(print).toContain(selector);
+    }
+    expect(base.slice(base.indexOf("@media print"))).toContain(".topbar");
   });
 
   it("pins the mobile documentation menu below the header", () => {

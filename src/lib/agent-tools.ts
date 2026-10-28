@@ -7,6 +7,7 @@ import type {
   PlaygroundQueryInput,
   PlaygroundQueryResponse,
 } from "./playground-contracts.js";
+import { resultPath } from "./result-url.js";
 
 export const LIST_SUPPORTED_GAMES_TOOL_NAME = "list_supported_games";
 export const QUERY_GAME_SERVER_TOOL_NAME = "query_game_server";
@@ -76,7 +77,12 @@ export function agentQuerySchema(games: readonly PlaygroundGameDefinition[]) {
         .describe(
           "Separate query port for named profiles; omit for generic a2s.",
         ),
-      mode: z.enum(["summary", "full"]).default("summary"),
+      mode: z
+        .enum(["summary", "full"])
+        .optional()
+        .describe(
+          "Defaults to the game's recommended mode from list_supported_games.",
+        ),
       timeoutMs: z.union([z.literal(3_000), z.literal(5_000)]).default(5_000),
     })
     .superRefine((input, context) => {
@@ -92,19 +98,20 @@ export function agentQuerySchema(games: readonly PlaygroundGameDefinition[]) {
     });
 }
 
-/** Share link includes only validated, non-secret query inputs. */
-export function playgroundUrl(input: PlaygroundQueryInput): string {
-  const url = new URL("https://query.host/");
-  for (const [key, value] of Object.entries(input)) {
-    if (value !== undefined) url.searchParams.set(key, String(value));
-  }
-  return url.href;
+/** The canonical result page; it carries only validated, non-secret query inputs. */
+export function playgroundUrl(
+  input: PlaygroundQueryInput,
+  games: readonly PlaygroundGameDefinition[],
+): string {
+  const game = games.find((candidate) => candidate.id === input.game);
+  return new URL(resultPath(input, game), "https://query.host/").href;
 }
 
 /** Preserve missing values and distinguish a failed query from confirmed server state. */
 export function agentQueryResult(
   input: PlaygroundQueryInput,
   result: QueryResponse,
+  games: readonly PlaygroundGameDefinition[],
 ): AgentQueryResult {
   let summary: string;
   if (!("ok" in result) || !result.ok) {
@@ -129,7 +136,12 @@ export function agentQueryResult(
       );
     summary = details.join("; ");
   }
-  return { input, summary, playgroundUrl: playgroundUrl(input), result };
+  return {
+    input,
+    summary,
+    playgroundUrl: playgroundUrl(input, games),
+    result,
+  };
 }
 
 /** Builds the same useful, data-returning tools for WebMCP and remote MCP. */
@@ -149,7 +161,10 @@ export function queryHostAgentTools(
     const input: PlaygroundQueryInput = {
       game: parsed.game,
       host: parsed.host,
-      mode: parsed.mode,
+      mode:
+        parsed.mode ??
+        games.find((game) => game.id === parsed.game)?.defaultMode ??
+        "summary",
       timeoutMs: parsed.timeoutMs,
       ...(parsed.port === undefined ? {} : { port: parsed.port }),
       ...(parsed.queryPort === undefined
@@ -159,7 +174,7 @@ export function queryHostAgentTools(
     signal.throwIfAborted();
     const result = await handlers.queryGameServer(input, signal);
     signal.throwIfAborted();
-    return agentQueryResult(input, result);
+    return agentQueryResult(input, result, games);
   };
   const annotations = { readOnlyHint: true, untrustedContentHint: true };
   const description =

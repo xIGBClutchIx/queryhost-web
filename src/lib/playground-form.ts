@@ -10,7 +10,8 @@ import type {
   PlaygroundQueryInput,
 } from "./playground-contracts.js";
 import { defaultQueryMode } from "./playground-defaults.js";
-import { resultPath } from "./result-url.js";
+import { resultPath, splitTarget } from "./result-url.js";
+import type { TargetParts } from "./result-url.js";
 
 export type PlaygroundTimeout = "3000" | "5000";
 
@@ -235,7 +236,49 @@ export type FormQueryInputResult =
   | { readonly input: PlaygroundDetectInput; readonly kind: "detect" }
   | { readonly input: PlaygroundQueryInput; readonly kind: "valid" };
 
-/** Converts natively validated controls into the non-secret public query input. */
+const ADDRESS_PORT = /^\d{1,5}$/u;
+const URL_ADDRESS = /^[a-z][a-z\d+.-]*:\/\/([^/?#]*)\/?$/iu;
+
+/**
+ * Splits a pasted `host:port`, `[ipv6]:port`, `[ipv6]`, or bare `scheme://host[:port]/`
+ * into its host and port. Returns `undefined` for a URL with a path, query, or
+ * credentials, or a port that is not a number; plain hosts come back as they are.
+ */
+export function splitAddress(value: string): TargetParts | undefined {
+  const text = value.trim();
+  const url = URL_ADDRESS.exec(text);
+  const target = url === null ? text : (url[1] ?? "");
+  if (url !== null && target.includes("@")) return undefined;
+  const parts = splitTarget(target);
+  if (parts.port !== undefined && !ADDRESS_PORT.test(parts.port)) {
+    return undefined;
+  }
+  return parts;
+}
+
+/**
+ * Moves a port pasted into the host field into the port field, and strips the
+ * brackets and scheme around the host. Anything it cannot split stays as typed,
+ * for the query's own validation to explain.
+ */
+export function withSplitHost(state: PlaygroundFormState): PlaygroundFormState {
+  const address = splitAddress(state.host);
+  if (address === undefined) return state;
+  if (address.port === undefined && address.host === state.host.trim()) {
+    return state;
+  }
+  return {
+    ...state,
+    host: address.host,
+    ...(address.port === undefined ? {} : { port: address.port }),
+  };
+}
+
+/**
+ * Converts natively validated controls into the non-secret public query input.
+ * The host must already be plain; the form splits a pasted address first with
+ * `withSplitHost`, while shared links that carry URL syntax stay invalid.
+ */
 export function formQueryInput(
   state: PlaygroundFormState,
 ): FormQueryInputResult {

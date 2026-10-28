@@ -216,6 +216,14 @@ export function CustomSelect<V extends string>({
       closeAndReturnFocus();
       return;
     }
+    // Options are one stop reached with the arrows, so Tab leaves the menu:
+    // from the trigger, the browser moves on past the closing list, and
+    // Shift+Tab lands back on the trigger itself.
+    if (event.key === "Tab") {
+      if (event.shiftKey) event.preventDefault();
+      closeAndReturnFocus();
+      return;
+    }
     if (isTypeaheadKey(event)) {
       const match = typeaheadMatch(event, index);
       if (match !== undefined) {
@@ -245,7 +253,15 @@ export function CustomSelect<V extends string>({
 
   return (
     <div className="field">
-      <span id={labelId}>{label}</span>
+      {/* Like a native label, a click focuses the control it names. */}
+      <span
+        id={labelId}
+        onClick={() => {
+          triggerRef.current?.focus();
+        }}
+      >
+        {label}
+      </span>
       <div
         className={open ? "custom-select is-open" : "custom-select"}
         ref={rootRef}
@@ -315,6 +331,7 @@ export function CustomSelect<V extends string>({
                 className="custom-select__option"
                 type="button"
                 role="option"
+                tabIndex={-1}
                 aria-selected={option.value === value}
                 onClick={() => {
                   onChange(option.value);

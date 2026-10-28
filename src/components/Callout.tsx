@@ -19,7 +19,13 @@ export function Callout({
         {tone === "warning" ? "!" : "i"}
       </div>
       <div>
-        <h2>{title}</h2>
+        {/* Not a heading, so notes stay out of the page outline and contents. */}
+        <p className="callout__title">
+          <span className="sr-only">
+            {tone === "warning" ? "Warning: " : "Note: "}
+          </span>
+          {title}
+        </p>
         <div className="callout__body">{children}</div>
       </div>
     </aside>

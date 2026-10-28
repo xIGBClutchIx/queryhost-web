@@ -468,3 +468,34 @@ a {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Paper is light: swap the palette, drop the site chrome, and print content only. */
+@media print {
+  :root {
+    color-scheme: light;
+    --background: #ffffff;
+    --surface: #ffffff;
+    --surface-raised: #ffffff;
+    --surface-subtle: #eef1f0;
+    --text: #1b2421;
+    --text-strong: #000000;
+    --muted: #4a5552;
+    --faint: #59645f;
+    --line: #c9d1ce;
+    --line-strong: #9aa5a1;
+    --accent: #0b6b57;
+    --accent-strong: #0b6b57;
+    --accent-soft: #e2f2ed;
+    --supported: #1d5f87;
+    --warning: #8a5a12;
+    --warning-soft: #fbf1e2;
+    --code-background: #f4f6f5;
+    --code-text: #111816;
+    --shadow: none;
+  }
+
+  .topbar,
+  .skip-link {
+    display: none !important;
+  }
+}

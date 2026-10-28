@@ -21,3 +21,14 @@
   gap: var(--space-4);
   margin-top: var(--space-12);
 }
+
+@media print {
+  .policy {
+    max-width: none;
+    padding: 0;
+  }
+
+  .policy-links {
+    display: none;
+  }
+}

@@ -25,6 +25,30 @@ const CAPABILITIES = Object.entries(CAPABILITY_LABELS) as readonly (readonly [
 ])[];
 const SUPPORT_LEVELS = ["supported", "conditional", "unsupported"] as const;
 
+/** The header group each capability column sits under. */
+const CAPABILITY_GROUPS: Readonly<
+  Record<keyof typeof CAPABILITY_LABELS, string>
+> = {
+  summary: "Core",
+  players: "Core",
+  rules: "Core",
+  mods: "Content",
+  plugins: "Content",
+  resources: "Content",
+  srv: "Discovery",
+};
+
+/** Consecutive capability columns sharing a group, in column order. */
+const CAPABILITY_GROUP_SPANS = CAPABILITIES.reduce<
+  readonly { readonly label: string; readonly span: number }[]
+>((spans, [capability]) => {
+  const label = CAPABILITY_GROUPS[capability];
+  const last = spans.at(-1);
+  return last?.label === label
+    ? [...spans.slice(0, -1), { label, span: last.span + 1 }]
+    : [...spans, { label, span: 1 }];
+}, []);
+
 /** Lowercase text the client-side filter matches: name, canonical ID, and aliases. */
 function filterText(game: (typeof GAMES)[number]): string {
   return [game.name, game.id, ...aliasesForGame(game.id)]
@@ -86,13 +110,15 @@ export function GamesPage(): ReactNode {
               <th scope="colgroup" colSpan={2}>
                 Ports
               </th>
-              <th scope="colgroup" colSpan={3}>
-                Core
-              </th>
-              <th scope="colgroup" colSpan={3}>
-                Content
-              </th>
-              <th scope="colgroup">Discovery</th>
+              {CAPABILITY_GROUP_SPANS.map(({ label, span }) => (
+                <th
+                  scope="colgroup"
+                  colSpan={span === 1 ? undefined : span}
+                  key={label}
+                >
+                  {label}
+                </th>
+              ))}
             </tr>
             <tr>
               <th scope="col">Game</th>
@@ -123,7 +149,10 @@ export function GamesPage(): ReactNode {
                 </td>
                 <td className="capability-table__port">
                   {game.defaultQueryPort ?? (
-                    <span aria-label="Not applicable">—</span>
+                    <>
+                      <span aria-hidden="true">—</span>
+                      <span className="sr-only">Not applicable</span>
+                    </>
                   )}
                 </td>
                 {CAPABILITIES.map(([capability]) => {

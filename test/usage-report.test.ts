@@ -52,6 +52,7 @@ function reportDependencies(fetcher: ProxyFetcher): UsageReportDependencies {
     startedAt: Date.UTC(2026, 9, 8),
     playground: surface(fetcher),
     publicApi: surface(fetcher),
+    mcp: surface(fetcher),
     games: new GamesUsage(),
   };
 }
@@ -105,6 +106,7 @@ describe("usage report", () => {
       return apiStats(input, init);
     });
     deps.publicApi.usage.recordRateLimited("caller");
+    deps.mcp.usage.recordRateLimited("callerActive");
     deps.games.record(true);
 
     const response = await handleUsageReport(authorized(), deps);
@@ -113,7 +115,9 @@ describe("usage report", () => {
     const report = (await response.json()) as UsageReport;
     expect(report).toMatchObject({
       startedAt: "2026-10-08T00:00:00.000Z",
+      playground: { requests: { rateLimited: 0 } },
       publicApi: { requests: { rateLimited: 1 }, rateLimited: { caller: 1 } },
+      mcp: { requests: { rateLimited: 1 }, rateLimited: { callerActive: 1 } },
       games: { ok: 0, notModified: 1 },
       api: { queries: { hit: 3, miss: 1, coalesced: 0 } },
     });

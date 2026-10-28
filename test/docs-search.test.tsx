@@ -151,6 +151,21 @@ describe("documentation search index", () => {
         title: "durationMs",
       }),
     );
+    expect(index).toContainEqual(
+      expect.objectContaining({
+        context: "Changelog",
+        href: "/docs/changelog/#v1.8.0",
+        kind: "section",
+        title: "1.8.0 - 2026-10-16",
+      }),
+    );
+    expect(index).toContainEqual(
+      expect.objectContaining({
+        href: "/docs/webmcp/",
+        kind: "page",
+        title: "MCP and WebMCP tools",
+      }),
+    );
     // Type parameters are too generic to index as members.
     expect(
       index.filter((item) => item.kind === "member" && item.title === "G"),
@@ -317,6 +332,19 @@ describe("connectDocsSearch", () => {
     );
     expect(input.getAttribute("aria-expanded")).toBe("false");
     keydown({ key: "Escape" }, input);
+    expect(dialog.open).toBe(false);
+  });
+
+  it("closes from its close button, the control phones show instead of Esc", () => {
+    const dialog = mount();
+    const controller = connectDocsSearch(
+      document,
+      () => Promise.resolve(ENTRIES),
+      new AbortController().signal,
+    );
+    controller?.open();
+    expect(dialog.open).toBe(true);
+    query('[data-docs-search-close][aria-label="Close search"]').click();
     expect(dialog.open).toBe(false);
   });
 

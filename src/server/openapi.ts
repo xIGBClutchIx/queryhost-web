@@ -1,9 +1,4 @@
-import type {
-  QueryErrorCode,
-  QuerySourceName,
-  QuerySourceStatus,
-  QueryWarningCode,
-} from "queryhost";
+import type { QueryErrorCode } from "queryhost";
 import {
   GAME_ALIASES,
   GAME_IDS,
@@ -12,12 +7,22 @@ import {
   type SupportLevel,
 } from "queryhost/registry";
 
-import type {
-  HostedCacheStatus,
-  JsonObject,
-} from "../lib/playground-contracts.js";
+import type { JsonObject } from "../lib/playground-contracts.js";
+import {
+  BADGE_SHOWS,
+  BADGE_STYLES,
+  BADGE_THEMES,
+  MAX_BADGE_LABEL_LENGTH,
+} from "../lib/badge-url.js";
 import { QUERYHOST_VERSION } from "../lib/package-version.js";
 import { canonicalUrl, documentationHref } from "../lib/site.js";
+import {
+  CACHE_STATUSES,
+  QUERY_ERROR_CODES,
+  QUERY_SOURCE_NAMES,
+  QUERY_SOURCE_STATUSES,
+  QUERY_WARNING_CODES,
+} from "./result-vocabulary.js";
 
 /** Error codes the public API's `{ error: { code, message } }` bodies use. */
 export type PublicApiErrorCode =
@@ -30,9 +35,8 @@ export type PublicApiErrorCode =
   | "UPSTREAM_INVALID"
   | "UPSTREAM_UNAVAILABLE";
 
-// The library exports these unions only as types. Keying each table by its
-// union makes typecheck fail when a library release adds or removes a member,
-// so the spec cannot drift from the package it documents.
+// Keyed by union like the tables in result-vocabulary.ts, so typecheck fails
+// when a member is added or removed and the spec cannot drift.
 const PUBLIC_API_ERROR_CODES: Readonly<Record<PublicApiErrorCode, true>> = {
   BAD_REQUEST: true,
   BODY_TOO_LARGE: true,
@@ -43,25 +47,6 @@ const PUBLIC_API_ERROR_CODES: Readonly<Record<PublicApiErrorCode, true>> = {
   UPSTREAM_INVALID: true,
   UPSTREAM_UNAVAILABLE: true,
 };
-const QUERY_ERROR_CODES: Readonly<Record<QueryErrorCode, true>> = {
-  ABORTED: true,
-  CONNECTION_FAILED: true,
-  DNS_FAILED: true,
-  INTERNAL_ERROR: true,
-  INVALID_INPUT: true,
-  MALFORMED_RESPONSE: true,
-  RESPONSE_TOO_LARGE: true,
-  TARGET_BLOCKED: true,
-  TIMEOUT: true,
-};
-const QUERY_WARNING_CODES: Readonly<Record<QueryWarningCode, true>> = {
-  PARTIAL_RESULT: true,
-  PLAYER_LIST_UNAVAILABLE: true,
-  SOURCE_BLOCKED: true,
-  SOURCE_FAILED: true,
-  SOURCE_MALFORMED: true,
-  SOURCE_TIMEOUT: true,
-};
 const GAME_PROTOCOLS: Readonly<Record<GameProtocol, true>> = {
   a2s: true,
   "a2s-unreal": true,
@@ -71,36 +56,6 @@ const GAME_PROTOCOLS: Readonly<Record<GameProtocol, true>> = {
   satisfactory: true,
   "vintage-story": true,
   eco: true,
-};
-const QUERY_SOURCE_NAMES: Readonly<Record<QuerySourceName, true>> = {
-  "a2s-info": true,
-  "a2s-player": true,
-  "a2s-rules": true,
-  "eco-frontpage": true,
-  "minecraft-srv": true,
-  "minecraft-slp": true,
-  "minecraft-legacy-ping": true,
-  "minecraft-query": true,
-  "minecraft-bedrock-raknet": true,
-  "minecraft-bedrock-nethernet": true,
-  "fivem-info": true,
-  "fivem-dynamic": true,
-  "fivem-players": true,
-  "redm-info": true,
-  "redm-dynamic": true,
-  "redm-players": true,
-  "satisfactory-lightweight": true,
-  "satisfactory-health": true,
-  "vintage-story-query": true,
-};
-const QUERY_SOURCE_STATUSES: Readonly<Record<QuerySourceStatus, true>> = {
-  ok: true,
-  timeout: true,
-  blocked: true,
-  malformed: true,
-  unsupported: true,
-  "not-requested": true,
-  failed: true,
 };
 const GAME_CAPABILITIES: Readonly<Record<GameCapability, true>> = {
   summary: true,
@@ -115,11 +70,6 @@ const SUPPORT_LEVELS: Readonly<Record<SupportLevel, true>> = {
   supported: true,
   conditional: true,
   unsupported: true,
-};
-const CACHE_STATUSES: Readonly<Record<HostedCacheStatus, true>> = {
-  coalesced: true,
-  hit: true,
-  miss: true,
 };
 
 /** Error codes listed in the spec, in documentation order. */
@@ -368,7 +318,7 @@ function buildSchemas(): JsonObject {
     },
     QueryStreamLine: {
       description:
-        "One line of a streamed query. `started` and `completed` report a source as it runs; exactly one `result` line ends the stream.",
+        "One line of a streamed query. `started` and `completed` report a source as it runs; exactly one `result` line ends the stream, or an `error` line with an `ApiError` body (`UPSTREAM_UNAVAILABLE` or `UPSTREAM_INVALID`) when the stream fails after it started.",
       oneOf: [
         {
           properties: {
@@ -392,6 +342,21 @@ function buildSchemas(): JsonObject {
             type: { const: "result", type: "string" },
           },
           required: ["type", "result"],
+          type: "object",
+        },
+        {
+          properties: {
+            error: {
+              properties: {
+                code: { type: "string" },
+                message: { type: "string" },
+              },
+              required: ["code", "message"],
+              type: "object",
+            },
+            type: { const: "error", type: "string" },
+          },
+          required: ["type", "error"],
           type: "object",
         },
       ],
@@ -428,6 +393,34 @@ function buildSchemas(): JsonObject {
       },
       type: "object",
     },
+    ShieldsEndpoint: {
+      additionalProperties: false,
+      description:
+        "A [shields.io endpoint](https://shields.io/badges/endpoint-badge) body. Colours are hex without `#`.",
+      properties: {
+        cacheSeconds: integer(1),
+        color: { type: "string" },
+        isError: {
+          description: "True for `invalid server` and `unavailable`.",
+          type: "boolean",
+        },
+        label: { type: "string" },
+        labelColor: { type: "string" },
+        message: { type: "string" },
+        schemaVersion: { const: 1, type: "integer" },
+        style: { enum: ["flat-square", "for-the-badge"], type: "string" },
+      },
+      required: [
+        "schemaVersion",
+        "label",
+        "message",
+        "color",
+        "labelColor",
+        "isError",
+        "cacheSeconds",
+      ],
+      type: "object",
+    },
     SupportLevel: openEnum(
       Object.keys(SUPPORT_LEVELS),
       "Whether a capability is guaranteed, source-dependent, or unavailable.",
@@ -453,54 +446,158 @@ function resultBaseProperties(): JsonObject {
   };
 }
 
+const BADGE_STATES =
+  "The status reads the player count (or `online`), `offline` when the server did not answer, `invalid server` when the address is malformed, private, or blocked, or `unavailable` when no fresh result could be fetched and none is cached from the last 10 minutes. Badges are cached for 60 seconds online and 30 offline and share their own budget instead of the per-IP query limit; when a fresh result cannot be fetched the badge shows its last known state or `unavailable` for up to 15 seconds.";
+
+function badgeParameters(withTheme: boolean): JsonObject[] {
+  const option = (
+    name: string,
+    values: readonly [string, ...string[]],
+    description: string,
+  ): JsonObject => ({
+    description: `${description} Unknown values use the default.`,
+    in: "query",
+    name,
+    required: false,
+    schema: { default: values[0], enum: [...values], type: "string" },
+  });
+  return [
+    { in: "path", name: "game", required: true, schema: ref("GameInput") },
+    {
+      description:
+        "`host`, `host:port`, or a bracketed IPv6 address with an optional port, as in `[2001:db8::1]:27015`.",
+      in: "path",
+      name: "server",
+      required: true,
+      schema: { type: "string" },
+    },
+    {
+      description: "Overrides the profile's query port.",
+      in: "query",
+      name: "queryPort",
+      required: false,
+      schema: port("Query port."),
+    },
+    option("style", BADGE_STYLES, "Badge shape."),
+    option(
+      "show",
+      BADGE_SHOWS,
+      "`players`, `status` (online or offline only), or `players-map` (adds the reported map, shortened to 24 characters).",
+    ),
+    ...(withTheme
+      ? [
+          option(
+            "theme",
+            BADGE_THEMES,
+            "`auto` follows the viewer's colour scheme with a media query.",
+          ),
+        ]
+      : []),
+    {
+      description: `Replaces the game name: up to ${MAX_BADGE_LABEL_LENGTH} characters of letters, digits, spaces, and \`- _ . , : ; ! ? & + ' ( ) # |\`. Control and bidirectional characters are removed; any other label is ignored.`,
+      in: "query",
+      name: "label",
+      required: false,
+      schema: { maxLength: MAX_BADGE_LABEL_LENGTH, type: "string" },
+    },
+    {
+      in: "header",
+      name: "If-None-Match",
+      required: false,
+      schema: { type: "string" },
+    },
+  ];
+}
+
+function badgeOperations(
+  format: "json" | "svg",
+  notAllowed: JsonObject,
+): JsonObject {
+  const content =
+    format === "svg"
+      ? { "image/svg+xml": { schema: { type: "string" } } }
+      : jsonContent(ref("ShieldsEndpoint"));
+  const headers = {
+    ...CORS_ORIGIN,
+    "Cache-Control": {
+      description: "`public, max-age=` the seconds until the badge may change.",
+      schema: { type: "string" },
+    },
+    ETag: { schema: { type: "string" } },
+  };
+  const responses = {
+    "200": {
+      content,
+      description:
+        format === "svg" ? "The badge." : "A shields.io endpoint body.",
+      headers,
+    },
+    "304": { description: "The badge is unchanged.", headers },
+    "400": {
+      content,
+      description: "An `invalid server` badge for a malformed server or game.",
+    },
+    "404": errorResponse("The path does not end in `.svg` or `.json`."),
+    "405": notAllowed,
+  };
+  const get =
+    format === "svg"
+      ? {
+          description: `Returns an SVG badge with the game name (or \`label\`) and the server's status. ${BADGE_STATES}`,
+          operationId: "getBadge",
+          summary: "Server status badge",
+        }
+      : {
+          description: `Returns the badge as a [shields.io endpoint](https://shields.io/badges/endpoint-badge) body, from the same cache and budget as the SVG. ${BADGE_STATES}`,
+          operationId: "getBadgeEndpoint",
+          summary: "shields.io endpoint badge",
+        };
+  const suffix = format === "svg" ? "Badge" : "BadgeEndpoint";
+  return {
+    get: {
+      ...get,
+      parameters: badgeParameters(format === "svg"),
+      responses,
+      tags: ["Badges"],
+    },
+    head: {
+      description: "Same as GET without a body.",
+      operationId: `head${suffix}`,
+      parameters: badgeParameters(format === "svg"),
+      responses: {
+        "200": { description: "The badge headers.", headers },
+        "304": { description: "The badge is unchanged." },
+        "400": { description: "The server or game is malformed." },
+      },
+      summary: `${get.summary} headers`,
+      tags: ["Badges"],
+    },
+    options: {
+      description: "CORS preflight; any origin may fetch badges.",
+      operationId: `options${suffix}`,
+      parameters: badgeParameters(format === "svg").slice(0, 2),
+      responses: {
+        "204": {
+          description: "Allowed methods and headers.",
+          headers: {
+            ...CORS_ORIGIN,
+            "Access-Control-Allow-Methods": {
+              schema: { const: "GET, HEAD, OPTIONS", type: "string" },
+            },
+          },
+        },
+      },
+      summary: `${get.summary} preflight`,
+      tags: ["Badges"],
+    },
+  };
+}
+
 function buildPaths(): JsonObject {
   const notAllowed = errorResponse("The route does not allow this method.");
   return {
-    "/badge/{game}/{server}.svg": {
-      get: {
-        description:
-          "Returns an SVG badge with the game name and player count, or `offline`. Badges are cached and share one global budget instead of the per-IP query limit; when it is spent the badge shows its last known state or `unavailable`.",
-        operationId: "getBadge",
-        parameters: [
-          {
-            in: "path",
-            name: "game",
-            required: true,
-            schema: ref("GameInput"),
-          },
-          {
-            description:
-              "`host`, `host:port`, or a bracketed IPv6 address with an optional port, as in `[2001:db8::1]:27015`.",
-            in: "path",
-            name: "server",
-            required: true,
-            schema: { type: "string" },
-          },
-          {
-            description: "Overrides the profile's query port.",
-            in: "query",
-            name: "queryPort",
-            required: false,
-            schema: port("Query port."),
-          },
-        ],
-        responses: {
-          "200": {
-            content: { "image/svg+xml": { schema: { type: "string" } } },
-            description: "The badge.",
-            headers: CORS_ORIGIN,
-          },
-          "400": {
-            content: { "image/svg+xml": { schema: { type: "string" } } },
-            description: "An `invalid` badge for a malformed server or game.",
-          },
-          "404": errorResponse("The path does not end in `.svg`."),
-          "405": notAllowed,
-        },
-        summary: "Server status badge",
-        tags: ["Badges"],
-      },
-    },
+    "/badge/{game}/{server}.json": badgeOperations("json", notAllowed),
+    "/badge/{game}/{server}.svg": badgeOperations("svg", notAllowed),
     "/games": {
       get: {
         description:
@@ -532,11 +629,25 @@ function buildPaths(): JsonObject {
     },
     "/openapi.json": {
       get: {
+        description:
+          "Returns this document. Responses may be reused for 5 minutes; send the `ETag` back in `If-None-Match` to get an empty `304` when it is unchanged.",
         operationId: "getOpenApi",
+        parameters: [
+          {
+            in: "header",
+            name: "If-None-Match",
+            required: false,
+            schema: { type: "string" },
+          },
+        ],
         responses: {
           "200": {
             content: jsonContent({ type: "object" }),
             description: "This document.",
+            headers: {
+              ...CORS_ORIGIN,
+              ETag: { schema: { type: "string" } },
+            },
           },
           "304": { description: "The document is unchanged." },
           "405": notAllowed,
@@ -572,7 +683,7 @@ function buildPaths(): JsonObject {
               "application/x-ndjson": { schema: ref("QueryStreamLine") },
             },
             description:
-              "The query result, or a progress stream of one `QueryStreamLine` per line ending with it. Streams carry no `Age` or `x-queryhost-cache` header; read `cache` in the result line.",
+              "The query result, or a progress stream of one `QueryStreamLine` per line ending with it. A stream that fails after it started ends with an `error` line instead. Streams carry no `Age` or `x-queryhost-cache` header; read `cache` in the result line.",
             headers: {
               ...CORS_ORIGIN,
               Age: {
@@ -596,7 +707,7 @@ function buildPaths(): JsonObject {
             { headers: RETRY_AFTER },
           ),
           "502": errorResponse(
-            "The query service is unreachable or answered badly (`UPSTREAM_UNAVAILABLE`, `UPSTREAM_INVALID`).",
+            "The query service is unreachable, failed, or answered badly (`UPSTREAM_UNAVAILABLE`, `UPSTREAM_INVALID`).",
           ),
         },
         summary: "Query a server",
@@ -631,7 +742,11 @@ export function buildOpenApiDocument(): JsonObject {
     tags: [
       { description: "Live server queries.", name: "Query" },
       { description: "Supported games from the registry.", name: "Games" },
-      { description: "Embeddable SVG status badges.", name: "Badges" },
+      {
+        description:
+          "Embeddable status badges, as SVG or a shields.io endpoint.",
+        name: "Badges",
+      },
       { description: "This description.", name: "Meta" },
     ],
   };

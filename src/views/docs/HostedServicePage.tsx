@@ -38,6 +38,7 @@ export function HostedServicePage(): ReactNode {
         <li>At most 8 query starts per caller each minute.</li>
         <li>At most 60 query starts globally each minute per web instance.</li>
         <li>At most 8 forwarded queries active at once per web instance.</li>
+        <li>At most 2 of those active at once for any one caller.</li>
         <li>
           An Auto detection through <code>POST /api/detect</code> counts as 4
           query starts, since it may probe several protocols.
@@ -50,6 +51,21 @@ export function HostedServicePage(): ReactNode {
         These are deliberately small in-memory controls, not a distributed quota
         system. The private API still owns destination, concurrency, and
         protocol safety.
+      </p>
+      <p>
+        Each bound has an optional server-only variable:{" "}
+        <code>QUERYHOST_WEB_MAX_STARTS_PER_CALLER</code>,{" "}
+        <code>QUERYHOST_WEB_MAX_STARTS_PER_WINDOW</code>,{" "}
+        <code>QUERYHOST_WEB_MAX_ACTIVE</code>,{" "}
+        <code>QUERYHOST_WEB_MAX_ACTIVE_PER_CALLER</code>,{" "}
+        <code>QUERYHOST_WEB_MAX_TRACKED_CALLERS</code>, and{" "}
+        <code>QUERYHOST_WEB_START_WINDOW_MS</code>. The public API reads the
+        same names with the <code>QUERYHOST_WEB_PUBLIC_API_</code> prefix and
+        the same defaults. MCP tool queries read them with the{" "}
+        <code>QUERYHOST_WEB_MCP_</code> prefix and default to 60 starts a
+        minute, 30 per caller, and 4 active, because hosted MCP clients reach
+        the service from a few shared addresses. Each surface has its own
+        budget.
       </p>
       <h2 id="routes">Private API routes</h2>
       <ul>

@@ -25,7 +25,13 @@ export const workspaceResultSchema = z.object({
   summary: z.string(),
   playgroundUrl: z.url().refine((value) => {
     const url = new URL(value);
-    return url.origin === "https://query.host" && url.pathname === "/";
+    // The playground itself or one result page, as in `/rust/play.example.com`.
+    return (
+      url.origin === "https://query.host" &&
+      !url.username &&
+      !url.password &&
+      /^\/(?:[a-z\d-]+\/[^/]+)?$/u.test(url.pathname)
+    );
   }),
   result: z.record(z.string(), z.json()),
 });

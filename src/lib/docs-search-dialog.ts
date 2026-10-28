@@ -272,6 +272,9 @@ export function connectDocsSearch(
     },
     { signal },
   );
+  dialog
+    .querySelector("[data-docs-search-close]")
+    ?.addEventListener("click", close, { signal });
   // A click on the backdrop targets the dialog itself, outside its box.
   dialog.addEventListener(
     "click",

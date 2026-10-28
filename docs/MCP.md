@@ -142,9 +142,10 @@ and [MCP extension SDK](https://github.com/openai/mcp-extensions/blob/main/types
 
 ## Hosting and limits
 
-MCP lives in the existing public web service. It shares the browser query gate,
+MCP lives in the existing public web service. It shares the browser's
 validation, private origin token, upstream deadline, cache, and API capacity
-limits. It does not implement game protocols or disclose credentials.
+limits, but has its own query gate. It does not implement game protocols or
+disclose credentials.
 
 The endpoint accepts JSON-RPC POST requests and initialization notifications.
 GET and DELETE return 405: there are no persistent sessions or standalone SSE
@@ -156,9 +157,19 @@ before remote tool delivery. MCP responses use `Cache-Control: no-store`.
 
 An MCP envelope gate bounds metadata and invalid requests to 16 active requests,
 600 starts per minute globally, 120 per caller, and 2,048 tracked callers. Actual
-queries also consume the shared web query gate, including every comparison member.
+queries, including every comparison member, also consume an MCP query gate that is
+separate from the playground's and the public API's: by default 60 starts per
+minute, 30 per caller, 4 active at once (4 per caller), and 2,048 tracked callers.
 Caller identity uses the deployment's forwarded IP headers, as the playground
-does; requests sharing an egress address share caller limits.
+does; requests sharing an egress address share caller limits. Hosted clients
+such as ChatGPT reach the service from a few shared egress addresses, so the
+per-caller bounds sit close to the global ones, and MCP traffic can never spend
+the playground's budget.
+
+The query gate reads optional server-only variables with the `QUERYHOST_WEB_MCP_`
+prefix: `MAX_STARTS_PER_WINDOW`, `MAX_STARTS_PER_CALLER`, `MAX_ACTIVE`,
+`MAX_ACTIVE_PER_CALLER`, `MAX_TRACKED_CALLERS`, and `START_WINDOW_MS`, with the
+same ranges as the playground's `QUERYHOST_WEB_*` variables.
 
 Public tools require no account or client token. The private API token remains
 server-side. Origins, when supplied, must match the endpoint origin or

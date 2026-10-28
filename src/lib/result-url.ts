@@ -63,6 +63,23 @@ export function resultPath(
 }
 
 /**
+ * The document title of a result page, as the server renders it for the
+ * result path: `{address} · {game} · QueryHost`, with the port only when the
+ * path carries one.
+ */
+export function resultTitle(
+  input: PlaygroundQueryInput,
+  game: PlaygroundGameDefinition | undefined,
+): string {
+  const host = input.host.includes(":") ? `[${input.host}]` : input.host;
+  const address =
+    input.port === undefined || input.port === game?.defaultPort
+      ? host
+      : `${host}:${String(input.port)}`;
+  return `${address} · ${game?.name ?? input.game} · QueryHost`;
+}
+
+/**
  * Rewrites a result path's target and options into the playground's form
  * parameters, which the form already knows how to restore and validate.
  */

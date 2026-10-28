@@ -164,4 +164,38 @@ describe("site HTTP server", () => {
     expect(response.status).toBe(503);
     expect(response.headers["cache-control"]).toBe("no-store");
   });
+
+  it("overrides a public policy passed straight to writeHead on a server error", async () => {
+    const port = await listen((request, response) => {
+      if (request.url === "/object") {
+        response.writeHead(500, { "Cache-Control": "public, max-age=300" });
+      } else if (request.url === "/reason") {
+        response.writeHead(502, "Bad Gateway", {
+          "cache-control": "public, max-age=300",
+        });
+      } else {
+        response.writeHead(500, [
+          "Cache-Control",
+          "public, max-age=300",
+          "Content-Type",
+          "text/plain",
+        ]);
+      }
+      response.end("error");
+    });
+    for (const path of ["/object", "/reason", "/raw"]) {
+      const response = await fetchRaw(port, path);
+      expect(response.status, path).toBeGreaterThanOrEqual(500);
+      expect(response.headers["cache-control"], path).toBe("no-store");
+    }
+  });
+
+  it("keeps a policy passed to writeHead below 500", async () => {
+    const port = await listen((_request, response) => {
+      response.writeHead(404, { "Cache-Control": "public, max-age=60" });
+      response.end("missing");
+    });
+    const response = await fetchRaw(port, "/missing");
+    expect(response.headers["cache-control"]).toBe("public, max-age=60");
+  });
 });

@@ -377,13 +377,14 @@ describe("Share and embed", () => {
         .querySelector("#query-result-share")
         ?.getAttribute("aria-expanded"),
     ).toBe("true");
-    // The badge image loads only once the menu is open.
-    expect(
-      container.querySelector("#query-share-panel img")?.getAttribute("src"),
-    ).toBe(
-      `${origin}/api/v1/badge/minecraft-bedrock/play.example.com:19133.svg`,
+    // The menu opens on the link tab, focused, and loads no badge or card yet.
+    expect(document.activeElement?.id).toBe("share-tab-link");
+    expect(container.querySelector("#query-share-panel img")).toBeNull();
+    expect(container.querySelector("#query-share-panel iframe")).toBeNull();
+    const [link, badge, embed, api] = panelCodes();
+    expect(embed).toBe(
+      `<iframe src="${origin}/embed/minecraft-bedrock/play.example.com:19133" title="Minecraft: Bedrock Edition server status" width="360" height="88" style="border:0" loading="lazy"></iframe>`,
     );
-    const [link, badge, api] = panelCodes();
     expect(link).toBe(
       `${origin}/minecraft-bedrock/play.example.com:19133?mode=summary&timeoutMs=3000`,
     );
@@ -394,14 +395,32 @@ describe("Share and embed", () => {
       `curl ${origin}/api/v1/query -H 'Content-Type: application/json' -d '{"game":"minecraft-bedrock","host":"play.example.com","port":19133,"mode":"summary"}'`,
     );
 
+    click("#share-tab-badge");
+    expect(
+      container.querySelector("#share-panel-badge")?.hasAttribute("hidden"),
+    ).toBe(false);
+    expect(
+      container.querySelector("#query-share-panel img")?.getAttribute("src"),
+    ).toBe(
+      `${origin}/api/v1/badge/minecraft-bedrock/play.example.com:19133.svg`,
+    );
     click('#query-share-panel [role="radio"]:nth-child(2)');
     expect(panelCodes()[1]).toBe(
       `<a href="${origin}/minecraft-bedrock/play.example.com:19133"><img src="${origin}/api/v1/badge/minecraft-bedrock/play.example.com:19133.svg" alt="Minecraft: Bedrock Edition server status"></a>`,
     );
+    click('#query-share-panel [role="radio"]:nth-child(4)');
+    expect(panelCodes()[1]).toBe(
+      `${origin}/api/v1/badge/minecraft-bedrock/play.example.com:19133.json`,
+    );
+
+    click("#share-tab-embed");
+    expect(
+      container.querySelector("#query-share-panel iframe")?.getAttribute("src"),
+    ).toBe(`${origin}/embed/minecraft-bedrock/play.example.com:19133`);
 
     await act(async () => {
       container
-        .querySelector<HTMLButtonElement>("#query-share-panel button")
+        .querySelector<HTMLButtonElement>("#share-panel-link button")
         ?.click();
       await Promise.resolve();
     });
@@ -416,6 +435,179 @@ describe("Share and embed", () => {
     });
     expect(container.querySelector("#query-share-panel")).toBeNull();
     expect(document.activeElement?.id).toBe("query-result-share");
+    unmount();
+  });
+
+  it("builds a customised badge, embed, and endpoint", () => {
+    const unmount = render(BEDROCK_ONLINE, {
+      game: "minecraft-bedrock",
+      host: "play.example.com",
+      mode: "summary",
+      port: 19133,
+    });
+    const origin = window.location.origin;
+    const base = `${origin}/api/v1/badge/minecraft-bedrock/play.example.com:19133`;
+    click("#query-result-share");
+    click("#share-tab-badge");
+    function change(selector: string, value: string, type: string): void {
+      void act(() => {
+        const field = container.querySelector<
+          HTMLInputElement | HTMLSelectElement
+        >(selector);
+        if (field === null) throw new Error(`Missing ${selector}`);
+        field.value = value;
+        field.dispatchEvent(new Event(type, { bubbles: true }));
+      });
+    }
+    change("#share-badge-style", "for-the-badge", "change");
+    change("#share-badge-show", "status", "change");
+    change("#share-badge-theme", "auto", "change");
+    change("#share-badge-label", "My Server", "input");
+    const query = "?style=for-the-badge&show=status&theme=auto&label=My+Server";
+    expect(
+      container.querySelector("#query-share-panel img")?.getAttribute("src"),
+    ).toBe(`${base}.svg${query}`);
+    const [, badge, embed] = panelCodes();
+    expect(badge).toContain(`(${base}.svg${query})`);
+    expect(embed).toContain(
+      `src="${origin}/embed/minecraft-bedrock/play.example.com:19133?theme=auto"`,
+    );
+    click('#query-share-panel [role="radio"]:nth-child(4)');
+    expect(panelCodes()[1]).toBe(
+      `${base}.json?style=for-the-badge&show=status&label=My+Server`,
+    );
+    // The embed tab's theme is the badge's, so either picker changes both.
+    expect(
+      container.querySelector<HTMLSelectElement>("#share-badge-embed-theme")
+        ?.value,
+    ).toBe("auto");
+
+    change("#share-badge-label", "evil.example/login", "input");
+    const label = container.querySelector("#share-badge-label");
+    expect(label?.getAttribute("aria-invalid")).toBe("true");
+    expect(label?.getAttribute("aria-describedby")).toBe(
+      "share-badge-label-hint",
+    );
+    expect(panelCodes()[1]).not.toContain("label=");
+    unmount();
+  });
+});
+
+describe("result accessibility", () => {
+  it("keeps a long name whole in its title and labels the query path list", () => {
+    const unmount = render(BEDROCK_ONLINE);
+    expect(
+      container.querySelector("#query-result-name")?.getAttribute("title"),
+    ).toBe("HALLOWEEN EVENT, HUNT + MAPS");
+    const path = container.querySelector("#query-path");
+    expect(path?.hasAttribute("aria-labelledby")).toBe(false);
+    expect(path?.querySelector("ol")?.getAttribute("aria-labelledby")).toBe(
+      "query-path-label",
+    );
+    expect(container.querySelector("#query-path-label")?.textContent).toBe(
+      "Query path",
+    );
+    unmount();
+  });
+
+  it("follows a tab its caller owns and reports changes", () => {
+    const onTabChange = vi.fn<(tab: string) => void>();
+    const root = createRoot(container);
+    void act(() => {
+      root.render(
+        <QueryResult
+          games={PLAYGROUND_GAMES}
+          onTabChange={onTabChange}
+          result={BEDROCK_ONLINE}
+          tab="sources"
+        />,
+      );
+    });
+    expect(
+      container
+        .querySelector("#query-tab-sources")
+        ?.getAttribute("aria-selected"),
+    ).toBe("true");
+    click("#query-tab-json");
+    expect(onTabChange).toHaveBeenCalledWith("json");
+    void act(() => {
+      root.unmount();
+    });
+  });
+});
+
+describe("Copy buttons", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    Reflect.deleteProperty(navigator, "clipboard");
+  });
+
+  function copyJson(): HTMLButtonElement {
+    click("#query-tab-json");
+    const button = Array.from(
+      container.querySelectorAll<HTMLButtonElement>(
+        ".query-json-toolbar button",
+      ),
+    ).find((candidate) => candidate.textContent === "Copy JSON");
+    if (button === undefined) throw new Error("Missing Copy JSON");
+    return button;
+  }
+
+  it("reports a missing clipboard, as on an insecure origin, and recovers", async () => {
+    vi.useFakeTimers();
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: undefined,
+    });
+    const unmount = render(BEDROCK_ONLINE);
+    const button = copyJson();
+    await act(async () => {
+      button.click();
+      await Promise.resolve();
+    });
+    expect(button.textContent).toBe("Copy failed");
+    const status = button.nextElementSibling;
+    expect(status?.getAttribute("role")).toBe("status");
+    expect(status?.textContent).toBe("Copy failed");
+    void act(() => {
+      vi.advanceTimersByTime(1_500);
+    });
+    expect(button.textContent).toBe("Copy JSON");
+    expect(status?.textContent).toBe("");
+    unmount();
+  });
+
+  it("reports a clipboard that throws instead of rejecting", async () => {
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: {
+        writeText: () => {
+          throw new Error("Denied.");
+        },
+      },
+    });
+    const unmount = render(BEDROCK_ONLINE);
+    const button = copyJson();
+    await act(async () => {
+      button.click();
+      await Promise.resolve();
+    });
+    expect(button.textContent).toBe("Copy failed");
+    unmount();
+  });
+
+  it("announces a successful copy", async () => {
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText: () => Promise.resolve() },
+    });
+    const unmount = render(BEDROCK_ONLINE);
+    const button = copyJson();
+    await act(async () => {
+      button.click();
+      await Promise.resolve();
+    });
+    expect(button.nextElementSibling?.textContent).toBe("Copied");
     unmount();
   });
 });

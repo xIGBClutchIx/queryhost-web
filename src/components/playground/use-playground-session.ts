@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 
 import type {
   PlaygroundDetectInput,
@@ -7,31 +13,46 @@ import type {
   PlaygroundQueryInput,
   PlaygroundQueryResponse,
 } from "../../lib/playground-contracts.js";
-import { detectedQueryInput, shareUrl } from "../../lib/playground-form.js";
+import {
+  detectedQueryInput,
+  findGame,
+  shareUrl,
+} from "../../lib/playground-form.js";
 import {
   requestPlaygroundDetect,
   requestPlaygroundQuery,
+  UnexpectedResponseError,
 } from "../../lib/playground-query.js";
 import {
   applySourceEvent,
   type SourceProgressEntry,
 } from "../../lib/query-path.js";
 import { PlaygroundRequestCoordinator } from "../../lib/playground-request-coordinator.js";
+import { resultTitle } from "../../lib/result-url.js";
+import { HOME_TITLE } from "../../lib/site.js";
 import type { WebMcpRegistration } from "../../lib/webmcp.js";
 
 export type QueryOutcome =
   PlaygroundProxyErrorResponse | PlaygroundQueryResponse;
 
+/** What a request error's Try again sends again. */
+export type QueryAttempt =
+  | { readonly input: PlaygroundDetectInput; readonly kind: "detect" }
+  | { readonly input: PlaygroundQueryInput; readonly kind: "query" };
+
 export type OutputState =
   | { readonly kind: "idle" }
   | {
-      readonly kind: "loading";
       /** Whether the game is still being detected rather than queried. */
       readonly detecting: boolean;
+      /** The address being queried, for the loading announcement. */
+      readonly host: string;
+      readonly kind: "loading";
       /** Sources the running query has reported so far. */
       readonly progress: readonly SourceProgressEntry[];
     }
   | {
+      readonly attempt: QueryAttempt;
       readonly code: string;
       /** Replaces the default heading, as when no game was detected. */
       readonly heading?: string;
@@ -47,6 +68,15 @@ export type OutputState =
       readonly result: PlaygroundQueryResponse;
     };
 
+type SettledOutput = Exclude<OutputState, { readonly kind: "loading" }>;
+
+/** The last finished output and the address and title that went with it. */
+interface SettledPage {
+  readonly href: string;
+  readonly output: SettledOutput;
+  readonly title: string;
+}
+
 /** Resources owned while the page is live; bfcache restores start a new session. */
 interface PlaygroundSession {
   readonly controller: AbortController;
@@ -57,8 +87,32 @@ function abortError(message: string): DOMException {
   return new DOMException(message, "AbortError");
 }
 
+/** A request that failed before it produced a result or a proxy error. */
+function requestFailure(
+  error: Error | undefined,
+): PlaygroundProxyErrorResponse["error"] {
+  if (error instanceof UnexpectedResponseError) {
+    return { code: error.code, message: error.message };
+  }
+  return {
+    code: "NETWORK_ERROR",
+    message:
+      error?.message ??
+      "The browser could not reach the QueryHost web service.",
+  };
+}
+
+/** Points the address bar and the tab title at the page being shown. */
+function showLocation(href: string | URL, title: string): void {
+  history.replaceState(history.state, "", href);
+  document.title = title;
+}
+
 export interface PlaygroundSessionControls {
-  /** Abandons the running query or detection and returns to the idle state. */
+  /**
+   * Abandons the running query or detection and returns to the last finished
+   * output, with the address and title that went with it.
+   */
   readonly cancel: () => void;
   readonly output: OutputState;
   /** Runs one query, superseding any in flight, and reports its outcome. */
@@ -87,6 +141,28 @@ export function usePlaygroundSession(
   const [output, setOutput] = useState<OutputState>({ kind: "idle" });
   const sessionRef = useRef<PlaygroundSession | undefined>(undefined);
   const resultSequence = useRef(0);
+  // The idle playground is the homepage, whatever link first opened it.
+  const settled = useRef<SettledPage>({
+    href: "/",
+    output: { kind: "idle" },
+    title: HOME_TITLE,
+  });
+
+  useEffect(() => {
+    if (output.kind === "loading") return;
+    settled.current =
+      output.kind === "idle"
+        ? { href: "/", output, title: HOME_TITLE }
+        : { href: window.location.href, output, title: document.title };
+  }, [output]);
+
+  // An abandoned request must not stay in the address bar, where a reload
+  // would run it again.
+  const rollBack = useCallback(() => {
+    const page = settled.current;
+    showLocation(new URL(page.href, window.location.href), page.title);
+    setOutput(page.output);
+  }, []);
 
   const runQuery = useCallback(
     async (
@@ -98,12 +174,17 @@ export function usePlaygroundSession(
         throw abortError("The playground is not active.");
       }
       const request = session.coordinator.start(executionSignal);
-      history.replaceState(
-        history.state,
-        "",
+      showLocation(
         shareUrl(window.location.href, input, games),
+        resultTitle(input, findGame(games, input.game)),
       );
-      setOutput({ detecting: false, kind: "loading", progress: [] });
+      setOutput({
+        detecting: false,
+        host: input.host,
+        kind: "loading",
+        progress: [],
+      });
+      const attempt: QueryAttempt = { input, kind: "query" };
 
       try {
         const response = await requestPlaygroundQuery(
@@ -126,7 +207,7 @@ export function usePlaygroundSession(
           throw abortError("The query was superseded.");
         }
         if (response.kind === "proxy-error") {
-          setOutput({ kind: "error", ...response.body.error });
+          setOutput({ attempt, kind: "error", ...response.body.error });
           return response.body;
         }
         resultSequence.current += 1;
@@ -143,23 +224,17 @@ export function usePlaygroundSession(
           throw abortError("The query was cancelled.");
         }
         if (request.signal.aborted) {
-          setOutput({ kind: "idle" });
+          rollBack();
           throw abortError("The query was cancelled.");
         }
         const failure: PlaygroundProxyErrorResponse = {
-          error: {
-            code: "NETWORK_ERROR",
-            message:
-              error instanceof Error
-                ? error.message
-                : "The browser could not reach the QueryHost web service.",
-          },
+          error: requestFailure(error instanceof Error ? error : undefined),
         };
-        setOutput({ kind: "error", ...failure.error });
+        setOutput({ attempt, kind: "error", ...failure.error });
         return failure;
       }
     },
-    [games],
+    [games, rollBack],
   );
 
   const runDetect = useCallback(
@@ -173,12 +248,14 @@ export function usePlaygroundSession(
       const request = session.coordinator.start();
       // Until a game is found there is no result to link to, so an earlier
       // result page must not stay in the address bar for this new target.
-      history.replaceState(
-        history.state,
-        "",
-        new URL("/", window.location.href),
-      );
-      setOutput({ detecting: true, kind: "loading", progress: [] });
+      showLocation(new URL("/", window.location.href), HOME_TITLE);
+      setOutput({
+        detecting: true,
+        host: input.host,
+        kind: "loading",
+        progress: [],
+      });
+      const attempt: QueryAttempt = { input, kind: "detect" };
 
       try {
         const response = await requestPlaygroundDetect(
@@ -190,11 +267,12 @@ export function usePlaygroundSession(
           throw abortError("The detection was superseded.");
         }
         if (response.kind === "proxy-error") {
-          setOutput({ kind: "error", ...response.body.error });
+          setOutput({ attempt, kind: "error", ...response.body.error });
           return undefined;
         }
         if (response.kind === "undetected") {
           setOutput({
+            attempt,
             code: response.code,
             heading: "No supported game was detected.",
             kind: "error",
@@ -208,10 +286,9 @@ export function usePlaygroundSession(
           response.matchedPort,
         );
         // Auto has no share URL of its own; the link names the detected game.
-        history.replaceState(
-          history.state,
-          "",
+        showLocation(
           shareUrl(window.location.href, detected, games),
+          resultTitle(detected, response.game),
         );
         resultSequence.current += 1;
         setOutput({
@@ -227,31 +304,32 @@ export function usePlaygroundSession(
           throw abortError("The detection was cancelled.");
         }
         if (request.signal.aborted) {
-          setOutput({ kind: "idle" });
+          rollBack();
           throw abortError("The detection was cancelled.");
         }
         setOutput({
-          code: "NETWORK_ERROR",
+          attempt,
           kind: "error",
-          message:
-            error instanceof Error
-              ? error.message
-              : "The browser could not reach the QueryHost web service.",
+          ...requestFailure(error instanceof Error ? error : undefined),
         });
         return undefined;
       }
     },
-    [games],
+    [games, rollBack],
   );
+
+  // Read by Cancel and pagehide, which never run mid-render.
+  const outputKind = useRef(output.kind);
+  useLayoutEffect(() => {
+    outputKind.current = output.kind;
+  }, [output.kind]);
 
   const cancel = useCallback(() => {
     const session = sessionRef.current;
     if (session === undefined) return;
     session.coordinator.abort();
-    setOutput((current) =>
-      current.kind === "loading" ? { kind: "idle" } : current,
-    );
-  }, []);
+    if (outputKind.current === "loading") rollBack();
+  }, [rollBack]);
 
   useEffect(() => {
     let registration: WebMcpRegistration | undefined;
@@ -297,19 +375,27 @@ export function usePlaygroundSession(
       );
     }
 
+    // Leaving the page, which bfcache may restore, abandons a running query
+    // like Cancel does. A client-side navigation only unmounts the island, and
+    // must not rewrite the address the router is moving to.
+    function leave(): void {
+      if (outputKind.current === "loading") rollBack();
+      stop();
+    }
+
     function restore(event: PageTransitionEvent): void {
       if (event.persisted) start();
     }
 
     start();
-    window.addEventListener("pagehide", stop);
+    window.addEventListener("pagehide", leave);
     window.addEventListener("pageshow", restore);
     return () => {
-      window.removeEventListener("pagehide", stop);
+      window.removeEventListener("pagehide", leave);
       window.removeEventListener("pageshow", restore);
       stop();
     };
-  }, [games, onAgentQuery, runQuery]);
+  }, [games, onAgentQuery, rollBack, runQuery]);
 
   return { cancel, output, runDetect, runQuery };
 }

@@ -1,3 +1,11 @@
+/** A body that exceeded its byte limit, distinct from other range errors. */
+export class BodyTooLargeError extends RangeError {
+  public constructor() {
+    super("Body exceeds byte limit.");
+    this.name = "BodyTooLargeError";
+  }
+}
+
 /** Reads a bounded body and cancels promptly on deadline or client disconnect. */
 export async function readBoundedText(
   body: ReadableStream<Uint8Array> | null,
@@ -21,7 +29,7 @@ export async function readBoundedText(
       total += next.value.byteLength;
       if (total > maxBytes) {
         await reader.cancel();
-        throw new RangeError("Body exceeds byte limit.");
+        throw new BodyTooLargeError();
       }
       chunks.push(next.value);
     }

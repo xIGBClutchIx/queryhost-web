@@ -12,6 +12,7 @@ import type {
 } from "../lib/playground-contracts.js";
 import { displayServerText } from "../lib/server-text.js";
 import type { BadgeService } from "./badge.js";
+import { callerAddress, rateLimitIdentity } from "./client-address.js";
 import { parseImageRequest } from "./badge.js";
 import type { BadgeState } from "./badge-svg.js";
 import { ProxyGate, type ProxyGatePolicy } from "./proxy-gate.js";
@@ -56,7 +57,9 @@ export function loadPreviewGatePolicy(
     10_000,
   );
   return {
-    // Drawing is synchronous, so at most one is ever active.
+    // resvg draws synchronously on the event loop (tens of milliseconds for a
+    // 1200×630 card), so at most one is ever active and this window bounds the
+    // total blocking time. Raise it only alongside a measured CPU budget.
     maxActive: 1,
     maxStartsPerCaller: maxStartsPerWindow,
     maxStartsPerWindow,
@@ -156,7 +159,11 @@ export class PreviewService {
     return this.#images.size;
   }
 
-  public async image(input: PlaygroundQueryInput): Promise<PreviewImage> {
+  /** `caller` is the fetcher's rate-limit identity for the badge query. */
+  public async image(
+    input: PlaygroundQueryInput,
+    caller?: string,
+  ): Promise<PreviewImage> {
     const game = this.#dependencies.games.find(
       (definition) => definition.id === input.game,
     );
@@ -167,8 +174,21 @@ export class PreviewService {
       input.game !== "a2s"
         ? { ...input, port: game.defaultPort }
         : input;
-    const { maxAgeSeconds, state } =
-      await this.#dependencies.badges.resolve(query);
+    // With no drawing budget left the result is the fallback image either way,
+    // so it never spends a badge query first. This gives up reusing a drawn
+    // image while the budget is spent, which is rare and short-lived.
+    if (
+      !this.#dependencies.gate.hasStartBudget(
+        PREVIEW_CALLER,
+        this.#dependencies.now(),
+      )
+    ) {
+      return { maxAgeSeconds: 0 };
+    }
+    const { maxAgeSeconds, state } = await this.#dependencies.badges.resolve(
+      query,
+      caller,
+    );
     const card = previewCard(input, game, state);
     const svg = renderPreviewSvg(card);
     const key = createHash("sha256").update(svg).digest("base64");
@@ -262,7 +282,10 @@ export async function handlePreviewRequest(
     );
   }
 
-  const { maxAgeSeconds, png } = await service.image(input);
+  const { maxAgeSeconds, png } = await service.image(
+    input,
+    rateLimitIdentity(callerAddress(request)),
+  );
   if (png === undefined) {
     return new Response(null, {
       headers: { "Cache-Control": "no-store", Location: FALLBACK_IMAGE },

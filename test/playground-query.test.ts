@@ -9,6 +9,7 @@ import { PLAYGROUND_GAMES } from "../src/lib/playground-games.js";
 import {
   requestPlaygroundDetect,
   requestPlaygroundQuery,
+  UnexpectedResponseError,
   type PlaygroundFetcher,
 } from "../src/lib/playground-query.js";
 
@@ -114,6 +115,41 @@ describe("playground query client", () => {
       ).rejects.toThrow(
         "The QueryHost web service returned an unexpected response.",
       );
+    }
+  });
+
+  it("reports a gateway's HTML error page as an unexpected response", async () => {
+    const page = (): Promise<Response> =>
+      Promise.resolve(
+        new Response("<html><body>502 Bad Gateway</body></html>", {
+          headers: { "Content-Type": "text/html" },
+          status: 502,
+        }),
+      );
+    for (const request of [
+      requestPlaygroundQuery(INPUT, new AbortController().signal, page),
+      requestPlaygroundQuery(
+        INPUT,
+        new AbortController().signal,
+        page,
+        () => undefined,
+      ),
+      requestPlaygroundDetect(
+        { host: INPUT.host },
+        PLAYGROUND_GAMES,
+        new AbortController().signal,
+        page,
+      ),
+    ]) {
+      const error = await request.then(
+        () => undefined,
+        (reason: Error) => reason,
+      );
+      expect(error).toBeInstanceOf(UnexpectedResponseError);
+      expect(error).toMatchObject({
+        code: "UNEXPECTED_RESPONSE",
+        message: "The QueryHost web service returned an unexpected response.",
+      });
     }
   });
 
@@ -250,6 +286,54 @@ describe("playground query client", () => {
           "The QueryHost web service returned an unexpected response.",
         );
       }
+    });
+
+    it("reports a final error line as the service's error", async () => {
+      const events: QuerySourceEvent[] = [];
+      const error = JSON.stringify({
+        error: {
+          code: "UPSTREAM_UNAVAILABLE",
+          message: "The query service is temporarily unavailable.",
+        },
+        type: "error",
+      });
+      const response = await requestPlaygroundQuery(
+        INPUT,
+        new AbortController().signal,
+        () =>
+          Promise.resolve(
+            ndjson([`{"type":"started","source":"minecraft-slp"}\n${error}\n`]),
+          ),
+        (event) => {
+          events.push(event);
+        },
+      );
+      expect(events).toHaveLength(1);
+      expect(response).toEqual({
+        body: {
+          error: {
+            code: "UPSTREAM_UNAVAILABLE",
+            message: "The query service is temporarily unavailable.",
+          },
+        },
+        kind: "proxy-error",
+      });
+      // Nothing may follow the error line.
+      await expect(
+        requestPlaygroundQuery(
+          INPUT,
+          new AbortController().signal,
+          () =>
+            Promise.resolve(
+              ndjson([
+                `${error}\n${JSON.stringify({ result: RESULT, type: "result" })}\n`,
+              ]),
+            ),
+          () => undefined,
+        ),
+      ).rejects.toThrow(
+        "The QueryHost web service returned an unexpected response.",
+      );
     });
 
     it("still reads JSON answers such as rate limits", async () => {

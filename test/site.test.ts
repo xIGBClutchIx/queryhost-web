@@ -5,6 +5,7 @@ import {
   canonicalUrl,
   GITHUB_REPOSITORY_URL,
   documentationHref,
+  trailingSlashRedirect,
 } from "../src/lib/site.js";
 
 describe("documentation links", () => {
@@ -14,6 +15,37 @@ describe("documentation links", () => {
     expect(documentationHref("//reference/query//")).toBe(
       "/docs/reference/query/",
     );
+  });
+});
+
+describe("trailing-slash redirects", () => {
+  it("sends slashless documentation and policy pages to their canonical path", () => {
+    expect(trailingSlashRedirect("/docs")).toBe("/docs/");
+    expect(trailingSlashRedirect("/docs/games")).toBe("/docs/games/");
+    expect(trailingSlashRedirect("/docs/reference/functions/query")).toBe(
+      "/docs/reference/functions/query/",
+    );
+    expect(trailingSlashRedirect("/privacy")).toBe("/privacy/");
+    expect(trailingSlashRedirect("/terms")).toBe("/terms/");
+  });
+
+  it("leaves canonical pages, machine routes, files, and result pages alone", () => {
+    for (const path of [
+      "/",
+      "/docs/",
+      "/docs/games/",
+      "/docs/search-index.json",
+      "/api/v1/games",
+      "/mcp",
+      "/health",
+      "/sitemap.xml",
+      "/favicon.svg",
+      "/rust/play.example.com",
+      "/minecraft-java/mc",
+      "/documents",
+    ]) {
+      expect(trailingSlashRedirect(path)).toBeUndefined();
+    }
   });
 });
 

@@ -25,7 +25,7 @@ export const DOCUMENTATION_NAVIGATION: readonly NavigationSection[] = [
       { href: "/errors/", label: "Errors and warnings" },
       { href: "/public-api/", label: "Public API" },
       { href: "/hosted-service/", label: "Hosted service" },
-      { href: "/webmcp/", label: "WebMCP tools" },
+      { href: "/webmcp/", label: "MCP and WebMCP tools" },
     ],
   },
   {

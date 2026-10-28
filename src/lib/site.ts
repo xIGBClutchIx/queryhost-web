@@ -11,6 +11,8 @@ export const SHARE_IMAGE = {
 } as const;
 /** Homepage headline, shared by the visible hero and the page title. */
 export const HOME_HEADLINE = "Look up any game server";
+/** The homepage's document title, as the base layout renders it. */
+export const HOME_TITLE = `${HOME_HEADLINE} · QueryHost`;
 /** Homepage subline, shared by the visible hero and the meta and Open Graph descriptions. */
 export const HOME_SUMMARY =
   "Check its live status right in your browser. Developers can run the same queries with the QueryHost library and API.";
@@ -20,6 +22,22 @@ export function documentationHref(pathname = "/"): string {
   const cleanPath =
     pathname === "/" ? "/" : `/${pathname.replace(/^\/+|\/+$/g, "")}/`;
   return cleanPath === "/" ? "/docs/" : `/docs${cleanPath}`;
+}
+
+/**
+ * The canonical form of a slashless page path, as in `/docs/games` to `/docs/games/`, so each
+ * page has one URL. Only documentation and policy pages qualify: API routes, `/mcp`, `/health`,
+ * files, and `/{game}/{target}` result pages keep the path they were given.
+ */
+export function trailingSlashRedirect(pathname: string): string | undefined {
+  if (pathname.endsWith("/")) return undefined;
+  const page =
+    pathname === "/docs" ||
+    pathname.startsWith("/docs/") ||
+    pathname === "/privacy" ||
+    pathname === "/terms";
+  const file = pathname.slice(pathname.lastIndexOf("/")).includes(".");
+  return page && !file ? `${pathname}/` : undefined;
 }
 
 /** Returns the production URL search engines and link previews should use. */

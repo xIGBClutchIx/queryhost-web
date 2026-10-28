@@ -4,6 +4,7 @@ import { PLAYGROUND_GAMES } from "../src/lib/playground-games.js";
 import {
   previewImagePath,
   resultPath,
+  resultTitle,
   splitTarget,
   targetSegment,
 } from "../src/lib/result-url.js";
@@ -19,6 +20,25 @@ function resolve(path: string) {
 }
 
 const rust = PLAYGROUND_GAMES.find((game) => game.id === "rust");
+
+describe("result titles", () => {
+  it("names a client-side result the way its server-rendered page does", () => {
+    for (const input of [
+      { game: "rust", host: "play.example.com" },
+      { game: "rust", host: "play.example.com", port: 28015 },
+      { game: "rust", host: "play.example.com", port: 28016 },
+      { game: "counter-strike-2", host: "2001:db8::1", port: 27016 },
+    ] as const) {
+      const game = PLAYGROUND_GAMES.find(
+        (candidate) => candidate.id === input.game,
+      );
+      const page = resolve(resultPath(input, game));
+      if (page.kind !== "page") throw new Error(`No page for ${input.host}`);
+      // The base layout appends the site name to every page title.
+      expect(resultTitle(input, game)).toBe(`${page.title} · QueryHost`);
+    }
+  });
+});
 
 describe("result URLs", () => {
   it("brackets IPv6 targets and splits every target form back", () => {

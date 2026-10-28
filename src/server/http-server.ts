@@ -2,6 +2,8 @@ import compression from "compression";
 import {
   createServer,
   type IncomingMessage,
+  type OutgoingHttpHeader,
+  type OutgoingHttpHeaders,
   type RequestListener,
   type Server,
   type ServerResponse,
@@ -49,19 +51,60 @@ function requestPathname(request: IncomingMessage): string {
   }
 }
 
+type WriteHeadHeaders = OutgoingHttpHeaders | OutgoingHttpHeader[];
+
+/** Replaces any `Cache-Control` in headers passed straight to `writeHead`. */
+function withoutCaching(headers: WriteHeadHeaders): WriteHeadHeaders {
+  if (Array.isArray(headers)) {
+    // A flat `[name, value, name, value]` list, as raw headers are written.
+    return headers.map((value, index) =>
+      index % 2 === 1 &&
+      String(headers[index - 1]).toLowerCase() === "cache-control"
+        ? "no-store"
+        : value,
+    );
+  }
+  return Object.fromEntries(
+    Object.entries(headers).map(([name, value]) => [
+      name,
+      name.toLowerCase() === "cache-control" ? "no-store" : value,
+    ]),
+  );
+}
+
 /**
  * The path's cache policy is set before Astro runs, and an error Astro renders
  * itself never replaces it. Server errors must not be cached, so the policy
- * becomes `no-store` as the status line is written.
+ * becomes `no-store` as the status line is written, including when the
+ * handler passes its own headers to `writeHead`, which take precedence.
  */
 function preventServerErrorCaching(response: ServerResponse): void {
   const writeHead = response.writeHead.bind(response);
-  response.writeHead = ((
-    ...args: Parameters<ServerResponse["writeHead"]>
+  response.writeHead = (
+    statusCode: number,
+    reasonOrHeaders?: string | WriteHeadHeaders,
+    maybeHeaders?: WriteHeadHeaders,
   ): ServerResponse => {
-    if (args[0] >= 500) response.setHeader("Cache-Control", "no-store");
-    return writeHead(...args);
-  }) as ServerResponse["writeHead"];
+    if (statusCode < 500) {
+      return typeof reasonOrHeaders === "string"
+        ? writeHead(statusCode, reasonOrHeaders, maybeHeaders)
+        : writeHead(statusCode, reasonOrHeaders);
+    }
+    response.setHeader("Cache-Control", "no-store");
+    if (typeof reasonOrHeaders === "string") {
+      return writeHead(
+        statusCode,
+        reasonOrHeaders,
+        maybeHeaders === undefined ? undefined : withoutCaching(maybeHeaders),
+      );
+    }
+    return writeHead(
+      statusCode,
+      reasonOrHeaders === undefined
+        ? undefined
+        : withoutCaching(reasonOrHeaders),
+    );
+  };
 }
 
 /**
