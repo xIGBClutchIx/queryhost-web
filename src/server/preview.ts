@@ -12,6 +12,7 @@ import type {
 } from "../lib/playground-contracts.js";
 import { displayServerText } from "../lib/server-text.js";
 import type { BadgeService } from "./badge.js";
+import { callerAddress, rateLimitIdentity } from "./client-address.js";
 import { parseImageRequest } from "./badge.js";
 import type { BadgeState } from "./badge-svg.js";
 import { ProxyGate, type ProxyGatePolicy } from "./proxy-gate.js";
@@ -158,7 +159,11 @@ export class PreviewService {
     return this.#images.size;
   }
 
-  public async image(input: PlaygroundQueryInput): Promise<PreviewImage> {
+  /** `caller` is the fetcher's rate-limit identity for the badge query. */
+  public async image(
+    input: PlaygroundQueryInput,
+    caller?: string,
+  ): Promise<PreviewImage> {
     const game = this.#dependencies.games.find(
       (definition) => definition.id === input.game,
     );
@@ -180,8 +185,10 @@ export class PreviewService {
     ) {
       return { maxAgeSeconds: 0 };
     }
-    const { maxAgeSeconds, state } =
-      await this.#dependencies.badges.resolve(query);
+    const { maxAgeSeconds, state } = await this.#dependencies.badges.resolve(
+      query,
+      caller,
+    );
     const card = previewCard(input, game, state);
     const svg = renderPreviewSvg(card);
     const key = createHash("sha256").update(svg).digest("base64");
@@ -275,7 +282,10 @@ export async function handlePreviewRequest(
     );
   }
 
-  const { maxAgeSeconds, png } = await service.image(input);
+  const { maxAgeSeconds, png } = await service.image(
+    input,
+    rateLimitIdentity(callerAddress(request)),
+  );
   if (png === undefined) {
     return new Response(null, {
       headers: { "Cache-Control": "no-store", Location: FALLBACK_IMAGE },

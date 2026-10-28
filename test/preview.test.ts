@@ -1,8 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import type { PlaygroundQueryInput } from "../src/lib/playground-contracts.js";
 import { PLAYGROUND_GAMES } from "../src/lib/playground-games.js";
 import { BadgeService } from "../src/server/badge.js";
+import { rateLimitIdentity } from "../src/server/client-address.js";
 import {
   handlePreviewRequest,
   loadPreviewGatePolicy,
@@ -27,6 +28,7 @@ function gate(maxStartsPerWindow: number): ProxyGate {
 }
 
 interface Harness {
+  readonly badges: BadgeService;
   readonly bodies: PlaygroundQueryInput[];
   readonly drawn: string[];
   readonly service: PreviewService;
@@ -79,7 +81,7 @@ function harness(body: string, maxRenders = 10): Harness {
       return Promise.resolve(new Uint8Array([drawn.length]));
     },
   });
-  return { bodies, drawn, service };
+  return { badges, bodies, drawn, service };
 }
 
 const ONLINE = JSON.stringify({
@@ -191,6 +193,23 @@ describe("preview route", () => {
     expect(head.body).toBeNull();
     expect(bodies).toHaveLength(1);
     expect(drawn).toHaveLength(1);
+  });
+
+  it("spends badge queries under the fetcher's own caller budget", async () => {
+    const { badges, service } = harness(ONLINE);
+    const resolve = vi.spyOn(badges, "resolve");
+    const path = "rust/one.example.com.png";
+    await handlePreviewRequest(
+      new Request(`${PREVIEW_URL}/${path}`, {
+        headers: { "X-Real-IP": "203.0.113.9" },
+      }),
+      params(path),
+      service,
+    );
+    expect(resolve).toHaveBeenCalledWith(
+      expect.objectContaining({ host: "one.example.com" }),
+      rateLimitIdentity("203.0.113.9"),
+    );
   });
 
   it("falls back to the site image when drawing is over budget", async () => {

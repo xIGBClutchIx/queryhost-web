@@ -81,6 +81,7 @@ export const PROXY_ERROR_CODES: Readonly<
   OVERLOADED: true,
   RATE_LIMITED: true,
   UNAUTHORIZED: true,
+  UNEXPECTED_RESPONSE: true,
   UPSTREAM_INVALID: true,
   UPSTREAM_UNAVAILABLE: true,
 };
