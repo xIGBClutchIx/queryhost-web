@@ -2,7 +2,10 @@ name: QueryHost release
 
 # Opens a pull request that moves the exact `queryhost` pin to a newer npm release.
 # The schedule picks a release up within 15 minutes; run it by hand to start sooner.
-# Merging stays manual because it deploys.
+# Later runs merge that pull request, which deploys, once it is untouched, CI passed,
+# Codex has no unresolved findings on its head, and the live API already serves a
+# compatible `queryhost`, so the site never lists a game the API rejects. Closing the
+# pull request, or marking it draft, stops the merge.
 on:
   schedule:
     - cron: "7,22,37,52 * * * *"
@@ -21,6 +24,9 @@ permissions: {}
 
 env:
   COMMIT_TITLE: "Update queryhost to"
+  # The private API validates game IDs against its own pin, so merging waits for it.
+  API_REPO: xIGBClutchIx/queryhost-api
+  API_ENVIRONMENT: queryhost / production
 
 jobs:
   # Installing and importing the new release runs its code, so this job holds only a
@@ -99,6 +105,7 @@ jobs:
     timeout-minutes: 5
     permissions:
       actions: write
+      checks: read
       contents: write
       pull-requests: write
 
@@ -117,7 +124,7 @@ jobs:
           name: queryhost-bump
           path: ${{ runner.temp }}/bump
 
-      - name: Open the pull request
+      - name: Open or merge the pull request
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
@@ -182,8 +189,104 @@ jobs:
               && [ "$(gh run list --workflow ci.yml --branch "$branch" --json databaseId --jq length)" = "0" ]; then
               gh workflow run ci.yml --ref "$branch"
             fi
-            echo "$branch already has a pull request; leaving it alone."
-            exit 0
+
+            # Merge only the untouched bot pull request, and leave anything else to a person.
+            # Every unmet condition leaves it for the next run; closing it stops this for good.
+            hold() {
+              echo "::notice::Not merging $branch yet: $1"
+              exit 0
+            }
+            number="$(gh api "repos/$GH_REPO/pulls?state=open&head=$GITHUB_REPOSITORY_OWNER:$branch" \
+              --jq '.[0].number // empty')"
+            [ -n "$number" ] || hold "no open pull request."
+            # Only the single pull request endpoint reports whether it is mergeable.
+            gh api "repos/$GH_REPO/pulls/$number" > pr.json
+            head="$(jq -r .head.sha pr.json)"
+            if [ "$(jq -r .user.login pr.json)" != "github-actions[bot]" ] \
+              || [ "$(jq -r .head.ref pr.json)" != "$branch" ] \
+              || [ "$(jq -r .head.repo.full_name pr.json)" != "$GH_REPO" ] \
+              || [ "$(jq -r .base.ref pr.json)" != "$DEFAULT_BRANCH" ] \
+              || [ "$(jq -r .title pr.json)" != "$COMMIT_TITLE $TO" ]; then
+              hold "#$number is not the workflow's own pull request."
+            fi
+            [ "$(jq -r .draft pr.json)" = "false" ] || hold "#$number is a draft."
+
+            # Renames count both paths, so nothing outside the allowlist can move either.
+            gh api --paginate "repos/$GH_REPO/pulls/$number/files" \
+              --jq '.[] | .filename, (.previous_filename // empty)' > pr-files.txt
+            while IFS= read -r file; do
+              if [ "$file" != package.json ] && [ "$file" != package-lock.json ] \
+                && ! [[ "$file" =~ $allowed ]]; then
+                hold "#$number changes $file, so it needs a person."
+              fi
+            done < pr-files.txt
+
+            # The API gate below compares against $TO, so the head must install exactly that.
+            at_head() {
+              gh api -H "Accept: application/vnd.github.raw+json" "repos/$GH_REPO/contents/$1?ref=$head"
+            }
+            head_pin="$(at_head package.json | jq -r '.dependencies.queryhost // ""')"
+            head_lock="$(at_head package-lock.json \
+              | jq -r '"\(.packages[""].dependencies.queryhost // "") \(.packages["node_modules/queryhost"].version // "")"')"
+            if [ "$head_pin" != "$TO" ] || [ "$head_lock" != "$TO $TO" ]; then
+              hold "#$number pins queryhost \"$head_pin\" with lockfile \"$head_lock\", not $TO."
+            fi
+
+            # A fix pushed to the branch makes CI rerun on the new head, so read the latest run.
+            verify="$(gh api "repos/$GH_REPO/commits/$head/check-runs?check_name=verify&per_page=100" \
+              --jq '[.check_runs[] | select(.app.slug == "github-actions")]
+                | sort_by(.started_at) | last // {} | "\(.status) \(.conclusion)"')"
+            [ "$verify" = "completed success" ] || hold "verify on $head is \"$verify\"."
+
+            # Codex is optional: wait only when its summary flags unresolved findings on this head.
+            gh api --paginate "repos/$GH_REPO/issues/$number/comments" \
+              --jq '.[] | select(.user.login == "chatgpt-codex-connector[bot]") | {body}' > codex.json
+            unresolved="$(jq -rs --arg head "$head" '
+              [.[].body // "" | capture("codex-review-state:v1 (?<state>[{].*[}]) -->") | .state
+                | fromjson? | .[]? | objects
+                | select(.commit_sha == $head and .has_unresolved_findings == true)] | length' codex.json)"
+            [ "$unresolved" = "0" ] || hold "Codex reports unresolved findings on $head."
+
+            # The live API must accept every game this release lists. Within a major version a
+            # newer release only adds games, so an API already past $TO is safe, and requiring
+            # an exact match would strand this pull request whenever the API moves first.
+            # Deployments list newest first, and a newer one that is still building or failed
+            # leaves the previous successful one serving.
+            gh api -X GET "repos/$API_REPO/deployments" \
+              -f environment="$API_ENVIRONMENT" -F per_page=30 \
+              --jq '.[] | select(.creator.login == "railway-app[bot]") | "\(.id) \(.sha)"' \
+              > api-deployments.txt
+            api_sha=""
+            while read -r deployment sha; do
+              state="$(gh api "repos/$API_REPO/deployments/$deployment/statuses?per_page=1" \
+                --jq '.[0].state // ""')"
+              if [ "$state" = success ]; then
+                api_sha="$sha"
+                break
+              fi
+            done < api-deployments.txt
+            [ -n "$api_sha" ] || hold "no live $API_REPO deployment in $API_ENVIRONMENT."
+            api_pin="$(gh api -H "Accept: application/vnd.github.raw+json" \
+              "repos/$API_REPO/contents/package.json?ref=$api_sha" | jq -r '.dependencies.queryhost // ""')"
+            if ! [[ "$api_pin" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] \
+              || [ "${api_pin%%.*}" != "${TO%%.*}" ] \
+              || [ "$(printf '%s\n' "$TO" "$api_pin" | sort -V | head -n1)" != "$TO" ]; then
+              hold "the live API at $api_sha pins queryhost \"$api_pin\", not $TO."
+            fi
+
+            [ "$(jq -r .mergeable pr.json)" = "true" ] || hold "#$number is not mergeable yet."
+            merged=0
+            gh pr merge "$number" --merge --delete-branch --match-head-commit "$head" || merged=$?
+            # A merge with GITHUB_TOKEN starts no push workflows, and Railway deploys only after
+            # CI passes on the default branch. The pin then matches, so no later run can retry.
+            if [ "$(gh api "repos/$GH_REPO/pulls/$number" --jq .merged)" = "true" ]; then
+              for attempt in 1 2 3; do
+                if gh workflow run ci.yml --ref "$DEFAULT_BRANCH"; then break; fi
+                [ "$attempt" = 3 ] && exit 1
+                sleep 10
+              done
+            fi
+            exit "$merged"
           fi
           # A branch without a pull request was left by a failed run, so start it over.
           if gh api "repos/$GH_REPO/git/ref/heads/$branch" > /dev/null 2>&1; then

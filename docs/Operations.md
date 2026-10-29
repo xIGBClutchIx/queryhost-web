@@ -72,9 +72,21 @@ This is a bounded baseline, not a capacity claim. Unique-destination and global 
 
 This service pins an exact `queryhost` version. The `QueryHost release` workflow opens the pull request that moves the pin: it checks npm every 15 minutes, and running it by hand from the Actions tab, optionally with a version, starts it at once. The same change runs locally with `node scripts/bump-queryhost.mjs [version]`.
 
-The pull request carries the pin, the lockfile, prose that names the old pin, the library changelog entries, and any new game IDs. GitHub does not start pull-request workflows for pull requests opened by `GITHUB_TOKEN`, so the workflow dispatches CI on the branch itself. It needs **Allow GitHub Actions to create and approve pull requests** enabled under Settings, Actions, General. Merging still deploys, so review and merge it by hand.
+The pull request carries the pin, the lockfile, prose that names the old pin, the library changelog entries, and any new game IDs. GitHub does not start pull-request workflows for pull requests opened by `GITHUB_TOKEN`, so the workflow dispatches CI on the branch itself. It needs **Allow GitHub Actions to create and approve pull requests** enabled under Settings, Actions, General.
 
-A release that adds a `QuerySourceName` fails typecheck on that pull request until the source has a label in `src/lib/query-path.ts`, and an entry in `src/server/result-vocabulary.ts`, which feeds both the OpenAPI document and the MCP result schema. New warning, error, or source-status codes fail typecheck there the same way. Push those to the release branch before merging.
+Each later scheduled run merges that pull request, which deploys, once all of these hold:
+
+- it is open, not a draft, opened by `github-actions[bot]` from `queryhost/v<version>` into the default branch, and still titled `Update queryhost to <version>`
+- it changes only `package.json`, `package-lock.json`, and the prose files the bump may touch, and both pin exactly that version
+- the `verify` check on its head commit passed
+- Codex, if it has reviewed that head commit, reports no unresolved findings; a missing review does not hold the merge
+- the latest successful Railway deployment of `xIGBClutchIx/queryhost-api` in `queryhost / production` pins the same or a newer `queryhost` in the same major version
+
+The API check exists because the API validates game IDs against its own pin: a site that lists a game before the API knows it sends visitors `BAD_REQUEST`. A newer minor or patch release only adds games, so an API that is already ahead is safe. Until every condition holds, each run leaves a notice and tries again 15 minutes later. A merge made with `GITHUB_TOKEN` starts no push workflows, so the workflow then dispatches CI on the default branch, and Railway deploys once it passes.
+
+To stop an automatic merge, close the pull request or mark it draft. Reopen it or mark it ready to let the schedule continue, or merge it by hand. Any change outside the bump's files, such as a typecheck fix, also turns the merge over to a person.
+
+A release that adds a `QuerySourceName` fails typecheck on that pull request until the source has a label in `src/lib/query-path.ts`, and an entry in `src/server/result-vocabulary.ts`, which feeds both the OpenAPI document and the MCP result schema. New warning, error, or source-status codes fail typecheck there the same way. That failure is the intended safe stop: the failed `verify` check holds the merge until a person pushes those changes to the release branch, and because the branch then changes source files, that person reviews and merges it by hand.
 
 ## Rollback
 
