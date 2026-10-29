@@ -1,70 +1,20 @@
 import type {
-  QueryErrorCode,
-  QuerySourceName,
-  QuerySourceStatus,
-  QueryWarningCode,
-} from "queryhost";
-
-import type {
   HostedCacheStatus,
   PlaygroundProxyErrorCode,
 } from "../lib/playground-contracts.js";
 
-// The library exports these unions only as types. Keying each table by its
-// union makes typecheck fail when a library release adds or removes a member,
-// so neither the OpenAPI document nor the MCP result schema can drift from the
-// package they describe.
-export const QUERY_ERROR_CODES: Readonly<Record<QueryErrorCode, true>> = {
-  ABORTED: true,
-  CONNECTION_FAILED: true,
-  DNS_FAILED: true,
-  INTERNAL_ERROR: true,
-  INVALID_INPUT: true,
-  MALFORMED_RESPONSE: true,
-  RESPONSE_TOO_LARGE: true,
-  TARGET_BLOCKED: true,
-  TIMEOUT: true,
-};
-export const QUERY_WARNING_CODES: Readonly<Record<QueryWarningCode, true>> = {
-  PARTIAL_RESULT: true,
-  PLAYER_LIST_UNAVAILABLE: true,
-  SOURCE_BLOCKED: true,
-  SOURCE_FAILED: true,
-  SOURCE_MALFORMED: true,
-  SOURCE_TIMEOUT: true,
-};
-export const QUERY_SOURCE_NAMES: Readonly<Record<QuerySourceName, true>> = {
-  "a2s-info": true,
-  "a2s-player": true,
-  "a2s-rules": true,
-  "eco-frontpage": true,
-  "minecraft-srv": true,
-  "minecraft-slp": true,
-  "minecraft-legacy-ping": true,
-  "minecraft-query": true,
-  "minecraft-bedrock-raknet": true,
-  "minecraft-bedrock-nethernet": true,
-  "fivem-info": true,
-  "fivem-dynamic": true,
-  "fivem-players": true,
-  "redm-info": true,
-  "redm-dynamic": true,
-  "redm-players": true,
-  "satisfactory-lightweight": true,
-  "satisfactory-health": true,
-  "vintage-story-query": true,
-  "project-reclaimer-status": true,
-};
-export const QUERY_SOURCE_STATUSES: Readonly<Record<QuerySourceStatus, true>> =
-  {
-    ok: true,
-    timeout: true,
-    blocked: true,
-    malformed: true,
-    unsupported: true,
-    "not-requested": true,
-    failed: true,
-  };
+// The library owns its result vocabulary and exports every union as a frozen
+// tuple, so the OpenAPI document and the MCP result schema follow each release
+// without a copy here to update.
+export {
+  QUERY_ERROR_CODES,
+  QUERY_SOURCE_NAMES,
+  QUERY_SOURCE_STATUSES,
+  QUERY_WARNING_CODES,
+} from "queryhost/registry";
+
+// These unions belong to this service. Keying each table by its union makes
+// typecheck fail when a member is added or removed, so the schemas cannot drift.
 export const CACHE_STATUSES: Readonly<Record<HostedCacheStatus, true>> = {
   coalesced: true,
   hit: true,

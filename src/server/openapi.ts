@@ -1,10 +1,10 @@
 import type { QueryErrorCode } from "queryhost";
 import {
   GAME_ALIASES,
+  GAME_CAPABILITIES,
   GAME_IDS,
-  type GameCapability,
-  type GameProtocol,
-  type SupportLevel,
+  GAME_PROTOCOLS,
+  SUPPORT_LEVELS,
 } from "queryhost/registry";
 
 import type { JsonObject } from "../lib/playground-contracts.js";
@@ -36,7 +36,8 @@ export type PublicApiErrorCode =
   | "UPSTREAM_UNAVAILABLE";
 
 // Keyed by union like the tables in result-vocabulary.ts, so typecheck fails
-// when a member is added or removed and the spec cannot drift.
+// when a member is added or removed and the spec cannot drift. The library's
+// own vocabulary comes from its exported tuples.
 const PUBLIC_API_ERROR_CODES: Readonly<Record<PublicApiErrorCode, true>> = {
   BAD_REQUEST: true,
   BODY_TOO_LARGE: true,
@@ -47,40 +48,14 @@ const PUBLIC_API_ERROR_CODES: Readonly<Record<PublicApiErrorCode, true>> = {
   UPSTREAM_INVALID: true,
   UPSTREAM_UNAVAILABLE: true,
 };
-const GAME_PROTOCOLS: Readonly<Record<GameProtocol, true>> = {
-  a2s: true,
-  "a2s-unreal": true,
-  "minecraft-java": true,
-  "minecraft-bedrock": true,
-  cfx: true,
-  satisfactory: true,
-  "vintage-story": true,
-  eco: true,
-  "project-reclaimer": true,
-};
-const GAME_CAPABILITIES: Readonly<Record<GameCapability, true>> = {
-  summary: true,
-  players: true,
-  rules: true,
-  mods: true,
-  plugins: true,
-  resources: true,
-  srv: true,
-};
-const SUPPORT_LEVELS: Readonly<Record<SupportLevel, true>> = {
-  supported: true,
-  conditional: true,
-  unsupported: true,
-};
 
 /** Error codes listed in the spec, in documentation order. */
 export const OPENAPI_ERROR_CODES: readonly PublicApiErrorCode[] = Object.keys(
   PUBLIC_API_ERROR_CODES,
 ) as PublicApiErrorCode[];
 /** Library failure codes listed in the spec. */
-export const OPENAPI_QUERY_ERROR_CODES: readonly QueryErrorCode[] = Object.keys(
-  QUERY_ERROR_CODES,
-) as QueryErrorCode[];
+export const OPENAPI_QUERY_ERROR_CODES: readonly QueryErrorCode[] =
+  QUERY_ERROR_CODES;
 
 const ref = (name: string): JsonObject => ({
   $ref: `#/components/schemas/${name}`,
@@ -134,7 +109,7 @@ const CORS_ORIGIN: JsonObject = {
 };
 
 function buildSchemas(): JsonObject {
-  const capabilities = Object.keys(GAME_CAPABILITIES);
+  const capabilities = [...GAME_CAPABILITIES];
   return {
     ApiError: {
       additionalProperties: false,
@@ -175,7 +150,7 @@ function buildSchemas(): JsonObject {
         id: ref("GameId"),
         name: { type: "string" },
         protocol: openEnum(
-          Object.keys(GAME_PROTOCOLS),
+          GAME_PROTOCOLS,
           "Query protocol family the game's profile uses.",
         ),
         queryPortStrategy: {
@@ -280,16 +255,13 @@ function buildSchemas(): JsonObject {
           type: "number",
         },
         source: ref("QuerySourceName"),
-        status: openEnum(
-          Object.keys(QUERY_SOURCE_STATUSES),
-          "Outcome of this source.",
-        ),
+        status: openEnum(QUERY_SOURCE_STATUSES, "Outcome of this source."),
       },
       required: ["source", "status"],
       type: "object",
     },
     QuerySourceName: openEnum(
-      Object.keys(QUERY_SOURCE_NAMES),
+      QUERY_SOURCE_NAMES,
       "Protocol or discovery source.",
     ),
     QuerySuccess: {
@@ -364,10 +336,7 @@ function buildSchemas(): JsonObject {
     },
     QueryWarning: {
       properties: {
-        code: openEnum(
-          Object.keys(QUERY_WARNING_CODES),
-          "Non-fatal condition code.",
-        ),
+        code: openEnum(QUERY_WARNING_CODES, "Non-fatal condition code."),
         message: { type: "string" },
         source: ref("QuerySourceName"),
       },
@@ -423,7 +392,7 @@ function buildSchemas(): JsonObject {
       type: "object",
     },
     SupportLevel: openEnum(
-      Object.keys(SUPPORT_LEVELS),
+      SUPPORT_LEVELS,
       "Whether a capability is guaranteed, source-dependent, or unavailable.",
     ),
   };
