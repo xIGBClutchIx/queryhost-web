@@ -42,9 +42,9 @@ export function ResultsPage(): ReactNode {
       <h2 id="data">Game-specific data</h2>
       <p>
         <code>data</code> is selected by the canonical game ID. Rust tags,
-        Minecraft MOTDs and plugins, Project Zomboid mods, and FiveM resources
-        stay in their game-specific types rather than being flattened into a
-        vague common object.
+        Minecraft MOTDs and plugins, Project Zomboid mods, FiveM resources, and
+        Project Reclaimer mods and ODST settings stay in their game-specific
+        types rather than being flattened into a vague common object.
       </p>
       <h2 id="raw">Untouched protocol data</h2>
       <p>

@@ -56,6 +56,7 @@ const GAME_PROTOCOLS: Readonly<Record<GameProtocol, true>> = {
   satisfactory: true,
   "vintage-story": true,
   eco: true,
+  "project-reclaimer": true,
 };
 const GAME_CAPABILITIES: Readonly<Record<GameCapability, true>> = {
   summary: true,
