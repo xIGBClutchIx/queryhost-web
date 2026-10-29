@@ -77,7 +77,7 @@ The pull request carries the pin, the lockfile, prose that names the old pin, th
 Each later scheduled run merges that pull request, which deploys, once all of these hold:
 
 - it is open, not a draft, opened by `github-actions[bot]` from `queryhost/v<version>` into the default branch, and still titled `Update queryhost to <version>`
-- it changes only `package.json`, `package-lock.json`, and the prose files the bump may touch
+- it changes only `package.json`, `package-lock.json`, and the prose files the bump may touch, and both pin exactly that version
 - the `verify` check on its head commit passed
 - Codex, if it has reviewed that head commit, reports no unresolved findings; a missing review does not hold the merge
 - the latest successful Railway deployment of `xIGBClutchIx/queryhost-api` in `queryhost / production` pins the same or a newer `queryhost` in the same major version

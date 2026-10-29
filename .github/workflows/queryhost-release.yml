@@ -221,6 +221,17 @@ jobs:
               fi
             done < pr-files.txt
 
+            # The API gate below compares against $TO, so the head must install exactly that.
+            at_head() {
+              gh api -H "Accept: application/vnd.github.raw+json" "repos/$GH_REPO/contents/$1?ref=$head"
+            }
+            head_pin="$(at_head package.json | jq -r '.dependencies.queryhost // ""')"
+            head_lock="$(at_head package-lock.json \
+              | jq -r '"\(.packages[""].dependencies.queryhost // "") \(.packages["node_modules/queryhost"].version // "")"')"
+            if [ "$head_pin" != "$TO" ] || [ "$head_lock" != "$TO $TO" ]; then
+              hold "#$number pins queryhost \"$head_pin\" with lockfile \"$head_lock\", not $TO."
+            fi
+
             # A fix pushed to the branch makes CI rerun on the new head, so read the latest run.
             verify="$(gh api "repos/$GH_REPO/commits/$head/check-runs?check_name=verify&per_page=100" \
               --jq '[.check_runs[] | select(.app.slug == "github-actions")]
