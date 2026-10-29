@@ -70,21 +70,25 @@ This is a bounded baseline, not a capacity claim. Unique-destination and global 
 
 ## Library releases
 
-This service pins an exact `queryhost` version. The `QueryHost release` workflow opens the pull request that moves the pin: it checks npm every 15 minutes, and running it by hand from the Actions tab, optionally with a version, starts it at once. The same change runs locally with `node scripts/bump-queryhost.mjs [version]`.
+This service pins an exact `queryhost` version. The `QueryHost release` workflow opens the pull request that moves the pin. The library's publish workflow starts it with the released version as soon as npm publishes, using the library repository's `QUERYHOST_CONSUMER_DISPATCH_TOKEN` secret; it also checks npm every 15 minutes as the fallback, and running it by hand from the Actions tab, optionally with a version, starts it at once. The same change runs locally with `node scripts/bump-queryhost.mjs [version]`.
+
+`.github/workflows/queryhost-release.yml` here only holds the triggers, the `queryhost-release` concurrency group, the commit title, the API gate settings, and the permissions it grants. The steps live in the API repository's reusable `.github/workflows/consumer-bump.yml`, called at `xIGBClutchIx/queryhost-api/...@main`, which the API also uses, so a fix there reaches both consumers on their next run without a change here. The API repository is public, so the call needs no Actions access setting; if it becomes private, its Settings, Actions, General, Access must allow repositories owned by the same user. The job that installs and imports the new release holds only a read token, and the job that commits, opens, and merges runs no package code and rebuilds every file from the base commit. Each run still checks out this repository and runs this repository's `scripts/bump-queryhost.mjs`.
 
 The pull request carries the pin, the lockfile, prose that names the old pin, the library changelog entries, and any new game IDs. GitHub does not start pull-request workflows for pull requests opened by `GITHUB_TOKEN`, so the workflow dispatches CI on the branch itself. It needs **Allow GitHub Actions to create and approve pull requests** enabled under Settings, Actions, General.
 
 Each later scheduled run merges that pull request, which deploys, once all of these hold:
 
 - it is open, not a draft, opened by `github-actions[bot]` from `queryhost/v<version>` into the default branch, and still titled `Update queryhost to <version>`
-- it changes only `package.json`, `package-lock.json`, and the prose files the bump may touch, and both pin exactly that version
-- the `verify` check on its head commit passed
+- it still holds only the bot's single commit
+- it modifies only `package.json`, `package-lock.json`, and the prose files the bump may touch, with no renames, and both pin exactly that version
+- it is current with the default branch, mergeable, and the default branch has not moved since the run read it
+- every `verify` run on its head commit passed
 - Codex, if it has reviewed that head commit, reports no unresolved findings; a missing review does not hold the merge
 - the latest successful Railway deployment of `xIGBClutchIx/queryhost-api` in `queryhost / production` pins the same or a newer `queryhost` in the same major version
 
-The API check exists because the API validates game IDs against its own pin: a site that lists a game before the API knows it sends visitors `BAD_REQUEST`. A newer minor or patch release only adds games, so an API that is already ahead is safe. Until every condition holds, each run leaves a notice and tries again 15 minutes later. A merge made with `GITHUB_TOKEN` starts no push workflows, so the workflow then dispatches CI on the default branch, and Railway deploys once it passes.
+The API check exists because the API validates game IDs against its own pin: a site that lists a game before the API knows it sends visitors `BAD_REQUEST`. A newer minor or patch release only adds games, so an API that is already ahead is safe. Until every condition holds, each run leaves a notice and tries again 15 minutes later. A merge made with `GITHUB_TOKEN` starts no push workflows, so once GitHub reports the pull request merged, the workflow dispatches CI on the default branch, and Railway deploys once it passes.
 
-To stop an automatic merge, close the pull request or mark it draft. Reopen it or mark it ready to let the schedule continue, or merge it by hand. Any change outside the bump's files, such as a typecheck fix, also turns the merge over to a person.
+To stop an automatic merge, close the pull request or mark it draft. Reopen it or mark it ready to let the schedule continue, or merge it by hand. Pushing any commit to its branch, such as a typecheck fix, also turns the merge over to a person, as does the default branch moving ahead of it.
 
 New games, protocols, sources, and source labels need no change here: the OpenAPI document, the MCP result schema, and the playground's source labels read the library's exported vocabulary and `QUERY_SOURCE_LABELS`. A release that adds a warning, query error, or detect error code still fails typecheck until `src/views/docs/ErrorsPage.tsx` describes it. That failure is the intended safe stop: the failed `verify` check holds the merge until a person pushes the description to the release branch, and because the branch then changes source files, that person reviews and merges it by hand.
 
