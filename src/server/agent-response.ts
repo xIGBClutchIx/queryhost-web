@@ -13,17 +13,17 @@ import {
   vocabulary,
 } from "./result-vocabulary.js";
 
-// Every enum comes from a table keyed by the library's union, so a library
-// release that adds a value fails typecheck instead of making valid results
-// fail this schema as `UPSTREAM_INVALID`.
-const sourceName = z.enum(vocabulary(QUERY_SOURCE_NAMES));
+// Library enums come from the installed release's own vocabulary, so a release
+// that adds a value is accepted instead of making valid results fail this
+// schema as `UPSTREAM_INVALID`.
+const sourceName = z.enum(QUERY_SOURCE_NAMES);
 const source = z.object({
   source: sourceName,
-  status: z.enum(vocabulary(QUERY_SOURCE_STATUSES)),
+  status: z.enum(QUERY_SOURCE_STATUSES),
   rttMs: z.number().nonnegative().optional(),
 });
 const warning = z.object({
-  code: z.enum(vocabulary(QUERY_WARNING_CODES)),
+  code: z.enum(QUERY_WARNING_CODES),
   message: z.string(),
   source: sourceName.optional(),
 });
@@ -61,7 +61,7 @@ const queryResponse = z.discriminatedUnion("ok", [
   base.extend({
     ok: z.literal(false),
     error: z.object({
-      code: z.enum(vocabulary(QUERY_ERROR_CODES)),
+      code: z.enum(QUERY_ERROR_CODES),
       message: z.string(),
       source: sourceName.optional(),
     }),

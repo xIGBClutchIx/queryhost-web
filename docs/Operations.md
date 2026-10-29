@@ -86,7 +86,7 @@ The API check exists because the API validates game IDs against its own pin: a s
 
 To stop an automatic merge, close the pull request or mark it draft. Reopen it or mark it ready to let the schedule continue, or merge it by hand. Any change outside the bump's files, such as a typecheck fix, also turns the merge over to a person.
 
-A release that adds a `QuerySourceName` fails typecheck on that pull request until the source has a label in `src/lib/query-path.ts`, and an entry in `src/server/result-vocabulary.ts`, which feeds both the OpenAPI document and the MCP result schema. New warning, error, or source-status codes fail typecheck there the same way. That failure is the intended safe stop: the failed `verify` check holds the merge until a person pushes those changes to the release branch, and because the branch then changes source files, that person reviews and merges it by hand.
+New games, protocols, sources, and source labels need no change here: the OpenAPI document, the MCP result schema, and the playground's source labels read the library's exported vocabulary and `QUERY_SOURCE_LABELS`. A release that adds a warning, query error, or detect error code still fails typecheck until `src/views/docs/ErrorsPage.tsx` describes it. That failure is the intended safe stop: the failed `verify` check holds the merge until a person pushes the description to the release branch, and because the branch then changes source files, that person reviews and merges it by hand.
 
 ## Rollback
 

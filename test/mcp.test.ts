@@ -466,11 +466,11 @@ describe("remote MCP", () => {
   });
 
   it("accepts every result value and service error code the contract allows", () => {
-    const sources = vocabulary(QUERY_SOURCE_NAMES).map((source, index) => {
-      const statuses = vocabulary(QUERY_SOURCE_STATUSES);
-      return { source, status: statuses[index % statuses.length] };
-    });
-    const warnings = vocabulary(QUERY_WARNING_CODES).map((code) => ({
+    const sources = QUERY_SOURCE_NAMES.map((source, index) => ({
+      source,
+      status: QUERY_SOURCE_STATUSES[index % QUERY_SOURCE_STATUSES.length],
+    }));
+    const warnings = QUERY_WARNING_CODES.map((code) => ({
       code,
       message: "Warning.",
     }));
@@ -493,7 +493,7 @@ describe("remote MCP", () => {
         "minecraft-java",
       ),
     ).toMatchObject({ ok: true });
-    for (const code of vocabulary(QUERY_ERROR_CODES)) {
+    for (const code of QUERY_ERROR_CODES) {
       expect(
         parseAgentResponse(
           JSON.stringify({ ...base, error: { code, message: "x" }, ok: false }),

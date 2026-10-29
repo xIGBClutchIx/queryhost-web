@@ -4,31 +4,9 @@ import type {
   QuerySourceName,
   QuerySourceStatus,
 } from "queryhost";
+import { QUERY_SOURCE_LABELS as SOURCE_LABELS } from "queryhost/registry";
 
 import { milliseconds } from "./playground-form.js";
-
-const SOURCE_LABELS = {
-  "a2s-info": "Info",
-  "a2s-player": "Players",
-  "a2s-rules": "Rules",
-  "eco-frontpage": "Front page",
-  "fivem-dynamic": "Status",
-  "fivem-info": "Server info",
-  "fivem-players": "Players",
-  "redm-dynamic": "Status",
-  "redm-info": "Server info",
-  "redm-players": "Players",
-  "project-reclaimer-status": "Server browser",
-  "satisfactory-lightweight": "Server state",
-  "satisfactory-health": "Health",
-  "vintage-story-query": "Server query",
-  "minecraft-bedrock-raknet": "Bedrock ping",
-  "minecraft-bedrock-nethernet": "NetherNet status",
-  "minecraft-query": "Query",
-  "minecraft-slp": "Status",
-  "minecraft-legacy-ping": "Legacy ping",
-  "minecraft-srv": "SRV",
-} satisfies Readonly<Record<QuerySourceName, string>>;
 
 const STATUS_LABELS = {
   blocked: "Blocked",
