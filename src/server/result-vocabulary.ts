@@ -53,6 +53,7 @@ export const QUERY_SOURCE_NAMES: Readonly<Record<QuerySourceName, true>> = {
   "satisfactory-lightweight": true,
   "satisfactory-health": true,
   "vintage-story-query": true,
+  "project-reclaimer-status": true,
 };
 export const QUERY_SOURCE_STATUSES: Readonly<Record<QuerySourceStatus, true>> =
   {

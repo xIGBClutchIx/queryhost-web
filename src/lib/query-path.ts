@@ -18,6 +18,7 @@ const SOURCE_LABELS = {
   "redm-dynamic": "Status",
   "redm-info": "Server info",
   "redm-players": "Players",
+  "project-reclaimer-status": "Server browser",
   "satisfactory-lightweight": "Server state",
   "satisfactory-health": "Health",
   "vintage-story-query": "Server query",
