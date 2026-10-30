@@ -90,7 +90,7 @@ The API check exists because the API validates game IDs against its own pin: a s
 
 To stop an automatic merge, close the pull request or mark it draft. Reopen it or mark it ready to let the schedule continue, or merge it by hand. Pushing any commit to its branch, such as a typecheck fix, also turns the merge over to a person, as does the default branch moving ahead of it.
 
-New games, protocols, sources, and source labels need no change here: the OpenAPI document, the MCP result schema, and the playground's source labels read the library's exported vocabulary and `QUERY_SOURCE_LABELS`. A release that adds a warning, query error, or detect error code still fails typecheck until `src/views/docs/ErrorsPage.tsx` describes it. That failure is the intended safe stop: the failed `verify` check holds the merge until a person pushes the description to the release branch, and because the branch then changes source files, that person reviews and merges it by hand.
+New games, protocols, sources, source labels, and error or warning codes need no change here: the OpenAPI document, the MCP result schema, the playground's source labels, and the Errors page read the library's exported vocabulary, `QUERY_SOURCE_LABELS`, and its code guidance. If a release does break this service's checks, the failed `verify` check is the safe stop: it holds the merge until a person pushes a fix to the release branch, and because the branch then changes source files, that person reviews and merges it by hand.
 
 ## Rollback
 
