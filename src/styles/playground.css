@@ -1902,7 +1902,9 @@ button.query-freshness:focus-visible {
   .query-loading__dot,
   .playground__heading,
   .query-form,
-  .playground-examples {
+  .playground-examples,
+  .playground-coverage,
+  .share-menu__panel {
     animation: none;
   }
 }

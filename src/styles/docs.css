@@ -37,7 +37,7 @@
   margin-top: var(--space-6);
 }
 
-.docs-nav__section h2 {
+.docs-nav__label {
   margin: 0 0 var(--space-1-5);
   color: var(--faint);
   font-size: var(--text-2xs);
@@ -76,7 +76,7 @@
   margin: var(--space-2-5) 0 0 var(--space-1-5);
 }
 
-.docs-nav__reference-context h3 {
+.docs-nav__context-label {
   margin: 0 0 var(--space-1);
   color: var(--text);
   font-size: var(--text-3xs);

@@ -75,16 +75,30 @@ let fontBuffers: Promise<readonly Uint8Array[]> | undefined;
 function loadFonts(): Promise<readonly Uint8Array[]> {
   fontBuffers ??= import("./preview-fonts/fonts.js").then(
     ({ PREVIEW_FONTS }) => PREVIEW_FONTS,
+    (error: Error) => {
+      // A transient failure must not disable previews until a restart.
+      fontBuffers = undefined;
+      throw error;
+    },
   );
   return fontBuffers;
 }
 
-/** Rasterizes preview SVGs with resvg and the vendored Geist fonts. */
-export const rasterizePreview: PreviewRasterizer = async (svg) => {
+function loadRasterizer(): Promise<void> {
   rasterizerReady ??= readFile(
     createRequire(import.meta.url).resolve("@resvg/resvg-wasm/index_bg.wasm"),
-  ).then((wasm) => initWasm(wasm));
-  await rasterizerReady;
+  )
+    .then((wasm) => initWasm(wasm))
+    .catch((error: Error) => {
+      rasterizerReady = undefined;
+      throw error;
+    });
+  return rasterizerReady;
+}
+
+/** Rasterizes preview SVGs with resvg and the vendored Geist fonts. */
+export const rasterizePreview: PreviewRasterizer = async (svg) => {
+  await loadRasterizer();
   const resvg = new Resvg(svg, {
     fitTo: { mode: "width", value: PREVIEW_WIDTH },
     font: {

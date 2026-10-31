@@ -21,6 +21,10 @@ interface DocsLinkProps {
   readonly item: NavigationItem;
 }
 
+function navLabelId(label: string): string {
+  return `docs-nav-${label.toLowerCase().replaceAll(/[^a-z\d]+/gu, "-")}`;
+}
+
 function DocsLink({ activeHref, item }: DocsLinkProps): ReactNode {
   const active = activeHref === item.href;
   return (
@@ -42,10 +46,14 @@ export function DocsSidebar({
 }: DocsNavigationProps): ReactNode {
   return (
     <nav className="docs-nav" aria-label="Documentation navigation">
+      {/* The sidebar precedes the page's h1, so its labels are not headings;
+          each list is named by its label instead. */}
       {sections.map((section) => (
-        <section className="docs-nav__section" key={section.label}>
-          <h2>{section.label}</h2>
-          <ul>
+        <div className="docs-nav__section" key={section.label}>
+          <p className="docs-nav__label" id={navLabelId(section.label)}>
+            {section.label}
+          </p>
+          <ul aria-labelledby={navLabelId(section.label)}>
             {section.items.map((item) => (
               <li key={item.href}>
                 <DocsLink
@@ -58,8 +66,13 @@ export function DocsSidebar({
           </ul>
           {section.label === "Reference" && reference !== undefined && (
             <div className="docs-nav__reference-context">
-              <h3>{reference.label}</h3>
-              <ul>
+              <p
+                className="docs-nav__context-label"
+                id="docs-nav-reference-context"
+              >
+                {reference.label}
+              </p>
+              <ul aria-labelledby="docs-nav-reference-context">
                 {reference.items.map((item) => (
                   <li key={item.href}>
                     <DocsLink
@@ -72,7 +85,7 @@ export function DocsSidebar({
               </ul>
             </div>
           )}
-        </section>
+        </div>
       ))}
     </nav>
   );

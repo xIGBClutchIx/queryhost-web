@@ -3,7 +3,8 @@
 // dependency is needed and the module stays browser-safe.
 
 /** What a search entry points at, from whole pages down to reference members. */
-export type DocsSearchKind = "game" | "member" | "page" | "section" | "symbol";
+export type DocsSearchKind =
+  "code" | "game" | "member" | "page" | "section" | "symbol";
 
 export interface DocsSearchEntry {
   readonly kind: DocsSearchKind;
@@ -23,10 +24,19 @@ export function gameAnchor(id: string): string {
   return `game-${id}`;
 }
 
+/**
+ * Row anchor on an error or warning code table. The prefix keeps a code that
+ * appears in two tables, such as a query and a detection error, unique.
+ */
+export function codeAnchor(prefix: string, code: string): string {
+  return `${prefix}-${code.toLowerCase().replaceAll("_", "-")}`;
+}
+
 export const DOCS_SEARCH_INDEX_PATH = "/docs/search-index.json";
 
 export const DOCS_SEARCH_KIND_LABELS: Readonly<Record<DocsSearchKind, string>> =
   {
+    code: "Code",
     game: "Game",
     member: "Member",
     page: "Page",
@@ -45,6 +55,7 @@ const KIND_WEIGHTS: Readonly<Record<DocsSearchKind, number>> = {
   section: 20,
   symbol: 18,
   game: 16,
+  code: 16,
   member: 0,
 };
 

@@ -10,10 +10,17 @@ interface HeaderProps {
   readonly active: "docs" | "site";
   /** Brand mark URL; defaults to the site's icon. */
   readonly iconSrc?: string | undefined;
+  /**
+   * The page is the active link's own target: the home page for the site, or
+   * the documentation index for docs. Other pages in the section are marked
+   * as being within it, not as the page itself.
+   */
+  readonly atSectionRoot?: boolean;
 }
 
 export function Header({
   active,
+  atSectionRoot = false,
   iconSrc = BRAND_ICON_URL,
 }: HeaderProps): ReactNode {
   return (
@@ -23,7 +30,7 @@ export function Header({
           className="brand"
           href="/"
           aria-label="QueryHost home"
-          aria-current={active === "site" ? "page" : undefined}
+          aria-current={active === "site" && atSectionRoot ? "page" : undefined}
         >
           <img
             className="brand__icon"
@@ -67,7 +74,9 @@ export function Header({
                 : "primary-nav__link"
             }
             href={documentationHref()}
-            aria-current={active === "docs" ? "page" : undefined}
+            aria-current={
+              active === "docs" ? (atSectionRoot ? "page" : "true") : undefined
+            }
           >
             Docs
           </a>

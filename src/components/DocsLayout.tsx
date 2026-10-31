@@ -92,7 +92,7 @@ export function DocsLayout({
 }: DocsLayoutProps): ReactNode {
   return (
     <>
-      <Header active="docs" />
+      <Header active="docs" atSectionRoot={activeHref === "/"} />
       <DocsSearchDialog />
       <DocsMobileNavigation
         activeHref={activeHref}

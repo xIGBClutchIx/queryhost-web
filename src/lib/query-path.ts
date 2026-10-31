@@ -18,6 +18,21 @@ const STATUS_LABELS = {
   unsupported: "Unsupported",
 } satisfies Readonly<Record<QuerySourceStatus, string>>;
 
+// The hosted API can run a newer library than this site, so a source or status
+// this release does not know keeps its raw name rather than rendering blank.
+const KNOWN_SOURCE_LABELS: Readonly<Record<string, string | undefined>> =
+  SOURCE_LABELS;
+const KNOWN_STATUS_LABELS: Readonly<Record<string, string | undefined>> =
+  STATUS_LABELS;
+
+function sourceLabel(source: QuerySourceName): string {
+  return KNOWN_SOURCE_LABELS[source] ?? source;
+}
+
+function statusLabel(status: QuerySourceStatus): string {
+  return KNOWN_STATUS_LABELS[status] ?? status;
+}
+
 export interface QueryPathItem {
   readonly detail: string;
   readonly label: string;
@@ -32,9 +47,9 @@ export function queryPathItems(
   return sources.map((source) => ({
     detail:
       source.rttMs === undefined
-        ? STATUS_LABELS[source.status]
+        ? statusLabel(source.status)
         : milliseconds(source.rttMs),
-    label: SOURCE_LABELS[source.source],
+    label: sourceLabel(source.source),
     source: source.source,
     status: source.status,
   }));
@@ -76,13 +91,13 @@ export function sourceProgressItems(
 ): readonly SourceProgressItem[] {
   return progress.map(({ report, source }) =>
     report === undefined
-      ? { detail: "…", label: SOURCE_LABELS[source], source, state: "running" }
+      ? { detail: "…", label: sourceLabel(source), source, state: "running" }
       : {
           detail:
             report.rttMs === undefined
-              ? STATUS_LABELS[report.status]
+              ? statusLabel(report.status)
               : milliseconds(report.rttMs),
-          label: SOURCE_LABELS[source],
+          label: sourceLabel(source),
           source,
           state: report.status,
         },

@@ -13,7 +13,46 @@ The public QueryHost application is one Railway Node.js service that hosts the p
 - `query.host` attached to the public web service; documentation is served under `/docs/` (the former `docs.query.host` domain was removed on October 7, 2026)
 - no public domain on the API service
 
-The web service receives `QUERYHOST_API_BASE_URL` and `QUERYHOST_API_ORIGIN_TOKEN` as server-only variables. The token should reference the API service variable inside Railway rather than being copied into browser-visible configuration. Caller-admission variables remain bounded and should be changed only alongside their tests. The playground reads them as `QUERYHOST_WEB_*`, the public API as `QUERYHOST_WEB_PUBLIC_API_*`, and MCP tool queries as `QUERYHOST_WEB_MCP_*`; names and defaults are listed on the Hosted service documentation page and in [MCP](MCP.md#hosting-and-limits).
+The web service receives `QUERYHOST_API_BASE_URL` and `QUERYHOST_API_ORIGIN_TOKEN` as server-only variables. The token should reference the API service variable inside Railway rather than being copied into browser-visible configuration. Caller-admission variables remain bounded and should be changed only alongside their tests. The playground reads them as `QUERYHOST_WEB_*`, the public API as `QUERYHOST_WEB_PUBLIC_API_*`, and MCP tool queries as `QUERYHOST_WEB_MCP_*`; see [Environment variables](#environment-variables) and [MCP](MCP.md#hosting-and-limits).
+
+## Environment variables
+
+Every variable is server-only and must never use a `PUBLIC_` prefix. A value outside its range stops the process at startup instead of being clamped. `test/docs-drift.test.ts` fails when `src/server` reads a `QUERYHOST_` name this section does not list.
+
+### Service
+
+| Variable                            | Default                               | Range and notes                                                                                                  |
+| ----------------------------------- | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `QUERYHOST_API_BASE_URL`            | unset: local library queries          | HTTP origin of the private API, such as `http://api.railway.internal:3000`. Required when `NODE_ENV=production`. |
+| `QUERYHOST_API_ORIGIN_TOKEN`        | none                                  | 32 to 256 characters. Required with `QUERYHOST_API_BASE_URL` and rejected without it.                            |
+| `QUERYHOST_WEB_MAX_BODY_BYTES`      | `2048`                                | 256 to 16,384. Largest accepted `POST /api/query` and `/api/detect` body.                                        |
+| `QUERYHOST_WEB_UPSTREAM_TIMEOUT_MS` | `7000`                                | 1,000 to 15,000. Deadline for one call to the private API.                                                       |
+| `QUERYHOST_WEB_STATS_TOKEN`         | unset: `GET /api/stats` answers `404` | 32 to 256 characters. Bearer token for the [usage report](#usage-counters).                                      |
+| `PORT`, `HOST`                      | `4321`, `0.0.0.0`                     | Listening address of `dist/server/main.mjs`; Railway sets `PORT`.                                                |
+
+### Query gates
+
+The playground (`QUERYHOST_WEB_`), the public API (`QUERYHOST_WEB_PUBLIC_API_`), and MCP tool queries (`QUERYHOST_WEB_MCP_`) each read these suffixes under their own prefix, so no surface spends another's budget. For example, `QUERYHOST_WEB_MCP_MAX_ACTIVE` sets the MCP gate's active limit.
+
+| Suffix                  | Playground | Public API | MCP     | Range and notes                                    |
+| ----------------------- | ---------- | ---------- | ------- | -------------------------------------------------- |
+| `MAX_STARTS_PER_WINDOW` | `60`       | `60`       | `60`    | 1 to 10,000 query starts per window.               |
+| `MAX_STARTS_PER_CALLER` | `8`        | `8`        | `30`    | 1 to 1,000; cannot exceed `MAX_STARTS_PER_WINDOW`. |
+| `MAX_ACTIVE`            | `8`        | `8`        | `4`     | 1 to 128 queries in flight.                        |
+| `MAX_ACTIVE_PER_CALLER` | `2`        | `2`        | `4`     | 1 to 128; cannot exceed `MAX_ACTIVE`.              |
+| `MAX_TRACKED_CALLERS`   | `2048`     | `2048`     | `2048`  | 1 to 100,000 caller addresses remembered at once.  |
+| `START_WINDOW_MS`       | `60000`    | `60000`    | `60000` | 1,000 to 3,600,000 milliseconds.                   |
+
+### Badges and previews
+
+| Variable                                       | Default                             | Range and notes                                                                                    |
+| ---------------------------------------------- | ----------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `QUERYHOST_WEB_BADGE_MAX_STARTS_PER_WINDOW`    | `60`                                | 1 to 10,000 badge queries started per minute.                                                      |
+| `QUERYHOST_WEB_BADGE_MAX_STARTS_PER_CALLER`    | `15`, or the window if lower        | 1 to the window budget, per caller address.                                                        |
+| `QUERYHOST_WEB_BADGE_REFRESH_RESERVE`          | a third of the window, rounded down | 0 to one less than the window; starts kept for refreshing badges already cached.                   |
+| `QUERYHOST_WEB_BADGE_MAX_ACTIVE`               | `4`                                 | 1 to 128 badge queries in flight.                                                                  |
+| `QUERYHOST_WEB_BADGE_MAX_ACTIVE_PER_CALLER`    | `2`, or `MAX_ACTIVE` if lower       | 1 to `QUERYHOST_WEB_BADGE_MAX_ACTIVE`; badge queries one caller address may hold in flight.        |
+| `QUERYHOST_WEB_PREVIEW_MAX_RENDERS_PER_WINDOW` | `120`                               | 1 to 10,000 result-preview PNGs drawn per minute; over budget, previews fall back to `/share.png`. |
 
 The Railway workspace uses a $5 compute email alert and a $10 compute hard limit. The hard limit intentionally stops workloads instead of allowing an open-ended bill. Recheck these workspace-wide values before placing unrelated projects in the same workspace.
 

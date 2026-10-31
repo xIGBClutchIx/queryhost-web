@@ -1,4 +1,5 @@
 import type { BadgeState } from "./badge-svg.js";
+import { escapeMarkup } from "./http-shared.js";
 
 /** Everything one result's link preview shows. */
 export interface PreviewCard {
@@ -36,15 +37,6 @@ const SANS_ADVANCE_EM = 0.6;
 const MONO_ADVANCE_EM = 0.6;
 // Tight letter spacing makes large titles narrower than body text.
 const TITLE_ADVANCE_EM = 0.52;
-
-function escapeXml(text: string): string {
-  return text
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&apos;");
-}
 
 /** Drops control characters, which are invalid in XML or render as boxes. */
 /** Bidirectional embedding, override, isolate, and mark controls. */
@@ -140,12 +132,12 @@ export function renderPreviewSvg(card: PreviewCard): string {
   const pillY = (serverName.length > 0 ? addressY : titleY) + 60;
 
   const lines = [
-    `<text x="${LEFT}" y="${gameY}" fill="${MUTED}" font-family="${SANS}" font-size="30" font-weight="500">${escapeXml(fitText(printable(card.gameName), 30, SANS_ADVANCE_EM, CONTENT_WIDTH))}</text>`,
-    `<text x="${LEFT}" y="${titleY}" fill="${TEXT_STRONG}" font-family="${SANS}" font-size="${titleSize}" font-weight="600" letter-spacing="${-titleSize * 0.035}">${escapeXml(fitText(title, titleSize, TITLE_ADVANCE_EM, CONTENT_WIDTH))}</text>`,
+    `<text x="${LEFT}" y="${gameY}" fill="${MUTED}" font-family="${SANS}" font-size="30" font-weight="500">${escapeMarkup(fitText(printable(card.gameName), 30, SANS_ADVANCE_EM, CONTENT_WIDTH))}</text>`,
+    `<text x="${LEFT}" y="${titleY}" fill="${TEXT_STRONG}" font-family="${SANS}" font-size="${titleSize}" font-weight="600" letter-spacing="${-titleSize * 0.035}">${escapeMarkup(fitText(title, titleSize, TITLE_ADVANCE_EM, CONTENT_WIDTH))}</text>`,
   ];
   if (serverName.length > 0) {
     lines.push(
-      `<text x="${LEFT}" y="${addressY}" fill="${FAINT}" font-family="${MONO}" font-size="28" font-weight="500">${escapeXml(fitText(address, 28, MONO_ADVANCE_EM, CONTENT_WIDTH))}</text>`,
+      `<text x="${LEFT}" y="${addressY}" fill="${FAINT}" font-family="${MONO}" font-size="28" font-weight="500">${escapeMarkup(fitText(address, 28, MONO_ADVANCE_EM, CONTENT_WIDTH))}</text>`,
     );
   }
 
@@ -156,7 +148,7 @@ export function renderPreviewSvg(card: PreviewCard): string {
 <g transform="translate(${LEFT} 56) scale(0.6875)" fill="none" stroke="${ACCENT}" stroke-linecap="round" stroke-width="5"><circle cx="30" cy="30" r="18.5"/><path d="m43 43 10 10"/><path d="M23 26h14M23 34h14"/></g>
 <text x="${LEFT + 58}" y="90" font-family="${SANS}" font-size="34" font-weight="600" letter-spacing="-1.2"><tspan fill="${ACCENT}">Query</tspan><tspan fill="${TEXT_STRONG}">Host</tspan></text>
 ${lines.join("\n")}
-<g transform="translate(${LEFT} ${pillY})"><rect width="${pillWidth}" height="64" rx="32" fill="${SURFACE_RAISED}" fill-opacity="0.75" stroke="${TEXT_STRONG}" stroke-opacity="0.11" stroke-width="1.5"/><circle cx="34" cy="32" r="8" fill="${status.color}"/><text x="56" y="42" fill="${TEXT_STRONG}" font-family="${SANS}" font-size="${statusSize}" font-weight="500">${escapeXml(statusText)}</text></g>
+<g transform="translate(${LEFT} ${pillY})"><rect width="${pillWidth}" height="64" rx="32" fill="${SURFACE_RAISED}" fill-opacity="0.75" stroke="${TEXT_STRONG}" stroke-opacity="0.11" stroke-width="1.5"/><circle cx="34" cy="32" r="8" fill="${status.color}"/><text x="56" y="42" fill="${TEXT_STRONG}" font-family="${SANS}" font-size="${statusSize}" font-weight="500">${escapeMarkup(statusText)}</text></g>
 <text x="${PREVIEW_WIDTH - LEFT}" y="${PREVIEW_HEIGHT - 56}" fill="${FAINT}" font-family="${MONO}" font-size="22" font-weight="500" text-anchor="end">query.host</text>
 </svg>`;
 }

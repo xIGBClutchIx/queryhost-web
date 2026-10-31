@@ -28,6 +28,11 @@ import {
 } from "../lib/playground-query.js";
 import { ProxyGate, type ProxyGatePolicy } from "./proxy-gate.js";
 import { readBoundedText } from "./bounded-text.js";
+import {
+  hasMediaType,
+  isJsonMediaType,
+  ORIGIN_TOKEN_HEADER,
+} from "./http-shared.js";
 import { SurfaceUsage } from "./usage-stats.js";
 
 const ALLOWED_FIELDS: ReadonlySet<string> = new Set([
@@ -38,7 +43,6 @@ const ALLOWED_FIELDS: ReadonlySet<string> = new Set([
   "queryPort",
   "timeoutMs",
 ]);
-const ORIGIN_TOKEN_HEADER = "x-queryhost-origin-token";
 const MAX_HOST_LENGTH = 253;
 const MAX_UPSTREAM_BYTES = 2_097_152;
 
@@ -416,6 +420,9 @@ export function normalizedHost(value: JsonValue | undefined): string {
     host.length === 0 ||
     host.length > MAX_HOST_LENGTH ||
     /[\s/?#@]/u.test(host) ||
+    // Control, format (such as bidi overrides), and line separators never
+    // belong in a name and could disguise one where it is shown.
+    /[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/u.test(host) ||
     host.includes("[") ||
     host.includes("]") ||
     host.includes("%")
@@ -509,11 +516,11 @@ function forwardedHeaders(upstream: Response): Headers {
  * input and size refusals, and capacity. Anything else (an origin-token `401`,
  * a `404`, a `5xx`) is the private API's own concern and becomes a `502`.
  */
-const RELAYED_UPSTREAM_STATUSES: ReadonlySet<number> = new Set([
+export const RELAYED_UPSTREAM_STATUSES: ReadonlySet<number> = new Set([
   200, 400, 413, 429,
 ]);
 
-function unavailableResponse(): Response {
+export function unavailableResponse(): Response {
   return jsonResponse(
     502,
     "UPSTREAM_UNAVAILABLE",
@@ -532,9 +539,7 @@ async function relayJsonResponse(
     dependencies.usage?.recordUnavailable();
     return unavailableResponse();
   }
-  if (
-    !(upstream.headers.get("content-type") ?? "").startsWith("application/json")
-  ) {
+  if (!isJsonMediaType(upstream.headers.get("content-type"))) {
     await upstream.body?.cancel().catch(() => undefined);
     dependencies.usage?.recordUnavailable();
     return jsonResponse(
@@ -864,11 +869,13 @@ export async function forwardQueryStream(
       redirect: "error",
       signal,
     });
-    const contentType = upstream.headers.get("content-type") ?? "";
     if (
       upstream.status === 200 &&
       upstream.body !== null &&
-      contentType.startsWith(QUERY_STREAM_MEDIA_TYPE)
+      hasMediaType(
+        upstream.headers.get("content-type"),
+        QUERY_STREAM_MEDIA_TYPE,
+      )
     ) {
       streaming = true;
       return new Response(
@@ -906,7 +913,7 @@ export async function readJsonRequest(
     response.headers.set("Allow", "POST");
     return response;
   }
-  if (!request.headers.get("content-type")?.startsWith("application/json")) {
+  if (!isJsonMediaType(request.headers.get("content-type"))) {
     usage.recordInvalid();
     return jsonResponse(
       415,

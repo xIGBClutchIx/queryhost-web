@@ -10,6 +10,7 @@ import { Callout } from "../../components/Callout.js";
 import { CodeBlock } from "../../components/CodeBlock.js";
 import { DocsLayout } from "../../components/DocsLayout.js";
 import type { DocsPageMetadata } from "../../components/DocsLayout.js";
+import { codeAnchor } from "../../lib/docs-search.js";
 
 export const metadata = {
   activeHref: "/errors/",
@@ -36,11 +37,13 @@ if (!result.ok) {
 }`;
 
 interface CodeTableProps {
+  /** Prefix of each row's anchor, which docs search links to. */
+  readonly anchor: string;
   readonly codes: Readonly<Record<string, CodeGuidance>>;
   readonly label: string;
 }
 
-function CodeTable({ codes, label }: CodeTableProps): ReactNode {
+function CodeTable({ anchor, codes, label }: CodeTableProps): ReactNode {
   return (
     <div className="table-scroll">
       <table className="data-table code-table">
@@ -56,7 +59,7 @@ function CodeTable({ codes, label }: CodeTableProps): ReactNode {
           {Object.entries(codes)
             .sort(([a], [b]) => a.localeCompare(b))
             .map(([code, { meaning, response }]) => (
-              <tr key={code}>
+              <tr key={code} id={codeAnchor(anchor, code)}>
                 <th scope="row">
                   <code>{code}</code>
                 </th>
@@ -90,7 +93,11 @@ export function ErrorsPage(): ReactNode {
         <code>result.error.code</code> is always one of these{" "}
         <code>QueryErrorCode</code> values.
       </p>
-      <CodeTable codes={QUERY_ERROR_GUIDANCE} label="Query error codes" />
+      <CodeTable
+        anchor="error"
+        codes={QUERY_ERROR_GUIDANCE}
+        label="Query error codes"
+      />
       <h2 id="detect">Detection failures</h2>
       <p>
         A failed <code>detect()</code> reports a <code>DetectErrorCode</code>:
@@ -98,7 +105,11 @@ export function ErrorsPage(): ReactNode {
         game was identified. Once a game is detected, its own query can still
         fail with any query error code.
       </p>
-      <CodeTable codes={DETECT_ERROR_GUIDANCE} label="Detection error codes" />
+      <CodeTable
+        anchor="detect"
+        codes={DETECT_ERROR_GUIDANCE}
+        label="Detection error codes"
+      />
       <h2 id="warnings">Warnings and provenance</h2>
       <p>
         Warnings are non-fatal. They explain why <code>partial</code> is true
@@ -106,7 +117,11 @@ export function ErrorsPage(): ReactNode {
         authoritative outcome for every attempted, skipped, blocked, or
         unsupported source.
       </p>
-      <CodeTable codes={QUERY_WARNING_GUIDANCE} label="Warning codes" />
+      <CodeTable
+        anchor="warning"
+        codes={QUERY_WARNING_GUIDANCE}
+        label="Warning codes"
+      />
       <Callout
         title="Do not infer offline from enrichment failure"
         tone="warning"

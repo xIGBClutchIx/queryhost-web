@@ -244,9 +244,9 @@ describe("server-rendered site views", () => {
       render(<TermsPage />),
       render(<NotFoundPage />),
     ]) {
-      expect(html).toContain(
-        'href="/" aria-label="QueryHost home" aria-current="page"',
-      );
+      // Only the home page itself is the brand link's current page.
+      expect(html).toContain('href="/" aria-label="QueryHost home">');
+      expect(html).not.toContain('aria-label="QueryHost home" aria-current');
       expect(html).toContain('id="main-content"');
     }
   });

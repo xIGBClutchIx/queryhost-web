@@ -178,6 +178,62 @@ describe("shared agent tools", () => {
     expect(calls.at(-1)?.mode).toBe("full");
   });
 
+  it("compares through the quiet handler and turns one server's failure into its entry", async () => {
+    const visible: string[] = [];
+    const quiet: string[] = [];
+    const compare = queryHostAgentTools(PLAYGROUND_GAMES, {
+      compareGameServer: (input) => {
+        quiet.push(input.host);
+        if (input.host === "aborted.example.com") {
+          return Promise.reject(new DOMException("Aborted", "AbortError"));
+        }
+        if (input.host === "broken.example.com") {
+          return Promise.reject(new Error("Socket closed."));
+        }
+        return Promise.resolve(SUCCESS);
+      },
+      queryGameServer: (input) => {
+        visible.push(input.host);
+        return Promise.resolve(SUCCESS);
+      },
+    }).find((tool) => tool.name === "compare_game_servers");
+    if (compare === undefined) throw new Error("Missing comparison tool.");
+    const output = await compare.execute({
+      servers: [
+        { ...INPUT, host: "aborted.example.com" },
+        { ...INPUT, host: "broken.example.com" },
+        INPUT,
+      ],
+    });
+    expect(visible).toEqual([]);
+    expect(quiet).toEqual([
+      "aborted.example.com",
+      "broken.example.com",
+      INPUT.host,
+    ]);
+    expect(output).toMatchObject({
+      results: [
+        {
+          result: {
+            error: {
+              code: "NETWORK_ERROR",
+              message: "This query was cancelled before it finished.",
+            },
+          },
+        },
+        {
+          result: {
+            error: {
+              code: "NETWORK_ERROR",
+              message: "This server could not be queried.",
+            },
+          },
+        },
+        { input: INPUT, result: { ok: true } },
+      ],
+    });
+  });
+
   it("stops a comparison on cancellation before starting later queries", async () => {
     const controller = new AbortController();
     let calls = 0;

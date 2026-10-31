@@ -250,14 +250,64 @@ export function QueryPlayground({
     }
   }
 
+  /**
+   * Native validation of the rendered form, then the query. An invalid control
+   * inside collapsed Advanced options is inert and cannot show its message, so
+   * Advanced opens first and the message follows on the next render.
+   */
+  function validateAndSubmit(current: PlaygroundFormState): void {
+    const element = formRef.current;
+    if (element !== null && !element.checkValidity()) {
+      const invalid = Array.from(element.elements).find(
+        (control) =>
+          (control instanceof HTMLInputElement ||
+            control instanceof HTMLSelectElement ||
+            control instanceof HTMLTextAreaElement) &&
+          !control.validity.valid,
+      );
+      const advanced = element.querySelector("#query-advanced-content");
+      if (
+        !current.advancedOpen &&
+        invalid !== undefined &&
+        advanced?.contains(invalid) === true
+      ) {
+        pendingCheck.current = "report";
+        setForm({ ...current, advancedOpen: true });
+        return;
+      }
+      element.reportValidity();
+      return;
+    }
+    submit(current);
+  }
+
   function onSubmit(event: TargetedSubmitEvent<HTMLFormElement>): void {
     event.preventDefault();
     // The submit button stays focusable while a query runs, so it ignores presses.
     if (output.kind === "loading") return;
     setFormError(undefined);
-    if (formRef.current?.reportValidity() === false) return;
-    submit(form);
+    // A typed `host:port` is split before validation, so the port field is
+    // checked with the port it will actually hold.
+    const next = withSplitHost(form);
+    if (next !== form) {
+      pendingCheck.current = "submit";
+      setForm(next);
+      return;
+    }
+    validateAndSubmit(form);
   }
+
+  // Work a submit left for the render that shows its form change.
+  const pendingCheck = useRef<"report" | "submit" | undefined>(undefined);
+  useEffect(() => {
+    const check = pendingCheck.current;
+    if (check === undefined) return;
+    pendingCheck.current = undefined;
+    if (check === "report") formRef.current?.reportValidity();
+    else validateAndSubmit(form);
+    // Runs only for the form change a submit made.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form]);
 
   function onExample(exampleSearch: string): void {
     const next = formStateFromSearch(

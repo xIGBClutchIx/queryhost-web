@@ -1,4 +1,5 @@
 import type { BadgeShow, BadgeStyle, BadgeTheme } from "../lib/badge-url.js";
+import { escapeMarkup } from "./http-shared.js";
 
 /** What a status badge reports about one server. */
 export type BadgeState =
@@ -192,15 +193,6 @@ function truncate(text: string, maximum: number): string {
     : text;
 }
 
-function escapeXml(text: string): string {
-  return text
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&apos;");
-}
-
 function playerText(state: Extract<BadgeState, { kind: "online" }>): string {
   // An unconfirmed count is left out rather than shown as zero.
   if (state.online === undefined) {
@@ -270,7 +262,7 @@ function textElement(
   color: string,
   className: string,
 ): string {
-  return `<text${className} x="${x}" y="${y}" fill="${color}" textLength="${width}" lengthAdjust="spacingAndGlyphs">${escapeXml(text)}</text>`;
+  return `<text${className} x="${x}" y="${y}" fill="${color}" textLength="${width}" lengthAdjust="spacingAndGlyphs">${escapeMarkup(text)}</text>`;
 }
 
 /** How one badge is drawn; omitted fields use the default flat, dark, player-count badge. */
@@ -307,7 +299,7 @@ export function renderBadgeSvg(
   const labelWidth = labelTextWidth + padding * 2;
   const statusWidth = dotSpace + statusTextWidth + padding * 2;
   const width = labelWidth + statusWidth;
-  const title = escapeXml(`${safeLabel}, ${status}`);
+  const title = escapeMarkup(`${safeLabel}, ${status}`);
   const statusX = labelWidth + padding + dotSpace;
   const fontWeight = metrics.uppercase ? ` font-weight="bold"` : "";
   const rects = [

@@ -87,9 +87,38 @@ function pageEntries(
           title: heading.text,
         }),
       );
-      return [entry, ...sections];
+      return [entry, ...sections, ...codeRowEntries(page.html, href)];
     }),
   );
+}
+
+/**
+ * Anchored code-table rows, such as error and warning codes, which a section's
+ * keyword prefix would otherwise cut off. Each row's table caption is its context.
+ */
+function codeRowEntries(
+  html: string,
+  href: string,
+): readonly DocsSearchEntry[] {
+  const entries: DocsSearchEntry[] = [];
+  let caption = "";
+  for (const match of html.matchAll(
+    /<caption[^>]*>([\s\S]*?)<\/caption>|<tr id="([^"]+)"[^>]*>\s*<th scope="row"><code>([^<]+)<\/code><\/th>\s*<td>([\s\S]*?)<\/td>/g,
+  )) {
+    const [, captionText, id, code, meaning = ""] = match;
+    if (captionText !== undefined) {
+      caption = plainText(captionText);
+    } else if (id !== undefined && code !== undefined) {
+      entries.push({
+        context: caption,
+        href: `${href}#${id}`,
+        keywords: keywords(plainText(meaning)),
+        kind: "code",
+        title: code,
+      });
+    }
+  }
+  return entries;
 }
 
 function gameEntries(): readonly DocsSearchEntry[] {

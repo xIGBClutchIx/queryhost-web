@@ -172,8 +172,14 @@ export function ShareMenu({
 
   useEffect(() => {
     if (!open) return;
-    // Opening moves focus to the first copy action, so the keyboard lands inside.
-    panelRef.current?.querySelector<HTMLButtonElement>("button")?.focus();
+    // Opening moves focus to the selected format tab, so the keyboard lands
+    // inside: arrows switch formats and Tab reaches that format's copy action.
+    const panel = panelRef.current;
+    (
+      panel?.querySelector<HTMLButtonElement>(
+        '[role="tab"][aria-selected="true"]',
+      ) ?? panel?.querySelector<HTMLButtonElement>("button")
+    )?.focus();
     function closeFromOutside(event: PointerEvent): void {
       const target = event.target;
       if (

@@ -5,6 +5,7 @@ import type {
   PlaygroundDetectInput,
 } from "../lib/playground-contracts.js";
 import { readBoundedText } from "./bounded-text.js";
+import { isJsonMediaType, ORIGIN_TOKEN_HEADER } from "./http-shared.js";
 import {
   callerFingerprint,
   jsonObject,
@@ -15,6 +16,8 @@ import {
   PublicQueryInputError,
   queryMode,
   readJsonRequest,
+  RELAYED_UPSTREAM_STATUSES,
+  unavailableResponse,
   type PublicQueryDependencies,
 } from "./public-query.js";
 
@@ -24,7 +27,6 @@ const ALLOWED_FIELDS: ReadonlySet<string> = new Set([
   "port",
   "timeoutMs",
 ]);
-const ORIGIN_TOKEN_HEADER = "x-queryhost-origin-token";
 
 /**
  * Probes one local detection may send. The hosted API applies its own
@@ -112,8 +114,15 @@ async function forwardDetect(
       redirect: "error",
       signal,
     });
-    const contentType = upstream.headers.get("content-type") ?? "";
-    if (!contentType.startsWith("application/json")) {
+    // Only the statuses a caller can act on pass through; an origin-token
+    // `401`, a `404`, or a `5xx` is the private API's own concern.
+    if (!RELAYED_UPSTREAM_STATUSES.has(upstream.status)) {
+      await upstream.body?.cancel().catch(() => undefined);
+      usage.recordUnavailable();
+      return unavailableResponse();
+    }
+    if (!isJsonMediaType(upstream.headers.get("content-type"))) {
+      await upstream.body?.cancel().catch(() => undefined);
       usage.recordUnavailable();
       return jsonResponse(
         502,

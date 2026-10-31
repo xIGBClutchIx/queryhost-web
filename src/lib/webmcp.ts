@@ -37,7 +37,10 @@ export interface WebMcpRegistration {
   readonly ready: Promise<void>;
   readonly signal: AbortSignal;
 }
-/** Browser tools return agent data and use the visible playground query handler. */
+/**
+ * Browser tools return agent data. A single query runs in the visible
+ * playground; a comparison uses the quiet `compareGameServer` handler when given.
+ */
 export function queryHostWebMcpTools(
   games: readonly PlaygroundGameDefinition[],
   handlers: WebMcpHandlers,
