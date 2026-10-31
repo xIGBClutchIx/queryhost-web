@@ -11,6 +11,8 @@ import {
   loadProxyGatePolicy,
   loadPublicQueryConfig,
   MCP_QUERY_GATE_DEFAULTS,
+  parseQueryFields,
+  PublicQueryInputError,
   type LocalQueryRunner,
   type ProxyFetcher,
   type PublicQueryDependencies,
@@ -285,6 +287,78 @@ describe("public query proxy", () => {
     expect(limited.status).toBe(429);
     expect(limited.headers.get("retry-after")).toBe("60");
     expect(calls).toBe(1);
+  });
+
+  it("rejects hosts with control, format, or separator characters", async () => {
+    let calls = 0;
+    const deps = dependencies(() => {
+      calls += 1;
+      return Promise.resolve(
+        new Response("{}", { headers: { "Content-Type": "application/json" } }),
+      );
+    });
+    for (const host of [
+      "play\u0000.example.com",
+      "moc.elpmaxe‮.play",
+      "play​.example.com",
+      "play example.com",
+      "play example.com",
+      "play\u007f.example.com",
+    ]) {
+      const response = await handlePublicQuery(
+        queryRequest(JSON.stringify({ game: "rust", host })),
+        deps,
+      );
+      expect(response.status, JSON.stringify(host)).toBe(400);
+      expect(await response.json()).toMatchObject({
+        error: { code: "BAD_REQUEST" },
+      });
+    }
+    expect(calls).toBe(0);
+    expect(() =>
+      parseQueryFields({ game: "rust", host: "a‮b.example.com" }),
+    ).toThrow(PublicQueryInputError);
+  });
+
+  it("accepts JSON media types in any case and with parameters", async () => {
+    const deps = dependencies(() =>
+      Promise.resolve(
+        new Response("{}", {
+          headers: { "Content-Type": "Application/JSON; Charset=UTF-8" },
+        }),
+      ),
+    );
+    const body = JSON.stringify({ game: "rust", host: "play.example.com" });
+    for (const [index, contentType] of [
+      "Application/JSON",
+      "application/json; charset=utf-8",
+      " APPLICATION/JSON ;charset=utf-8",
+    ].entries()) {
+      // A distinct caller each time keeps the per-caller window out of it.
+      const response = await handlePublicQuery(
+        new Request("https://query.host/api/query", {
+          body,
+          headers: {
+            "Content-Type": contentType,
+            "x-real-ip": `203.0.113.${10 + index}`,
+          },
+          method: "POST",
+        }),
+        deps,
+      );
+      expect(response.status, contentType).toBe(200);
+    }
+    for (const contentType of ["application/jsonx", "text/plain"]) {
+      const response = await handlePublicQuery(
+        new Request("https://query.host/api/query", {
+          body,
+          headers: { "Content-Type": contentType, "x-real-ip": "203.0.113.9" },
+          method: "POST",
+        }),
+        deps,
+      );
+      expect(response.status, contentType).toBe(415);
+    }
   });
 
   it("stops reading streamed bodies when the byte limit is exceeded", async () => {

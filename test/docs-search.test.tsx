@@ -17,6 +17,7 @@ import {
 } from "../src/lib/docs-search.js";
 import type { DocsSearchEntry } from "../src/lib/docs-search.js";
 import { GET } from "../src/pages/docs/search-index.json.js";
+import { ErrorsPage } from "../src/views/docs/ErrorsPage.js";
 import { GamesPage } from "../src/views/docs/GamesPage.js";
 import { QueryingPage } from "../src/views/docs/QueryingPage.js";
 
@@ -130,6 +131,7 @@ describe("documentation search index", () => {
     const index = parseDocsSearchIndex(await GET().text());
     const kinds = new Set(index.map((item) => item.kind));
     expect([...kinds].sort()).toEqual([
+      "code",
       "game",
       "member",
       "page",
@@ -159,6 +161,22 @@ describe("documentation search index", () => {
         title: "1.8.0 - 2026-10-16",
       }),
     );
+    // Every code row is its own entry, however long the table above it runs.
+    expect(index).toContainEqual(
+      expect.objectContaining({
+        context: "Detection error codes",
+        href: "/docs/errors/#detect-not-detected",
+        kind: "code",
+        title: "NOT_DETECTED",
+      }),
+    );
+    expect(index).toContainEqual(
+      expect.objectContaining({
+        href: "/docs/errors/#error-timeout",
+        kind: "code",
+        title: "TIMEOUT",
+      }),
+    );
     expect(index).toContainEqual(
       expect.objectContaining({
         href: "/docs/webmcp/",
@@ -181,6 +199,7 @@ describe("documentation search index", () => {
     const pages = new Map([
       ["/docs/querying/", renderToStaticMarkup(<QueryingPage />)],
       ["/docs/games/", renderToStaticMarkup(<GamesPage />)],
+      ["/docs/errors/", renderToStaticMarkup(<ErrorsPage />)],
     ]);
     for (const item of index) {
       const [path = "", id] = item.href.split("#");
@@ -321,6 +340,18 @@ describe("connectDocsSearch", () => {
       event.preventDefault();
     });
     options[2]?.querySelector("a")?.addEventListener("click", followed);
+    // A modified Enter opens the result in a new tab and keeps the search open.
+    const opened = vi.spyOn(window, "open").mockReturnValue(null);
+    keydown({ ctrlKey: true, key: "Enter" }, input);
+    expect(opened).toHaveBeenCalledWith(
+      options[2]?.querySelector("a")?.href,
+      "_blank",
+      "noopener",
+    );
+    expect(followed).not.toHaveBeenCalled();
+    expect(dialog.open).toBe(true);
+    opened.mockRestore();
+
     keydown({ key: "Enter" }, input);
     expect(followed).toHaveBeenCalledTimes(1);
     expect(dialog.open).toBe(false);

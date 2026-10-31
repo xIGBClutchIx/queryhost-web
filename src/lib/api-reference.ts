@@ -160,7 +160,23 @@ export function apiReferenceSummary(html: string): string {
   return plainText(/<p>([\s\S]*?)<\/p>/.exec(prose)?.[1] ?? "");
 }
 
+// The generated pages are fixed for the installed package version, so each is
+// rendered once; the key set is bounded by the package's pages and prefixes.
+const renderedReferences = new Map<string, string>();
+
 export function renderApiReference(
+  page: ApiReferencePage,
+  referencePrefix: string,
+): string {
+  const key = `${referencePrefix}\u0000${page.slug}\u0000${page.markdown.length}`;
+  const cached = renderedReferences.get(key);
+  if (cached !== undefined) return cached;
+  const html = renderReferenceMarkdown(page, referencePrefix);
+  renderedReferences.set(key, html);
+  return html;
+}
+
+function renderReferenceMarkdown(
   page: ApiReferencePage,
   referencePrefix: string,
 ): string {

@@ -28,6 +28,42 @@ export interface AgentToolHandlers {
     input: PlaygroundQueryInput,
     signal: AbortSignal,
   ): Promise<QueryResponse>;
+  /**
+   * Queries one server of a comparison. Defaults to `queryGameServer`; the
+   * browser passes a quiet query here so a comparison leaves the visible
+   * playground, its address, and its recent checks alone.
+   */
+  compareGameServer?(
+    input: PlaygroundQueryInput,
+    signal: AbortSignal,
+  ): Promise<QueryResponse>;
+}
+
+/**
+ * Why one server of a comparison produced no response of its own. It reuses
+ * the published proxy error codes so the result schemas stay unchanged.
+ */
+function comparisonFailure(
+  error: Error | undefined,
+  deadline: AbortSignal,
+): PlaygroundProxyErrorResponse {
+  if (deadline.aborted) {
+    return {
+      error: {
+        code: "UPSTREAM_UNAVAILABLE",
+        message: "The comparison ran out of time before this server answered.",
+      },
+    };
+  }
+  return {
+    error: {
+      code: "NETWORK_ERROR",
+      message:
+        error?.name === "AbortError"
+          ? "This query was cancelled before it finished."
+          : "This server could not be queried.",
+    },
+  };
 }
 
 export interface AgentTool {
@@ -154,27 +190,63 @@ export function queryHostAgentTools(
     servers: z.array(querySchema).min(2).max(MAX_COMPARISON_SERVERS),
   });
   const emptySchema = z.strictObject({});
+  const queryInput = (
+    parsed: z.infer<typeof querySchema>,
+  ): PlaygroundQueryInput => ({
+    game: parsed.game,
+    host: parsed.host,
+    mode:
+      parsed.mode ??
+      games.find((game) => game.id === parsed.game)?.defaultMode ??
+      "summary",
+    timeoutMs: parsed.timeoutMs,
+    ...(parsed.port === undefined ? {} : { port: parsed.port }),
+    ...(parsed.queryPort === undefined ? {} : { queryPort: parsed.queryPort }),
+  });
   const query = async (
     parsed: z.infer<typeof querySchema>,
     signal: AbortSignal,
   ): Promise<AgentQueryResult> => {
-    const input: PlaygroundQueryInput = {
-      game: parsed.game,
-      host: parsed.host,
-      mode:
-        parsed.mode ??
-        games.find((game) => game.id === parsed.game)?.defaultMode ??
-        "summary",
-      timeoutMs: parsed.timeoutMs,
-      ...(parsed.port === undefined ? {} : { port: parsed.port }),
-      ...(parsed.queryPort === undefined
-        ? {}
-        : { queryPort: parsed.queryPort }),
-    };
+    const input = queryInput(parsed);
     signal.throwIfAborted();
     const result = await handlers.queryGameServer(input, signal);
     signal.throwIfAborted();
     return agentQueryResult(input, result, games);
+  };
+  const compareServer = (
+    input: PlaygroundQueryInput,
+    signal: AbortSignal,
+  ): Promise<QueryResponse> =>
+    handlers.compareGameServer === undefined
+      ? handlers.queryGameServer(input, signal)
+      : handlers.compareGameServer(input, signal);
+  // Only the caller's own cancellation fails a comparison; any other failure,
+  // including the shared deadline, becomes that server's entry.
+  const compare = async (
+    servers: readonly z.infer<typeof querySchema>[],
+    callerSignal: AbortSignal,
+  ): Promise<{ readonly results: readonly AgentQueryResult[] }> => {
+    const deadline = AbortSignal.timeout(25_000);
+    const signal = AbortSignal.any([callerSignal, deadline]);
+    const results: AgentQueryResult[] = [];
+    for (const server of servers) {
+      callerSignal.throwIfAborted();
+      const input = queryInput(server);
+      let result: QueryResponse;
+      try {
+        signal.throwIfAborted();
+        result = await compareServer(input, signal);
+      } catch (error) {
+        callerSignal.throwIfAborted();
+        result = comparisonFailure(
+          error instanceof Error ? error : undefined,
+          deadline,
+        );
+      }
+      callerSignal.throwIfAborted();
+      results.push(agentQueryResult(input, result, games));
+    }
+    return { results };
   };
   const annotations = { readOnlyHint: true, untrustedContentHint: true };
   const description =
@@ -207,19 +279,14 @@ export function queryHostAgentTools(
     {
       name: COMPARE_GAME_SERVERS_TOOL_NAME,
       title: "Compare game servers",
-      description: `Compare two to four public game servers. Query each sequentially and return ordered results with population, map, query RTT, sources, warnings, and individual failures when available. Query RTT is measured from QueryHost, not the user's machine. ${description}`,
+      description: `Compare two to four public game servers. Query each sequentially within one 25-second deadline and return ordered results with population, map, query RTT, sources, warnings, and individual failures: a server that fails, is cancelled, or runs out of time gets its own failure entry. Query RTT is measured from QueryHost, not the user's machine. ${description}`,
       annotations,
       inputSchema: z.toJSONSchema(compareSchema, { io: "input" }) as JsonObject,
-      execute: async (input, options) => {
-        const { servers } = compareSchema.parse(input);
-        const signal = AbortSignal.any([
+      execute: async (input, options) =>
+        compare(
+          compareSchema.parse(input).servers,
           options?.signal ?? new AbortController().signal,
-          AbortSignal.timeout(25_000),
-        ]);
-        const results: AgentQueryResult[] = [];
-        for (const server of servers) results.push(await query(server, signal));
-        return { results };
-      },
+        ),
     },
   ];
 }

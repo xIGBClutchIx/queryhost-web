@@ -50,7 +50,7 @@ agent receives the complete ordered set.
 ## Inline server cards
 
 Query and comparison tools declare `_meta.ui.resourceUri` referencing
-`ui://queryhost/server-cards-v2.html`. `resources/list` and `resources/read` expose
+`ui://queryhost/server-cards-v3.html`. `resources/list` and `resources/read` expose
 the self-contained `text/html;profile=mcp-app` resource. Compatible hosts render
 one server card or up to four cards side by side, stacking at narrow widths.
 Cards show population, query RTT, version, map, MOTD, source details,
@@ -94,7 +94,7 @@ change, refresh the ChatGPT connection and query in a new conversation.
 `open_queryhost` (global entrypoint, titled QueryHost) and `open_server_query`
 (thread entrypoint, titled Server query) are app-only tools. Both accept `{}` and
 return the packaged game catalog without querying a server. They share
-`ui://queryhost/query-app-v1.html`, supporting inline and fullscreen placement.
+`ui://queryhost/query-app-v2.html`, supporting inline and fullscreen placement.
 Availability depends on the host; the current extension specification excludes
 classic ChatGPT web from sidebar support. Existing cards and the website remain
 available when entrypoints are unsupported.

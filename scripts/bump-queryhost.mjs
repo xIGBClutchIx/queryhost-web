@@ -50,7 +50,13 @@ function compare(left, right) {
 }
 
 function npm(args) {
-  return execFileSync("npm", args, { cwd: root, encoding: "utf8" }).trim();
+  // Windows ships npm as a .cmd shim, which only runs through a shell. Every
+  // argument here is a fixed flag or an already validated semver string.
+  return execFileSync("npm", args, {
+    cwd: root,
+    encoding: "utf8",
+    shell: process.platform === "win32",
+  }).trim();
 }
 
 function publishedVersion(version) {

@@ -5,6 +5,7 @@ import type {
   PlaygroundProxyErrorResponse,
 } from "../lib/playground-contracts.js";
 import { readBoundedText } from "./bounded-text.js";
+import { isJsonMediaType, ORIGIN_TOKEN_HEADER } from "./http-shared.js";
 import type { PublicQueryDependencies } from "./public-query.js";
 import type {
   GamesUsage,
@@ -12,7 +13,6 @@ import type {
   SurfaceUsageSnapshot,
 } from "./usage-stats.js";
 
-const ORIGIN_TOKEN_HEADER = "x-queryhost-origin-token";
 const UPSTREAM_STATS_TIMEOUT_MS = 3_000;
 const UPSTREAM_STATS_MAX_BYTES = 65_536;
 
@@ -95,10 +95,9 @@ async function upstreamStats(
       redirect: "error",
       signal,
     });
-    const contentType = response.headers.get("content-type") ?? "";
     if (
       response.status !== 200 ||
-      !contentType.startsWith("application/json")
+      !isJsonMediaType(response.headers.get("content-type"))
     ) {
       await response.body?.cancel();
       return null;

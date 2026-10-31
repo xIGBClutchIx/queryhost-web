@@ -5,6 +5,7 @@ import type { GameDefinition } from "queryhost/registry";
 import type { PlaygroundProxyErrorResponse } from "../lib/playground-contracts.js";
 import { GAMES } from "../lib/queryhost.js";
 import { PUBLIC_API_STATIC_CACHE_CONTROL } from "../lib/site.js";
+import { matchesEtag } from "./http-shared.js";
 import { buildOpenApiDocument } from "./openapi.js";
 import {
   handlePublicQuery,
@@ -127,18 +128,6 @@ const OPENAPI_JSON = staticJson(buildOpenApiDocument());
 
 /** Process-wide counters for full and `304` games responses. */
 export const publicApiGamesUsage: GamesUsage = new GamesUsage();
-
-function matchesEtag(header: string | null, etag: string): boolean {
-  if (header === null) {
-    return false;
-  }
-  // If-None-Match uses weak comparison, so `W/` prefixes are ignored.
-  const opaque = etag.slice(2);
-  return header
-    .split(",")
-    .map((tag) => tag.trim())
-    .some((tag) => tag === "*" || tag.replace(/^W\//u, "") === opaque);
-}
 
 /**
  * Serves a static JSON document for GET and HEAD, answering a matching

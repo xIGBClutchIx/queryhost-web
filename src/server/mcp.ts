@@ -31,7 +31,10 @@ import {
   handlePublicQuery,
   type PublicQueryDependencies,
 } from "./public-query.js";
+import { isJsonMediaType } from "./http-shared.js";
 import { ProxyGate } from "./proxy-gate.js";
+
+const MCP_BODY_TIMEOUT_MS = 5_000;
 
 export interface McpDependencies {
   readonly queries: PublicQueryDependencies;
@@ -48,6 +51,8 @@ export function createMcpDependencies(
     games: PLAYGROUND_GAMES,
     requests: new ProxyGate({
       maxActive: 16,
+      // One address trickling request bodies must not hold every slot.
+      maxActivePerCaller: 4,
       maxStartsPerCaller: 120,
       maxStartsPerWindow: 600,
       maxTrackedCallers: 2_048,
@@ -229,18 +234,26 @@ export async function handleMcpRequest(
     }),
   );
   try {
-    if (!request.headers.get("content-type")?.startsWith("application/json"))
+    if (!isJsonMediaType(request.headers.get("content-type")))
       return errorResponse(415, "MCP requires application/json.");
     let body: string;
+    // A 16 KiB body has no reason to take long; a slow one holds a slot.
+    const bodySignal = AbortSignal.any([
+      signal,
+      AbortSignal.timeout(MCP_BODY_TIMEOUT_MS),
+    ]);
     try {
-      body = await readBoundedText(request.body, 16_384, signal);
+      body = await readBoundedText(request.body, 16_384, bodySignal);
     } catch (error) {
       if (error instanceof BodyTooLargeError) {
         return errorResponse(413, "MCP request exceeds the byte limit.");
       }
       // The strict decoder rejects invalid UTF-8 with a TypeError: a client error.
-      if (error instanceof TypeError && !signal.aborted) {
+      if (error instanceof TypeError && !bodySignal.aborted) {
         return errorResponse(400, "MCP request body must be UTF-8 JSON.");
+      }
+      if (bodySignal.aborted && !signal.aborted) {
+        return errorResponse(408, "MCP request body arrived too slowly.");
       }
       throw error;
     }

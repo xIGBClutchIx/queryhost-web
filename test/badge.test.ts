@@ -561,6 +561,60 @@ describe("badge budget", () => {
     expect(() =>
       loadBadgeGatePolicy({ QUERYHOST_WEB_BADGE_MAX_STARTS_PER_CALLER: "61" }),
     ).toThrow(RangeError);
+    expect(() =>
+      loadBadgeGatePolicy({
+        QUERYHOST_WEB_BADGE_MAX_ACTIVE: "2",
+        QUERYHOST_WEB_BADGE_MAX_ACTIVE_PER_CALLER: "3",
+      }),
+    ).toThrow(RangeError);
+  });
+
+  it("keeps one address from holding every active slot", async () => {
+    const policy = loadBadgeGatePolicy({});
+    expect(policy).toMatchObject({ maxActive: 4, maxActivePerCaller: 2 });
+    expect(
+      loadBadgeGatePolicy({ QUERYHOST_WEB_BADGE_MAX_ACTIVE: "1" }),
+    ).toMatchObject({ maxActive: 1, maxActivePerCaller: 1 });
+
+    const pending: ((response: Response) => void)[] = [];
+    let calls = 0;
+    const service = new BadgeService({
+      cache: POLICY,
+      gate: new ProxyGate(policy),
+      now: () => 1_000,
+      query: {
+        config: {
+          maxBodyBytes: 2_048,
+          target: {
+            apiBaseUrl: "http://api.railway.internal:3000",
+            apiOriginToken: "a".repeat(32),
+            kind: "hosted",
+          },
+          upstreamTimeoutMs: 7_000,
+        },
+        fetcher: () => {
+          calls += 1;
+          return new Promise<Response>((resolve) => {
+            pending.push(resolve);
+          });
+        },
+        queryRunner: () => Promise.reject(new Error("unused")),
+      },
+    });
+    const server = (index: number): PlaygroundQueryInput => ({
+      ...MINECRAFT,
+      host: `slow${index}.example.com`,
+    });
+    const held = [0, 1, 2].map((index) =>
+      service.resolve(server(index), "203.0.113.20"),
+    );
+    // The third server from the same address is refused without a query.
+    expect((await held[2])?.state).toEqual({ kind: "unavailable" });
+    expect(calls).toBe(2);
+    const other = service.resolve(server(3), "203.0.113.21");
+    expect(calls).toBe(3);
+    for (const resolve of pending) resolve(jsonResponse(ONLINE_BODY));
+    await Promise.all([...held, other]);
   });
 });
 

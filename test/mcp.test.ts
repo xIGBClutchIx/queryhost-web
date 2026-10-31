@@ -1,6 +1,5 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { describe, expect, it } from "vitest";
 import { createMcpDependencies, handleMcpRequest } from "../src/server/mcp.js";
 import { ProxyGate } from "../src/server/proxy-gate.js";
@@ -177,8 +176,7 @@ describe("remote MCP", () => {
       },
     );
     try {
-      // The SDK's optional sessionId getter conflicts with exactOptionalPropertyTypes.
-      await client.connect(transport as Transport);
+      await client.connect(transport);
       const discovered = (await client.listTools()).tools;
       expect(discovered.map((tool) => tool.name)).toEqual([
         "list_supported_games",

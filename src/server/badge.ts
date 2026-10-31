@@ -18,6 +18,7 @@ import {
   type BadgeState,
 } from "./badge-svg.js";
 import { callerAddress, rateLimitIdentity } from "./client-address.js";
+import { matchesEtag } from "./http-shared.js";
 import { ProxyGate, type ProxyGatePolicy } from "./proxy-gate.js";
 import {
   forwardQuery,
@@ -105,13 +106,22 @@ export function loadBadgeGatePolicy(
     0,
     maxStartsPerWindow - 1,
   );
+  const maxActive = integerEnvironment(
+    environment,
+    "QUERYHOST_WEB_BADGE_MAX_ACTIVE",
+    4,
+    1,
+    128,
+  );
   return {
-    maxActive: integerEnvironment(
+    maxActive,
+    // One address waiting on unreachable servers must not hold every slot.
+    maxActivePerCaller: integerEnvironment(
       environment,
-      "QUERYHOST_WEB_BADGE_MAX_ACTIVE",
-      4,
+      "QUERYHOST_WEB_BADGE_MAX_ACTIVE_PER_CALLER",
+      Math.min(2, maxActive),
       1,
-      128,
+      maxActive,
     ),
     maxNewStartsPerWindow: maxStartsPerWindow - reserve,
     maxStartsPerCaller: integerEnvironment(
@@ -487,18 +497,6 @@ export function gameLabel(game: string): string {
 export function weakEtag(body: string): string {
   const digest = createHash("sha256").update(body).digest("base64url");
   return `W/"${digest.slice(0, 27)}"`;
-}
-
-/** True when `If-None-Match` names `etag`, compared weakly. */
-export function matchesEtag(header: string | null, etag: string): boolean {
-  if (header === null) {
-    return false;
-  }
-  const opaque = etag.replace(/^W\//u, "");
-  return header
-    .split(",")
-    .map((tag) => tag.trim())
-    .some((tag) => tag === "*" || tag.replace(/^W\//u, "") === opaque);
 }
 
 /**

@@ -102,6 +102,25 @@ function requestFailure(
   };
 }
 
+/**
+ * One query through the same-origin boundary with no visible playground state,
+ * for a comparison. Cancellation rejects; any other failure is its response.
+ */
+async function requestAgentQuery(
+  input: PlaygroundQueryInput,
+  signal: AbortSignal,
+): Promise<QueryOutcome> {
+  try {
+    const response = await requestPlaygroundQuery(input, signal);
+    return response.body;
+  } catch (error) {
+    signal.throwIfAborted();
+    return {
+      error: requestFailure(error instanceof Error ? error : undefined),
+    };
+  }
+}
+
 /** Points the address bar and the tab title at the page being shown. */
 function showLocation(href: string | URL, title: string): void {
   history.replaceState(history.state, "", href);
@@ -148,13 +167,15 @@ export function usePlaygroundSession(
     title: HOME_TITLE,
   });
 
-  useEffect(() => {
-    if (output.kind === "loading") return;
+  // Records a finished output together with the address and title showing at
+  // that moment, before a following query can move them on.
+  const settle = useCallback((next: SettledOutput) => {
     settled.current =
-      output.kind === "idle"
-        ? { href: "/", output, title: HOME_TITLE }
-        : { href: window.location.href, output, title: document.title };
-  }, [output]);
+      next.kind === "idle"
+        ? { href: "/", output: next, title: HOME_TITLE }
+        : { href: window.location.href, output: next, title: document.title };
+    setOutput(next);
+  }, []);
 
   // An abandoned request must not stay in the address bar, where a reload
   // would run it again.
@@ -207,11 +228,11 @@ export function usePlaygroundSession(
           throw abortError("The query was superseded.");
         }
         if (response.kind === "proxy-error") {
-          setOutput({ attempt, kind: "error", ...response.body.error });
+          settle({ attempt, kind: "error", ...response.body.error });
           return response.body;
         }
         resultSequence.current += 1;
-        setOutput({
+        settle({
           detected: false,
           id: resultSequence.current,
           input,
@@ -230,11 +251,11 @@ export function usePlaygroundSession(
         const failure: PlaygroundProxyErrorResponse = {
           error: requestFailure(error instanceof Error ? error : undefined),
         };
-        setOutput({ attempt, kind: "error", ...failure.error });
+        settle({ attempt, kind: "error", ...failure.error });
         return failure;
       }
     },
-    [games, rollBack],
+    [games, rollBack, settle],
   );
 
   const runDetect = useCallback(
@@ -267,11 +288,11 @@ export function usePlaygroundSession(
           throw abortError("The detection was superseded.");
         }
         if (response.kind === "proxy-error") {
-          setOutput({ attempt, kind: "error", ...response.body.error });
+          settle({ attempt, kind: "error", ...response.body.error });
           return undefined;
         }
         if (response.kind === "undetected") {
-          setOutput({
+          settle({
             attempt,
             code: response.code,
             heading: "No supported game was detected.",
@@ -291,7 +312,7 @@ export function usePlaygroundSession(
           resultTitle(detected, response.game),
         );
         resultSequence.current += 1;
-        setOutput({
+        settle({
           detected: true,
           id: resultSequence.current,
           input: detected,
@@ -307,7 +328,7 @@ export function usePlaygroundSession(
           rollBack();
           throw abortError("The detection was cancelled.");
         }
-        setOutput({
+        settle({
           attempt,
           kind: "error",
           ...requestFailure(error instanceof Error ? error : undefined),
@@ -315,7 +336,7 @@ export function usePlaygroundSession(
         return undefined;
       }
     },
-    [games, rollBack],
+    [games, rollBack, settle],
   );
 
   // Read by Cancel and pagehide, which never run mid-render.
@@ -347,6 +368,14 @@ export function usePlaygroundSession(
         ({ registerQueryHostWebMcp }) => {
           if (controller.signal.aborted) return;
           registration = registerQueryHostWebMcp(document, games, {
+            // A comparison queries quietly, outside the visible playground, so
+            // it never rewrites the form, the address, or recent checks, and a
+            // person's own query does not cancel it.
+            compareGameServer: (input, signal) =>
+              requestAgentQuery(
+                input,
+                AbortSignal.any([controller.signal, signal]),
+              ),
             queryGameServer: (input, signal) => {
               onAgentQuery(input);
               return runQuery(input, signal);

@@ -214,9 +214,15 @@ export function connectDocsSearch(
     else render();
   };
 
-  const follow = (index: number): void => {
+  const follow = (index: number, newTab = false): void => {
     const link = options()[index]?.querySelector<HTMLAnchorElement>("a");
     if (link === undefined || link === null) return;
+    if (newTab) {
+      // Ctrl, Cmd, or Shift+Enter opens the result elsewhere, as a modified
+      // click would, and leaves this page and its search open.
+      window.open(link.href, "_blank", "noopener");
+      return;
+    }
     close();
     // A real click lets the client router handle the navigation like any link.
     link.click();
@@ -242,7 +248,7 @@ export function connectDocsSearch(
         setActive(active + (event.key === "ArrowDown" ? 1 : -1), true);
       } else if (event.key === "Enter" && !event.isComposing && active >= 0) {
         event.preventDefault();
-        follow(active);
+        follow(active, event.ctrlKey || event.metaKey || event.shiftKey);
       }
     },
     { signal },

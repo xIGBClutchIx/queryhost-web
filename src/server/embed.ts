@@ -12,6 +12,7 @@ import {
 } from "./badge.js";
 import type { BadgeState } from "./badge-svg.js";
 import { callerAddress, rateLimitIdentity } from "./client-address.js";
+import { escapeMarkup } from "./http-shared.js";
 import { PublicQueryInputError } from "./public-query.js";
 
 const EMBED_ROUTE_ALLOW = "GET, HEAD, OPTIONS";
@@ -37,15 +38,6 @@ export interface EmbedCard {
   readonly state: BadgeState;
   readonly theme: BadgeTheme;
   readonly serverName?: string;
-}
-
-function escapeHtml(text: string): string {
-  return text
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
 }
 
 function cardAddress(input: PlaygroundQueryInput): string {
@@ -175,24 +167,24 @@ export function renderEmbedHtml(card: EmbedCard): string {
   const favicon = card.state.kind === "online" ? card.state.favicon : undefined;
   const icon =
     favicon === undefined
-      ? `<span class="icon glyph" aria-hidden="true">${escapeHtml(Array.from(card.gameName)[0] ?? "Q")}</span>`
-      : `<img class="icon" src="${escapeHtml(favicon)}" alt="" width="48" height="48">`;
+      ? `<span class="icon glyph" aria-hidden="true">${escapeMarkup(Array.from(card.gameName)[0] ?? "Q")}</span>`
+      : `<img class="icon" src="${escapeMarkup(favicon)}" alt="" width="48" height="48">`;
   const players =
     status.players === undefined
       ? ""
-      : `<span class="players">${escapeHtml(status.players)}</span>`;
+      : `<span class="players">${escapeMarkup(status.players)}</span>`;
   const label = `${title}, ${card.gameName}: ${status.label}${status.players === undefined ? "" : `, ${status.players} players`}. Opens on QueryHost.`;
   return [
     `<!doctype html><html lang="en"><head><meta charset="utf-8">`,
     `<meta name="robots" content="noindex">`,
     `<meta http-equiv="refresh" content="${REFRESH_SECONDS}">`,
     `<meta name="viewport" content="width=device-width,initial-scale=1">`,
-    `<title>${escapeHtml(`${title} · ${card.gameName} · QueryHost`)}</title>`,
+    `<title>${escapeMarkup(`${title} · ${card.gameName} · QueryHost`)}</title>`,
     `<style>${themeStyle(card.theme)}${CARD_STYLE}</style></head><body>`,
-    `<a class="card ${status.tone}" href="${escapeHtml(card.href)}" target="_blank" rel="noopener" aria-label="${escapeHtml(label)}">`,
+    `<a class="card ${status.tone}" href="${escapeMarkup(card.href)}" target="_blank" rel="noopener" aria-label="${escapeMarkup(label)}">`,
     icon,
-    `<span class="text"><span class="name">${escapeHtml(title)}</span><span class="address">${escapeHtml(detail)}</span></span>`,
-    `<span class="status">${players}<span class="state"><span class="dot"></span>${escapeHtml(status.label)}</span></span>`,
+    `<span class="text"><span class="name">${escapeMarkup(title)}</span><span class="address">${escapeMarkup(detail)}</span></span>`,
+    `<span class="status">${players}<span class="state"><span class="dot"></span>${escapeMarkup(status.label)}</span></span>`,
     `</a></body></html>`,
   ].join("");
 }
